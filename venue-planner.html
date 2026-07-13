@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>FD Venue Planner v1.0</title>
-<meta name="version" content="1.0">
+<title>FD Venue Planner v1.1</title>
+<meta name="version" content="1.1">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:system-ui,sans-serif;background:#f5f7fa;color:#222;overflow:hidden}
@@ -87,18 +87,80 @@ canvas{display:block}
 .mrow button{flex:1;padding:7px;font-size:12px;border-radius:5px;border:1px solid #ccc;background:#f8f8f8;color:#222;cursor:pointer}
 .mrow button.ok{background:#185FA5;border-color:#185FA5;color:#fff}
 </style>
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8",
+  authDomain: "event-planner-7944d.firebaseapp.com",
+  projectId: "event-planner-7944d",
+  storageBucket: "event-planner-7944d.firebasestorage.app",
+  messagingSenderId: "455768566205",
+  appId: "1:455768566205:web:c5274d85158e6b2bf8cad4"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Expose to global scope for use in non-module scripts
+window._fb = { auth, db, doc, getDoc, setDoc, collection, getDocs, signInWithEmailAndPassword, signOut };
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('userEmail').textContent = user.email;
+    window._fbUser = user;
+    // Load venues and layouts from Firestore then init
+    window._fbLoadAndInit();
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    window._fbUser = null;
+  }
+});
+</script>
+<style>
+#loginOverlay{position:fixed;inset:0;background:#1a1a18;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:16px;}
+#loginBox{background:#2c2c2a;border-radius:10px;padding:36px 40px;display:flex;flex-direction:column;gap:14px;min-width:300px;box-shadow:0 8px 32px #0008;}
+#loginBox h2{color:#fff;font-size:18px;margin-bottom:4px;text-align:center;}
+#loginBox .fdlogo{text-align:center;font-size:13px;color:#888;margin-bottom:8px;letter-spacing:.08em;text-transform:uppercase;}
+#loginBox input{padding:9px 12px;border-radius:6px;border:1px solid #444;background:#1a1a18;color:#fff;font-size:14px;outline:none;}
+#loginBox input:focus{border-color:#185FA5;}
+#loginBox button{padding:10px;border-radius:6px;background:#185FA5;color:#fff;font-size:14px;font-weight:600;border:none;cursor:pointer;}
+#loginBox button:hover{background:#1a70c0;}
+#loginErr{color:#e74c3c;font-size:13px;text-align:center;min-height:18px;}
+</style>
 </head>
 <body>
-<div id="app">
+<!-- Login overlay -->
+<div id="loginOverlay" style="display:flex">
+  <div id="loginBox">
+    <div class="fdlogo">Funky Dory Events</div>
+    <h2>Venue Planner</h2>
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"/>
+    <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"/>
+    <button onclick="doLogin()">Sign in</button>
+    <div id="loginErr"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
 <div id="topbar">
   <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Venue</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
   <div id="topright">
+    <span id="userEmail" style="font-size:11px;color:#888;margin-right:4px;"></span>
     <button onclick="saveLayout()">Save</button>
     <button onclick="openCopy()">Copy from year...</button>
     <button onclick="exportPNG()">Export PNG</button>
+    <button onclick="doSignOut()" title="Sign out" style="color:#888;">⏻</button>
   </div>
 </div>
 <div id="toolbar">
@@ -351,12 +413,91 @@ const PROX_RULES = [
 ];
 
 // ── storage ──────────────────────────────────────────────────────────────────
+// localStorage kept as fast local cache; Firestore is source of truth
 const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}},set(k,v){localStorage.setItem(k,JSON.stringify(v))}};
-let venues=LS.get('fd_venues')||['HRR','FD7','FD Shindig'];
+
+// ── undo ──────────────────────────────────────────────────────────────────────
+const UNDO_MAX=50;
+let undoStack=[];
+function pushUndo(){
+  undoStack.push({objects:JSON.parse(JSON.stringify(objects)),boundary:boundary?{...boundary}:null});
+  if(undoStack.length>UNDO_MAX)undoStack.shift();
+}
+function doUndo(){
+  if(!undoStack.length){notify('Nothing to undo');return;}
+  const s=undoStack.pop();
+  objects=JSON.parse(JSON.stringify(s.objects));
+  boundary=s.boundary?{...s.boundary}:null;
+  selected=null;
+  draw();updateStatus();notify('Undo');
+}
+
+// ── firebase helpers ──────────────────────────────────────────────────────────
+async function fbSaveLayout(key,data){
+  if(!window._fb||!window._fbUser)return;
+  try{
+    const {db,doc,setDoc}=window._fb;
+    await setDoc(doc(db,'venues',key),data);
+  }catch(e){console.warn('FB save failed',e);}
+}
+async function fbLoadAll(){
+  if(!window._fb||!window._fbUser)return null;
+  try{
+    const {db,collection,getDocs}=window._fb;
+    const snap=await getDocs(collection(db,'venues'));
+    const result={};
+    snap.forEach(d=>{result[d.id]=d.data();});
+    return result;
+  }catch(e){console.warn('FB load failed',e);return null;}
+}
+async function fbSaveEquipment(eq){
+  if(!window._fb||!window._fbUser)return;
+  try{
+    const {db,doc,setDoc}=window._fb;
+    await setDoc(doc(db,'equipment','library'),{items:eq});
+  }catch(e){console.warn('FB equipment save failed',e);}
+}
+async function fbLoadEquipment(){
+  if(!window._fb||!window._fbUser)return null;
+  try{
+    const {db,doc,getDoc}=window._fb;
+    const snap=await getDoc(doc(db,'equipment','library'));
+    if(snap.exists())return snap.data().items;
+    return null;
+  }catch(e){console.warn('FB equipment load failed',e);return null;}
+}
+
+// Called by Firebase auth observer once user is signed in
+window._fbLoadAndInit=async function(){
+  // Load equipment from Firebase (fall back to localStorage then defaults)
+  const fbEq=await fbLoadEquipment();
+  if(fbEq){equipment=fbEq;LS.set('fd_equipment',equipment);}
+  else{equipment=LS.get('fd_equipment')||[];}
+
+  // Load all layouts from Firebase (fall back to localStorage)
+  const fbLayouts=await fbLoadAll();
+  if(fbLayouts&&Object.keys(fbLayouts).length>0){
+    layouts=fbLayouts;
+    LS.set('fd_layouts',layouts);
+  } else {
+    layouts=LS.get('fd_layouts')||{};
+  }
+
+  // Load venues list (stored in special doc)
+  if(layouts['__venues__']){
+    const saved=layouts['__venues__'].list;
+    if(Array.isArray(saved)&&saved.length)venues=saved;
+  } else {
+    venues=LS.get('fd_venues')||['HRR','FD7','FD Shindig'];
+  }
+
+  init();
+};
+let venues=['HRR','FD7','FD Shindig'];
 let currentVenue=venues[0];
 let currentYear=String(new Date().getFullYear());
-let layouts=LS.get('fd_layouts')||{};
-let equipment=LS.get('fd_equipment')||[];
+let layouts={};
+let equipment=[];
 let objects=[],boundary=null,selected=null,mode='select';
 let showGrid=true,snapOn=true,scale=8,ox=80,oy=60;
 let drawing=false,drawPts=[],mousePos={x:0,y:0};
@@ -380,6 +521,7 @@ function loadDefaultsIfEmpty(){
   if(equipment.length===0){
     equipment=[...DEFAULT_PITCHES];
     LS.set('fd_equipment',equipment);
+    fbSaveEquipment(equipment);
   }
 }
 
@@ -403,10 +545,18 @@ function buildYearTabs(){
 function getYears(v){return Object.keys(layouts).filter(k=>k.startsWith(v+'_')).map(k=>k.split('_')[1]);}
 function switchVenue(v){saveLayout();currentVenue=v;const yrs=getYears(v);currentYear=yrs.length?yrs[yrs.length-1]:String(new Date().getFullYear());buildVenueTabs();buildYearTabs();loadLayout();}
 function switchYear(y){saveLayout();currentYear=y;buildYearTabs();loadLayout();}
-function confirmVenue(){const n=document.getElementById('vnName').value.trim();if(!n)return;if(!venues.includes(n)){venues.push(n);LS.set('fd_venues',venues);}closeModal('venueModal');switchVenue(n);}
+function confirmVenue(){const n=document.getElementById('vnName').value.trim();if(!n)return;if(!venues.includes(n)){venues.push(n);LS.set('fd_venues',venues);fbSaveLayout('__venues__',{list:venues});}closeModal('venueModal');switchVenue(n);}
 
 // ── save/load ─────────────────────────────────────────────────────────────────
-function saveLayout(){layouts[lkey()]={objects:JSON.parse(JSON.stringify(objects)),boundary:boundary?{...boundary}:null};LS.set('fd_layouts',layouts);notify('Saved');}
+function saveLayout(){
+  pushUndo();
+  const key=lkey();
+  const data={objects:JSON.parse(JSON.stringify(objects)),boundary:boundary?{...boundary}:null};
+  layouts[key]=data;
+  LS.set('fd_layouts',layouts);
+  fbSaveLayout(key,data);
+  notify('Saved ✓');
+}
 function loadLayout(){
   const s=layouts[lkey()];
   if(s){objects=JSON.parse(JSON.stringify(s.objects||[]));boundary=s.boundary?{...s.boundary}:null;}
@@ -482,7 +632,7 @@ function confirmEquip(){
   const snap=document.getElementById('eqSnap').value;if(snap==='3')w=Math.max(3,Math.round(w/3)*3);
   const item={name,cat:document.getElementById('eqCat').value,w,d,snap,owner:document.getElementById('eqOwner').value,supplier:document.getElementById('eqSupplier').value,colour:document.getElementById('eqColour').value,notes:document.getElementById('eqNotes').value};
   if(editingEquipIdx>=0)equipment[editingEquipIdx]=item;else equipment.push(item);
-  LS.set('fd_equipment',equipment);closeModal('equipModal');renderEquipList();renderLibrary();
+  LS.set('fd_equipment',equipment);fbSaveEquipment(equipment);closeModal('equipModal');renderEquipList();renderLibrary();
 }
 
 // ── safety reference panel ────────────────────────────────────────────────────
@@ -667,6 +817,7 @@ canvas.addEventListener('drop',e=>{
   e.preventDefault();if(!pendingDragEquip)return;
   const r=canvas.getBoundingClientRect();
   const mx=snp(toMX(e.clientX-r.left)-pendingDragEquip.w/2),my=snp(toMY(e.clientY-r.top)-pendingDragEquip.d/2);
+  pushUndo();
   const obj={type:'item',x:mx,y:my,w:pendingDragEquip.w,d:pendingDragEquip.d,name:pendingDragEquip.name,cat:pendingDragEquip.cat,colour:pendingDragEquip.colour||CAT_COL[pendingDragEquip.cat]||'#888'};
   objects.push(obj);pendingDragEquip=null;
   const warn=checkProximity(obj);if(warn)showWarning(warn);
@@ -735,6 +886,7 @@ window.addEventListener('keydown',e=>{
   if(e.code==='Space'&&document.activeElement===document.body){spaceDown=true;canvas.style.cursor='grab';}
   if(e.key==='Escape'){drawing=false;drawPts=[];pending=null;draw();}
   if((e.key==='Delete'||e.key==='Backspace')&&selected&&document.activeElement===document.body)deleteSelected();
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&document.activeElement===document.body){e.preventDefault();doUndo();}
 });
 window.addEventListener('keyup',e=>{if(e.code==='Space'){spaceDown=false;canvas.style.cursor=mode==='select'?'default':'crosshair';}});
 
@@ -788,7 +940,7 @@ function rotateCustom(){
   selected.rotation=((deg%360)+360)%360;
   draw();updateStatus();
 }
-function deleteSelected(){if(!selected)return;objects=objects.filter(o=>o!==selected);selected=null;draw();updateStatus();}
+function deleteSelected(){if(!selected)return;pushUndo();objects=objects.filter(o=>o!==selected);selected=null;draw();updateStatus();}
 function clearCanvas(){if(confirm('Clear all objects? The site boundary stays.')){objects=[];selected=null;draw();updateStatus();}}
 
 function toggleAuto(){document.getElementById('autoPanel').classList.toggle('open');}
@@ -796,6 +948,7 @@ function doAutoPlace(){
   const idx=parseInt(document.getElementById('apItem').value);if(isNaN(idx)||!equipment[idx])return;
   const e=equipment[idx],qty=parseInt(document.getElementById('apQty').value)||1,gap=parseFloat(document.getElementById('apGap').value)||1.5,every=parseInt(document.getElementById('apEvery').value)||4,aisleW=parseFloat(document.getElementById('apAisleW').value)||2.5;
   let cx=parseFloat(document.getElementById('apX').value)||5,cy=parseFloat(document.getElementById('apY').value)||5;
+  pushUndo();
   objects=objects.filter(o=>!o._auto||o.name!==e.name);
   let col=0,placed=0;
   while(placed<qty){
@@ -809,9 +962,9 @@ function doAutoPlace(){
 // ── modals ────────────────────────────────────────────────────────────────────
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');pending=null;}
-function confirmZone(){if(!pending)return;pending.label=document.getElementById('zmLabel').value||'Zone';pending.colour=document.getElementById('zmColour').value;pending.opacity=parseFloat(document.getElementById('zmOpacity').value)||0.2;objects.push(pending);closeModal('zoneModal');draw();updateStatus();}
-function confirmMeasure(){if(!pending)return;pending.label=document.getElementById('mmLabel').value||'';objects.push(pending);closeModal('measureModal');draw();updateStatus();}
-function confirmLabel(){if(!pending)return;const txt=document.getElementById('lmText').value.trim();if(!txt){closeModal('labelModal');return;}pending.text=txt;pending.size=parseInt(document.getElementById('lmSize').value)||13;objects.push(pending);closeModal('labelModal');draw();updateStatus();}
+function confirmZone(){if(!pending)return;pushUndo();pending.label=document.getElementById('zmLabel').value||'Zone';pending.colour=document.getElementById('zmColour').value;pending.opacity=parseFloat(document.getElementById('zmOpacity').value)||0.2;objects.push(pending);closeModal('zoneModal');draw();updateStatus();}
+function confirmMeasure(){if(!pending)return;pushUndo();pending.label=document.getElementById('mmLabel').value||'';objects.push(pending);closeModal('measureModal');draw();updateStatus();}
+function confirmLabel(){if(!pending)return;const txt=document.getElementById('lmText').value.trim();if(!txt){closeModal('labelModal');return;}pushUndo();pending.text=txt;pending.size=parseInt(document.getElementById('lmSize').value)||13;objects.push(pending);closeModal('labelModal');draw();updateStatus();}
 function openCopy(){const cv=document.getElementById('cpVenue');cv.innerHTML='';venues.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;cv.appendChild(o);});cv.value=currentVenue;updateCopyYears();openModal('copyModal');}
 function updateCopyYears(){const v=document.getElementById('cpVenue').value,cy=document.getElementById('cpYear');cy.innerHTML='';const yrs=getYears(v);if(!yrs.length){const o=document.createElement('option');o.textContent='No saved years';cy.appendChild(o);}else yrs.forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=y;cy.appendChild(o);});}
 function confirmCopy(){const v=document.getElementById('cpVenue').value,y=document.getElementById('cpYear').value,src=layouts[v+'_'+y];if(src){objects=[...objects,...JSON.parse(JSON.stringify(src.objects||[]))];draw();}closeModal('copyModal');notify('Layout copied in');}
@@ -829,7 +982,28 @@ function updateStatus(){
 function notify(msg){const n=document.getElementById('notify');n.textContent=msg;n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>{n.style.display='none';},2200);}
 function exportPNG(){const a=document.createElement('a');a.download=`${currentVenue}-${currentYear}.png`;a.href=canvas.toDataURL('image/png');a.click();}
 
-init();
+// init() is now called by window._fbLoadAndInit() after Firebase auth
+
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pwd=document.getElementById('loginPwd').value;
+  const err=document.getElementById('loginErr');
+  err.textContent='Signing in…';
+  const {auth,signInWithEmailAndPassword}=window._fb;
+  signInWithEmailAndPassword(auth,email,pwd)
+    .then(()=>{err.textContent='';})
+    .catch(e=>{err.textContent=e.code==='auth/invalid-credential'?'Incorrect email or password.':'Error: '+e.message;});
+}
+
+function doSignOut(){
+  if(!confirm('Sign out?'))return;
+  const {auth,signOut}=window._fb;
+  signOut(auth);
+}
+
+// Allow Enter key on login form
+document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 </script>
 </body>
 </html>
