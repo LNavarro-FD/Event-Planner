@@ -1,0 +1,11 @@
+{
+  "updated": "2026-07-13",
+  "files": {
+    "config.js":           { "version": "1.0.0", "description": "Shared configuration — suppliers, events, Firebase, budget categories" },
+    "hub.html":            { "version": "1.0.0", "description": "Unified shell — navigation, shared auth, module loader" },
+    "venue-planner.html":  { "version": "3.0.0", "description": "Site layout canvas — drag/drop, Firestore save, quote summary" },
+    "todo.html":           { "version": "2.0.0", "description": "Master to-do list — swimlane lifecycle, Firebase sync" },
+    "kanban.html":         { "version": "2.0.0", "description": "Kanban + Gantt timeline + Build Week grid" },
+    "task-tracker.html":   { "version": "1.0.0", "description": "Simple task tracker (legacy — superseded by todo.html)" }
+  }
+}
