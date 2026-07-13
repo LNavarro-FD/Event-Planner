@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="config.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FD Event Planner — FD7 Kanban</title>
@@ -604,6 +605,35 @@ function notify(msg){
 
 document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+// ── Hub auth receiver (postMessage from hub.html) ─────────────────────────
+(function() {
+  // If loaded inside hub, receive auth token via postMessage
+  function isInHub() { try { return window.parent !== window; } catch(e) { return false; } }
+
+  if (isInHub()) {
+    // Hide login, show app — hub handles auth
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'FD_AUTH' && window._fb && !window._fbUser) {
+        // Sign in with custom token approach — or just trust parent auth state
+        // Since Firebase auth persists via indexedDB across same origin, 
+        // the iframe will pick up the session automatically.
+        // We just need to trigger our load function.
+        if (window._loadTasks) window._loadTasks();
+        if (window._fbLoad) window._fbLoad();
+        if (window._fbLoadAndInit) window._fbLoadAndInit();
+      }
+    });
+    // Request auth token from parent immediately
+    try { window.parent.postMessage({ type: 'FD_AUTH_REQUEST' }, '*'); } catch(e) {}
+
+    // Also notify parent of save events
+    window._notifyHubSync = function(msg) {
+      try { window.parent.postMessage({ type: 'FD_SYNC_STATUS', msg }, '*'); } catch(e) {}
+    };
+  }
+})();
+
 </script>
 </body>
 </html>
