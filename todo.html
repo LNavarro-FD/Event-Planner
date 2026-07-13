@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FD Festival 7 — Master To-Do List</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#222;padding:24px}
+h1{font-size:20px;font-weight:700;margin-bottom:4px}
+.sub{font-size:13px;color:#666;margin-bottom:20px}
+.stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.stat{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px 20px;min-width:110px;text-align:center}
+.stat .n{font-size:24px;font-weight:700}
+.stat .l{font-size:11px;color:#888;margin-top:2px}
+.filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.filters button{font-size:12px;padding:5px 14px;border-radius:20px;border:1px solid #ccc;background:#fff;cursor:pointer}
+.filters button.active{background:#FF4B7B;color:#fff;border-color:#FF4B7B}
+.section{background:#fff;border:1px solid #ddd;border-radius:8px;margin-bottom:16px;overflow:hidden}
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;padding:10px 14px;background:#f9f9f9;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.sec-hdr:hover{background:#f0f0f0}
+.sec-hdr.all-done{background:#f0f7ec;border-bottom-color:#d4eac8}
+.sec-hdr.all-done .sec-title{color:#3b6d11}
+.sec-hdr.collapsed{border-bottom:none}
+.sec-body{display:block}
+.sec-body.collapsed{display:none}
+.sec-chevron{font-size:14px;color:#ccc;margin-left:8px;transition:transform .15s;flex-shrink:0}
+.sec-meta{font-size:11px;font-weight:400;color:#aaa;margin-left:8px;text-transform:none;letter-spacing:0}
+.item{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:.5px solid #f0f0f0;cursor:pointer}
+.item:last-child{border-bottom:none}
+.item:hover{background:#fafafa}
+.item.done .lbl{text-decoration:line-through;color:#aaa}
+input[type=checkbox]{margin-top:2px;flex-shrink:0;accent-color:#FF4B7B;width:15px;height:15px;cursor:pointer}
+.lbl{flex:1;line-height:1.4}
+.note{display:block;font-size:12px;color:#888;margin-top:2px}
+.badge{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.urgent{background:#fde8e8;color:#a32d2d}
+.pending{background:#fef0d6;color:#854f0b}
+.ok{background:#eaf3de;color:#3b6d11}
+.in-progress{background:#e3f2fd;color:#1565c0}
+.blocked{background:#f3e5f5;color:#6a1b9a}
+.waiting{background:#fff8e1;color:#e65100}
+.status-sel{font-size:12px;padding:4px 8px;border:1px solid #ddd;border-radius:5px;font-family:Arial,sans-serif;background:#fff;cursor:pointer;color:#444}
+.status-sel:focus{outline:none;border-color:#FF4B7B}
+.item-notes{display:none;padding:8px 14px 10px 39px;border-top:.5px solid #f0f0f0;background:#fafafa}
+.item-notes.open{display:block}
+.note-log{margin-bottom:6px}
+.note-entry{font-size:12px;color:#444;padding:4px 0;border-bottom:.5px solid #eee;line-height:1.5}
+.note-entry:last-child{border-bottom:none}
+.note-ts{font-size:11px;color:#aaa;margin-right:6px}
+.note-del{font-size:11px;color:#ddd;cursor:pointer;margin-left:6px;border:none;background:none;padding:0}
+.note-del:hover{color:#a32d2d}
+.note-input-row{display:flex;gap:6px;margin-top:4px}
+.note-input-row input{flex:1;font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-family:Arial,sans-serif}
+.note-input-row button{font-size:12px;padding:5px 10px;background:#22224C;color:#fff;border:none;border-radius:5px;cursor:pointer;white-space:nowrap}
+.notes-toggle{font-size:11px;color:#aaa;cursor:pointer;border:none;background:none;padding:0 0 0 4px;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.notes-toggle:hover{color:#22224C}
+.inline-notes{padding:4px 14px 8px 39px;background:inherit}
+.inline-note-entry{font-size:12px;color:#555;padding:2px 0;line-height:1.5;display:flex;align-items:baseline;gap:6px}
+.inline-note-ts{font-size:11px;color:#bbb;white-space:nowrap;flex-shrink:0}
+.inline-sub-entry{font-size:12px;color:#555;padding:2px 0;display:flex;align-items:center;gap:6px}
+
+/* Login */
+#loginOverlay{position:fixed;inset:0;background:#1a1a18;display:flex;align-items:center;justify-content:center;z-index:9999}
+#loginBox{background:#2c2c2a;border-radius:10px;padding:36px 40px;display:flex;flex-direction:column;gap:14px;min-width:300px}
+#loginBox h2{color:#fff;font-size:18px;text-align:center}
+#loginBox input{padding:9px 12px;border-radius:6px;border:1px solid #444;background:#1a1a18;color:#fff;font-size:14px;outline:none}
+#loginBox input:focus{border-color:#FF4B7B}
+#loginBox .signin{padding:10px;border-radius:6px;background:#FF4B7B;color:#fff;font-size:14px;font-weight:600;border:none;cursor:pointer}
+#loginBox .signin:hover{background:#e03567}
+#loginErr{color:#ef4444;font-size:13px;text-align:center;min-height:18px}
+.forgotlink{text-align:center;font-size:12px;color:#888;cursor:pointer;text-decoration:underline}
+#saveStatus{font-size:11px;color:#3b6d11;margin-left:auto}
+</style>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+const app = initializeApp({
+  apiKey:"AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8",
+  authDomain:"event-planner-7944d.firebaseapp.com",
+  projectId:"event-planner-7944d",
+  storageBucket:"event-planner-7944d.firebasestorage.app",
+  messagingSenderId:"455768566205",
+  appId:"1:455768566205:web:c5274d85158e6b2bf8cad4"
+});
+const auth=getAuth(app), db=getFirestore(app);
+window._fb={auth,db,doc,getDoc,setDoc,signInWithEmailAndPassword,signOut,sendPasswordResetEmail};
+onAuthStateChanged(auth,user=>{
+  if(user){
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('mainContent').style.display='block';
+    window._fbUser=user;
+    window._fbLoad();
+  } else {
+    document.getElementById('loginOverlay').style.display='flex';
+    document.getElementById('mainContent').style.display='none';
+  }
+});
+</script>
+</head>
+<body>
+
+<div id="loginOverlay">
+  <div id="loginBox">
+    <h2>FD7 To-Do List</h2>
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"/>
+    <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"/>
+    <button class="signin" onclick="doLogin()">Sign in</button>
+    <div id="loginErr"></div>
+    <div class="forgotlink" onclick="doForgotPassword()">Forgot password?</div>
+  </div>
+</div>
+
+<div id="mainContent" style="display:none">
+<h1>Funky Dory Festival 7 — 2026</h1>
+<p class="sub">Master to-do list · Sat 15 Aug 2026 · Ashfields Carriage &amp; Polo Club, CM6 1JU <span id="saveStatus"></span></p>
+
+<div class="stats" id="stats"></div>
+
+<div style="background:#fff;border:1px solid #ddd;border-radius:8px;margin-bottom:20px;overflow:hidden">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;padding:10px 14px;background:#f9f9f9;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
+    <span>General notes</span>
+    <span id="notes-saved" style="font-size:11px;color:#3b6d11;font-weight:400;display:none">Saved</span>
+  </div>
+  <textarea id="notes-area" placeholder="Add notes here..." style="width:100%;min-height:100px;border:none;padding:12px 14px;font-family:Arial,sans-serif;font-size:13px;color:#222;resize:vertical;background:#fff;outline:none;line-height:1.6"></textarea>
+</div>
+
+<div class="filters">
+  <button class="active" onclick="setFilter('all',this)">All</button>
+  <button onclick="setFilter('urgent',this)">Urgent</button>
+  <button onclick="setFilter('in-progress',this)">In progress</button>
+  <button onclick="setFilter('waiting',this)">Waiting</button>
+  <button onclick="setFilter('blocked',this)">Blocked</button>
+  <button onclick="setFilter('pending',this)">Pending</button>
+  <button onclick="setFilter('done',this)">Ticked off</button>
+</div>
+
+<div style="margin-bottom:16px">
+  <button id="add-toggle" style="font-size:13px;padding:7px 16px;border-radius:20px;border:1px solid #FF4B7B;background:#FF4B7B;color:#fff;cursor:pointer;font-weight:600">+ Add task</button>
+</div>
+<div id="add-form" style="display:none;background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin-bottom:16px">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:12px">New task</div>
+  <div style="margin-bottom:10px">
+    <label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Task title *</label>
+    <input id="new-title" type="text" placeholder="What needs doing?" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Arial,sans-serif">
+  </div>
+  <div style="margin-bottom:10px">
+    <label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Note / detail</label>
+    <input id="new-note" type="text" placeholder="Optional extra detail" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Arial,sans-serif">
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+    <div style="flex:1;min-width:180px">
+      <label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Category</label>
+      <select id="new-cat" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Arial,sans-serif"></select>
+    </div>
+    <div style="flex:1;min-width:120px">
+      <label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Priority</label>
+      <select id="new-status" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Arial,sans-serif">
+        <option value="pending">Pending</option>
+        <option value="urgent">Urgent</option>
+      </select>
+    </div>
+  </div>
+  <input id="new-cat-name" type="text" placeholder="New category name" style="display:none;width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Arial,sans-serif;margin-bottom:10px">
+  <button onclick="addTask()" style="padding:7px 20px;background:#22224C;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Add task</button>
+</div>
+
+<div id="list"></div>
+</div>
+
+<script>
+const sections=[{"cat": "Commercial & Legal", "items": [{"t": "Field hire confirmed with Ashfields", "n": "Rosie to speak to Zoe / Dulcie. Green Street, Great Canfield, Dunmow CM6 1JU.", "s": "urgent"}, {"t": "License confirmed with Uttlesford Council", "n": "Check requirements for 2,500 people re H&S, security.", "s": "urgent"}, {"t": "Insurance \u2014 get new quote", "n": "Louise to obtain. Confirm cancellation / weather cover in place before event.", "s": "urgent"}, {"t": "Confirm event date publicly \u2014 Sat 15 Aug 2026", "n": "Event times 12pm\u201310pm. Setup Fri 14 Aug.", "s": "pending"}]}, {"cat": "Stage, Sound & Power", "items": [{"t": "Panache Audio confirmed \u2014 Stage 86 8\u00d76m + PA + lighting + generator", "n": "Quote QU-0763, \u00a36,720 inc VAT. Payment on invoice after event. Contact: Ronnie 07775 875522 / Rosie 07775 875522 / Louise 07832 153489. Setup Fri 14 Aug.", "s": "in-progress"}, {"t": "Confirm setup arrival time with Panache Audio (Fri 14 Aug)", "n": "Dave Ong / Panache Audio 01634 720700 / sales@panacheaudio.co.uk", "s": "urgent"}, {"t": "Stage DJ set-up \u2014 Kacy Sounds & Lighting", "n": "Quote approved by Ronnie. Check monitor spec with Dave Ong.", "s": "in-progress"}, {"t": "Power supply for site \u2014 find supplier", "n": "Matt Power unavailable \u2014 has another booking. Power needed from Friday morning. Panache quote includes 20KVA generator for stage \u2014 confirm if site power is separate.", "s": "urgent"}, {"t": "Site power design / cable plan", "n": "Coordinate with stage (Panache), bar, lighting (Marvellous Glow), toilets, tills, DJ kit.", "s": "urgent"}, {"t": "Confirm generator fuel arrangement", "n": "Panache QU-0763: fuel charged after event at current pump prices.", "s": "pending"}]}, {"cat": "Artist Liaison \u2014 Bobby & Steve", "items": [{"t": "Book \u2014 send form and confirm", "n": "Send Funky Dory booking form. Confirm for FD7 Sat 15 Aug 2026.", "s": "urgent"}, {"t": "Get rider", "n": "Collect rider requirements \u2014 drinks, food, backstage needs.", "s": "pending"}, {"t": "Send accreditation pack", "n": "Send accreditation pack and full backstage access instructions.", "s": "pending"}, {"t": "Get guest list", "n": "Collect names for the door.", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "Design, print and send backstage/accreditation lanyard. Include name, role, access level.", "s": "pending"}, {"t": "Hotel & transport \u2014 check if needed", "n": "", "s": "pending"}]}, {"cat": "Artist Liaison \u2014 Brandon Block", "items": [{"t": "Book \u2014 send form and confirm", "n": "Send Funky Dory booking form. Confirm for FD7 Sat 15 Aug 2026.", "s": "urgent"}, {"t": "Get rider", "n": "Collect rider requirements.", "s": "pending"}, {"t": "Send accreditation pack", "n": "Send accreditation pack and backstage access info.", "s": "pending"}, {"t": "Get guest list", "n": "Collect names for the door.", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "Design, print and send backstage lanyard.", "s": "pending"}, {"t": "Hotel & transport \u2014 check if needed", "n": "", "s": "pending"}]}, {"cat": "Artist Liaison \u2014 Ricky Morrison", "items": [{"t": "Book \u2014 send form and confirm", "n": "Confirm for FD7 Sat 15 Aug 2026.", "s": "urgent"}, {"t": "Get rider", "n": "", "s": "pending"}, {"t": "Send accreditation pack", "n": "", "s": "pending"}, {"t": "Get guest list", "n": "", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "", "s": "pending"}, {"t": "Hotel & transport \u2014 check if needed", "n": "", "s": "pending"}]}, {"cat": "Artist Liaison \u2014 Colin Francis", "items": [{"t": "Book \u2014 send form and confirm", "n": "Confirm for FD7 Sat 15 Aug 2026.", "s": "urgent"}, {"t": "Get rider", "n": "", "s": "pending"}, {"t": "Send accreditation pack", "n": "", "s": "pending"}, {"t": "Get guest list", "n": "", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "", "s": "pending"}, {"t": "Hotel & transport \u2014 check if needed", "n": "", "s": "pending"}]}, {"cat": "Artist Liaison \u2014 Mark Knight", "items": [{"t": "Book \u2014 send form and confirm", "n": "Confirm for FD7 Sat 15 Aug 2026.", "s": "urgent"}, {"t": "Get rider", "n": "", "s": "pending"}, {"t": "Send accreditation pack", "n": "", "s": "pending"}, {"t": "Get guest list", "n": "", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "", "s": "pending"}, {"t": "Hotel & transport \u2014 check if needed", "n": "", "s": "pending"}]}, {"cat": "Artist Liaison \u2014 John Morales", "items": [{"t": "Book \u2014 send form and confirm", "n": "Confirm for FD7 Sat 15 Aug 2026.", "s": "urgent"}, {"t": "Get rider", "n": "", "s": "pending"}, {"t": "Send accreditation pack", "n": "", "s": "pending"}, {"t": "Get guest list", "n": "", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "", "s": "pending"}, {"t": "Book hotel & arrange transport", "n": "Hotel and transport required for John Morales.", "s": "urgent"}]}, {"cat": "Artist Liaison \u2014 Michael Gray", "items": [{"t": "Book \u2014 send form and confirm", "n": "Confirm for FD7 Sat 15 Aug 2026. Booking fee \u00a3300+VAT already in budget.", "s": "urgent"}, {"t": "Get rider", "n": "", "s": "pending"}, {"t": "Send accreditation pack", "n": "", "s": "pending"}, {"t": "Get guest list", "n": "", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "", "s": "pending"}, {"t": "Book hotel & arrange transport", "n": "Hotel and transport required for Michael Gray.", "s": "urgent"}]}, {"cat": "Artist Liaison \u2014 Noah Herel", "items": [{"t": "Book \u2014 send form and confirm", "n": "Confirm for FD7 Sat 15 Aug 2026.", "s": "urgent"}, {"t": "Get rider", "n": "", "s": "pending"}, {"t": "Send accreditation pack", "n": "", "s": "pending"}, {"t": "Get guest list", "n": "", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "", "s": "pending"}, {"t": "Hotel & transport \u2014 check if needed", "n": "", "s": "pending"}]}, {"cat": "Artist Liaison \u2014 Gordon Mac", "items": [{"t": "Book \u2014 send form and confirm", "n": "Confirm for FD7 Sat 15 Aug 2026.", "s": "urgent"}, {"t": "Get rider", "n": "", "s": "pending"}, {"t": "Send accreditation pack", "n": "", "s": "pending"}, {"t": "Get guest list", "n": "", "s": "pending"}, {"t": "Prepare & send lanyard", "n": "", "s": "pending"}, {"t": "Hotel & transport \u2014 check if needed", "n": "", "s": "pending"}]}, {"cat": "Structures & Infrastructure", "items": [{"t": "Stretch tent \u2014 main bar \u2014 quote from Ben (Under The Canvas)", "n": "Ben: 07711 072 438 / ben@underthecanvas.co.uk. Spoke to Ben \u2014 quote coming. Decide bar layout first.", "s": "urgent"}, {"t": "Wellness tent \u2014 quote from Ben (Under The Canvas)", "n": "Ben to send quote.", "s": "pending"}, {"t": "VIP tipi \u2014 confirm with Tipis 4 Hire", "n": "Decide how many tipis and whether new VIP area. Budget \u00a31,400 inc VAT for matting & fairy lights.", "s": "urgent"}, {"t": "Sponsor tent tipi \u2014 Tipis 4 Hire", "n": "Check availability and get quote.", "s": "pending"}, {"t": "Bins \u2014 all areas", "n": "Confirm supplier and quantities.", "s": "pending"}, {"t": "Skip hire \u2014 Dunmow Group", "n": "01245 466646. Account: Funky Dory Love Limited. Delivery: Polo House CM6 1JU. Louise to order.", "s": "urgent"}, {"t": "RoRo 40yd \u2014 Dunmow Group", "n": "Last booked: Job 887986, 15/08/2025. Note: collections 1-2 days after requested date.", "s": "pending"}, {"t": "Internet on site \u2014 Lloydy", "n": "Ronnie to book Lloydy.", "s": "pending"}]}, {"cat": "Toilets", "items": [{"t": "Book toilet units \u2014 Luxury Toilet Hire UK (Sharon)", "n": "01371 873003 / Yard: 01371 871871. 1,500 guests = 5x Windsor \u00a33,625+VAT | 2,000 = 6x Windsor + 1x Balmoral \u00a34,975+VAT | 2,500 = 8x Windsor \u00a35,800+VAT. Disabled unit \u00a3150+VAT.", "s": "urgent"}, {"t": "Confirm toilet unit count based on ticket sales", "n": "Review ~1 month before event. Confirm delivery window.", "s": "pending"}, {"t": "Heras fencing around toilet area", "n": "Local Toilet Hire \u2014 James Parkin 0800 907 0086.", "s": "pending"}, {"t": "Decide if screen needed in front of toilets", "n": "Consider location \u2014 especially if high numbers.", "s": "pending"}, {"t": "Recruit toilet attendants \u2014 2 per shift", "n": "Also responsible for keeping area in front of stage clear of litter.", "s": "pending"}, {"t": "Toilet lighting", "n": "Marvellous Glow \u2014 Paul. Remember credit.", "s": "pending"}]}, {"cat": "Fencing & Barriers", "items": [{"t": "Crowd barriers \u2014 get quote and confirm quantities", "n": "Local Toilet Hire \u2014 James Parkin. 0800 907 0086 / James@localtoilethire.co.uk. Work out numbers with Ronnie based on last year. Barriers: 2.3m wide x 1.0m high. Manual offload only.", "s": "urgent"}, {"t": "Heras fencing \u2014 get quote and confirm quantities", "n": "Local Toilet Hire \u2014 James Parkin. Panel covers budget \u00a3432 inc VAT. Delivery \u00a3780 inc VAT. Must be stacked and banded as delivered on collection.", "s": "urgent"}, {"t": "Heras panel covers / branding", "n": "Budget \u00a3432 inc VAT.", "s": "pending"}, {"t": "Booking info to send James: invoice name/address, delivery address, site contact, time restrictions, access issues, hard standing", "n": "Payment required to confirm booking. James@localtoilethire.co.uk / 0800 907 0086.", "s": "pending"}]}, {"cat": "Bar", "items": [{"t": "Bar structure \u2014 Andy Coleman (House Group)", "n": "Still not been able to get hold of Andy! andy@house-group.uk. Get quote for 1,500, 2,000 and 2,500 guests.", "s": "urgent"}, {"t": "Tills, POS & card machines \u2014 Matt Griffiths (Wireless Terminal Solutions)", "n": "Get on Tuesday of setup week to configure all bar prices. Aim for 1-week rental.", "s": "pending"}, {"t": "Decide bar layout", "n": "Needed before stretch tent quote can be finalised.", "s": "urgent"}, {"t": "Drinks orders", "n": "Rosie to place order 2 weeks before event.", "s": "pending"}, {"t": "Water provision \u2014 free on site", "n": "EMP/good practice requirement, especially in hot weather.", "s": "pending"}, {"t": "Bar staff numbers", "n": "Decide staffing levels based on 1,500 / 2,000 / 2,500 guests.", "s": "pending"}, {"t": "ICE supplier and cost", "n": "Confirm supplier and budget.", "s": "pending"}]}, {"cat": "Furniture", "items": [{"t": "Furniture order \u2014 FurniHire (John Moore)", "n": "01455 634125 / info@furnihire.co.uk / furnihire.co.uk. Quote: 70 trestle tables \u00a3276.50+VAT / 100 rustic benches \u00a3550+VAT / 150 wood folding chairs \u00a3337.50+VAT / 8 picnic benches \u00a3160+VAT. Load on pallets.", "s": "urgent"}, {"t": "Furniture delivery \u2014 RDL (Sean Bramwell)", "n": "Sean: 07845 999247 / Jordan: 07901 720844 / Kerry: 07769 032942. Office: 01709 719796. transport@rdl.delivery. Provisionally book when numbers known.", "s": "pending"}, {"t": "Telehandler for offloading \u2014 Chris next door to Ashfields", "n": "Contact TBC. Provisionally book when numbers known.", "s": "pending"}]}, {"cat": "Lighting & Signs", "items": [{"t": "Site lighting quote \u2014 Marvellous Glow (Paul)", "n": "paul@marvellousglow.com. Remember credit from previous event. Quote requested.", "s": "urgent"}, {"t": "Car park lighting \u2014 Marvellous Glow (Paul)", "n": "Remember credit.", "s": "pending"}, {"t": "Powered lettering signs \u2014 Marvellous Glow (Paul)", "n": "R&R confirmed they want to hire again. Quote requested.", "s": "pending"}, {"t": "FD LED signs", "n": "Check power cables are in the box before assuming they work.", "s": "pending"}]}, {"cat": "Security", "items": [{"t": "Security \u2014 Swifty quote", "n": "Quote pending. Budget: \u00a33,940 inc VAT.", "s": "urgent"}, {"t": "Confirm security headcount based on ticket sales", "n": "Agree numbers approximately 1 month before event.", "s": "pending"}, {"t": "Security briefing pack", "n": "Send before setup week. Include site map, contact list, escalation procedure.", "s": "pending"}]}, {"cat": "Food Traders", "items": [{"t": "Cafe Caribbean \u2014 confirm", "n": "Rosie to speak to them.", "s": "pending"}, {"t": "Hog roast \u2014 confirm", "n": "Rosie to chase.", "s": "pending"}, {"t": "Ashfields Carriage & Polo Club catering", "n": "Rosie to speak to them.", "s": "pending"}, {"t": "Danton Marshall \u2014 confirm", "n": "Rosie to speak to them.", "s": "pending"}, {"t": "Lodoland (ice creams & coffee) \u2014 confirm", "n": "Rosie to speak to them.", "s": "pending"}, {"t": "Lebanese food trader \u2014 confirm", "n": "Rosie to speak to them.", "s": "pending"}, {"t": "Send info packs & confirm Wednesday setup slots for all traders", "n": "Include site rules, access instructions, pitch locations, emergency contacts.", "s": "pending"}, {"t": "Collect compliance docs from all food traders", "n": "Required: signed contractor declaration, PLI, food hygiene registration, gas cert (if applicable), PAT records, RAMS, named staff list, vehicle details.", "s": "urgent"}]}, {"cat": "Entertainment", "items": [{"t": "Dancers \u2014 Be Entertained (Holly McDougall)", "n": "Get quote same as 2025.", "s": "urgent"}, {"t": "Tarot card reading \u2014 June", "n": "Rosie to speak to them.", "s": "pending"}, {"t": "Face painting \u2014 Emma Argent", "n": "Rosie to speak to them.", "s": "pending"}, {"t": "Photo booth \u2014 Margot / Elle", "n": "Rosie to speak to them.", "s": "pending"}]}, {"cat": "Entrance & Ticketing", "items": [{"t": "Confirm entrance setup and WiFi coverage to VIP entrance", "n": "Make sure WiFi reaches VIP entrance area.", "s": "pending"}, {"t": "Charging points at door for scanning devices", "n": "Test scanning. Power needed.", "s": "pending"}, {"t": "VIP entrance \u2014 separate from main entrance", "n": "Where to locate? Is another gazebo needed? Lighting for area?", "s": "pending"}, {"t": "VIP entrance staff \u2014 2 runners", "n": "Hand artists to Ronnie. Collect riders from back bar. Staff only.", "s": "pending"}, {"t": "Door staff \u2014 3 people needed", "n": "RC / LN to find 3 people.", "s": "urgent"}, {"t": "Coconut matting at entrance", "n": "Already in stock. Ray to set up on day.", "s": "pending"}, {"t": "Crowd barriers at entrance", "n": "Local Toilet Hire \u2014 James Parkin 0800 907 0086.", "s": "pending"}]}, {"cat": "Staffing", "items": [{"t": "Set-up / take-down staff \u2014 confirm numbers", "n": "Work out staffing levels. LN / RC.", "s": "urgent"}, {"t": "Bar staff \u2014 confirm numbers per guest tier", "n": "Decide based on 1,500 / 2,000 / 2,500 guests.", "s": "urgent"}, {"t": "Cleaning staff \u2014 on the day", "n": "Keep festival area, stage area and behind bar clear of litter.", "s": "pending"}, {"t": "Backstage runners \u2014 2 needed", "n": "Collect artist riders from back bar. Accompany artists to Ronnie.", "s": "pending"}]}, {"cat": "Design & Print", "items": [{"t": "Wristbands \u2014 design and print", "n": "Wait until ticket numbers are known before placing print order.", "s": "pending"}, {"t": "Stage banners \u2014 check existing and decide on reprinting", "n": "Have stage banners but sides were small \u2014 consider reprint. Have the design.", "s": "pending"}, {"t": "Lanyards \u2014 design, print and produce", "n": "For all artists, DJs and backstage crew. Include name, role, access level.", "s": "urgent"}, {"t": "Road signs", "n": "Have Shindig signs (not event-specific). May need more if numbers larger.", "s": "pending"}, {"t": "Flyers", "n": "", "s": "pending"}, {"t": "Correx boards", "n": "", "s": "pending"}, {"t": "Bar menu", "n": "Consider better way to publish bar prices.", "s": "pending"}, {"t": "Table numbers", "n": "Have last year design \u2014 just print based on numbers needed.", "s": "pending"}, {"t": "Table plan", "n": "Have last year design \u2014 just print based on numbers needed.", "s": "pending"}, {"t": "Selfie board", "n": "Check if survived FD Shindig. Have design if reprint needed.", "s": "pending"}, {"t": "Flags and signage overview", "n": "May need more flags \u2014 new entrance flag. New flags must be large not medium.", "s": "pending"}, {"t": "Merchandise \u2014 fans & umbrellas", "n": "Last quote \u00a3318 for 100 fans.", "s": "pending"}, {"t": "Staff T-shirts", "n": "", "s": "pending"}]}, {"cat": "Marketing", "items": [{"t": "Mi-Soul Radio", "n": "RC to arrange. Budget: \u00a32,217.60 inc VAT.", "s": "pending"}, {"t": "Magic Soul Radio", "n": "RC to arrange.", "s": "pending"}, {"t": "Billboards \u2014 roadside media", "n": "Budget: \u00a3991.99 inc VAT.", "s": "pending"}, {"t": "Promotional flyer campaign", "n": "Budget: \u00a3500.", "s": "pending"}, {"t": "Social media management", "n": "RC.", "s": "pending"}, {"t": "Videographer / photographer", "n": "Scott / Jake preferred. Jake to cover stills and video.", "s": "pending"}, {"t": "Roaming interviewer \u2014 Lisa & Neens", "n": "RC to speak to Ronnie about Lisa & Neens.", "s": "pending"}, {"t": "Press board / sponsor board", "n": "Do we need a new one?", "s": "pending"}]}, {"cat": "Decor & Flowers", "items": [{"t": "Flowers \u2014 Fleur De Lys (Louise Stirland)", "n": "Email sent to request quote.", "s": "pending"}, {"t": "FD signs for new areas", "n": "Design and produce signs for any new areas.", "s": "pending"}, {"t": "Table decorations", "n": "", "s": "pending"}]}, {"cat": "Logistics", "items": [{"t": "Local taxi firm \u2014 provisional arrangement", "n": "24/7 Taxis. See if they will put up temporary stand or additional cars on the day.", "s": "pending"}, {"t": "Car park \u2014 is it big enough?", "n": "Consider taxi organisation and lighting for car park.", "s": "pending"}, {"t": "Driveway \u2014 additional signage or lighting?", "n": "", "s": "pending"}]}, {"cat": "On The Day", "items": [{"t": "Supplier delivery plan", "n": "Map out all delivery windows \u2014 stage, furniture, toilets, fencing, food traders etc.", "s": "pending"}, {"t": "Power plan confirmed and distributed", "n": "Share with all suppliers who need power.", "s": "pending"}, {"t": "Setup jobs list for team", "n": "Detailed list per person for build week.", "s": "pending"}, {"t": "Team jobs lists for the day", "n": "Per-person task list for event day.", "s": "pending"}, {"t": "Staff briefing pack", "n": "Circulate before build week. Include emergency procedures, site map, contacts, radio channels.", "s": "pending"}, {"t": "Artist riders prepared and ready at back bar", "n": "2 runners to collect and deliver. Confirm backstage access plan sent to all artists.", "s": "pending"}]}];
+
+// ── Firebase state ────────────────────────────────────────
+let done={}, custom=[], itemLogs={}, subs={}, overrides={}, generalNotes='';
+let saveTimer=null;
+
+const FB_DOC='fd7_todo_2026';
+
+window._fbLoad=async function(){
+  if(!window._fb||!window._fbUser)return;
+  const{db,doc,getDoc}=window._fb;
+  try{
+    const snap=await getDoc(doc(db,'todos',FB_DOC));
+    if(snap.exists()){
+      const d=snap.data();
+      done=d.done||{};
+      custom=d.custom||[];
+      itemLogs=d.itemLogs||{};
+      subs=d.subs||{};
+      overrides=d.overrides||{};
+      generalNotes=d.generalNotes||'';
+    }
+  }catch(e){console.warn('Load failed',e);}
+  document.getElementById('notes-area').value=generalNotes;
+  stats();render();populateCatDropdown();
+};
+
+function fbSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    if(!window._fb||!window._fbUser)return;
+    const{db,doc,setDoc}=window._fb;
+    try{
+      await setDoc(doc(db,'todos',FB_DOC),{done,custom,itemLogs,subs,overrides,generalNotes});
+      const s=document.getElementById('saveStatus');
+      s.textContent='✓ Saved';
+      setTimeout(()=>s.textContent='',2000);
+    }catch(e){console.warn('Save failed',e);}
+  },800);
+}
+
+// Notes area
+(function(){
+  const ta=document.getElementById('notes-area');
+  ta.addEventListener('input',function(){generalNotes=this.value;fbSave();});
+})();
+
+function effectiveStatus(item,key){return overrides[key]||item.s;}
+function changeStatus(key,val){overrides[key]=val;fbSave();stats();render();}
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function fmtTs(ts){
+  const d=new Date(ts);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function allCats(){
+  const cats=sections.map(s=>s.cat);
+  custom.forEach(c=>{if(!cats.includes(c.cat))cats.push(c.cat);});
+  return cats;
+}
+
+function stats(){
+  let t=0,d=0,u=0,p=0;
+  const count=(key,item)=>{
+    t++;const es=effectiveStatus(item,key);
+    if(done[key])d++;
+    else if(es==='urgent')u++;
+    else p++;
+  };
+  sections.forEach(s=>s.items.forEach((item,i)=>count(s.cat+'_h_'+i,item)));
+  custom.forEach(item=>count('_c_'+item.id,item));
+  document.getElementById('stats').innerHTML=
+    `<div class="stat"><div class="n">${t}</div><div class="l">Total</div></div>`+
+    `<div class="stat"><div class="n" style="color:#a32d2d">${u}</div><div class="l">Urgent</div></div>`+
+    `<div class="stat"><div class="n" style="color:#854f0b">${p}</div><div class="l">Pending</div></div>`+
+    `<div class="stat"><div class="n" style="color:#3b6d11">${d}</div><div class="l">Done</div></div>`;
+}
+
+let cur='all';
+function setFilter(f,btn){
+  cur=f;
+  document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function addItemNote(key,inputId){
+  const inp=document.getElementById(inputId);
+  const text=inp.value.trim();
+  if(!text)return;
+  if(!itemLogs[key])itemLogs[key]=[];
+  itemLogs[key].push({ts:Date.now(),text});
+  fbSave();inp.value='';renderLog(key);renderInline(key);
+}
+function deleteItemNote(key,idx){
+  if(!itemLogs[key])return;
+  itemLogs[key].splice(idx,1);
+  fbSave();renderLog(key);renderInline(key);
+}
+function renderLog(key){
+  const el=document.getElementById('log_'+key);
+  if(!el)return;
+  const logs=itemLogs[key]||[];
+  el.innerHTML=logs.length===0?'<div style="font-size:11px;color:#ccc;padding:2px 0">No notes yet</div>':
+    logs.map((e,i)=>`<div class="note-entry"><span class="note-ts">${fmtTs(e.ts)}</span>${e.text}<button class="note-del" onclick="deleteItemNote('${key.replace(/'/g,"\'")}',${i})" title="Delete">✕</button></div>`).join('');
+}
+
+function addSub(parentKey,inputId){
+  const inp=document.getElementById(inputId);
+  const text=inp.value.trim();
+  if(!text)return;
+  if(!subs[parentKey])subs[parentKey]=[];
+  subs[parentKey].push({id:uid(),t:text,done:false});
+  fbSave();inp.value='';renderSubs(parentKey);renderInline(parentKey);
+}
+function toggleSub(parentKey,subId){
+  if(!subs[parentKey])return;
+  const s=subs[parentKey].find(x=>x.id===subId);
+  if(s){s.done=!s.done;fbSave();renderSubs(parentKey);renderInline(parentKey);}
+}
+function deleteSub(parentKey,subId){
+  if(!subs[parentKey])return;
+  subs[parentKey]=subs[parentKey].filter(x=>x.id!==subId);
+  fbSave();renderSubs(parentKey);renderInline(parentKey);
+}
+function renderSubs(parentKey){
+  const el=document.getElementById('subs_'+parentKey);
+  if(!el)return;
+  const list=subs[parentKey]||[];
+  el.innerHTML=list.map(s=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:.5px solid #eee">
+      <input type="checkbox" ${s.done?'checked':''} style="accent-color:#FF4B7B;width:13px;height:13px;flex-shrink:0" onchange="toggleSub('${parentKey.replace(/'/g,"\'")}','${s.id}')">
+      <span style="flex:1;font-size:12px;color:${s.done?'#bbb':'#333'};${s.done?'text-decoration:line-through':''}">${s.t}</span>
+      <button onclick="deleteSub('${parentKey.replace(/'/g,"\'")}','${s.id}')" style="border:none;background:none;cursor:pointer;color:#ddd;font-size:13px;padding:0" onmouseover="this.style.color='#a32d2d'" onmouseout="this.style.color='#ddd'">×</button>
+    </div>`).join('');
+}
+
+function renderInline(key){
+  const el=document.getElementById('inline_'+key);
+  if(!el)return;
+  const logs=itemLogs[key]||[];
+  const subList=subs[key]||[];
+  const safeKey=key.replace(/'/g,"\'");
+  let html='';
+  subList.forEach(s=>{
+    html+=`<div class="inline-sub-entry"><input type="checkbox" ${s.done?'checked':''} style="accent-color:#FF4B7B;width:13px;height:13px;flex-shrink:0;cursor:pointer" onchange="toggleSub('${safeKey}','${s.id}')"><span style="font-size:12px;color:${s.done?'#bbb':'#555'};${s.done?'text-decoration:line-through':''}">${s.t}</span></div>`;
+  });
+  logs.forEach(e=>{
+    html+=`<div class="inline-note-entry"><span class="inline-note-ts">${fmtTs(e.ts)}</span><span>${e.text}</span></div>`;
+  });
+  el.innerHTML=html;
+  el.style.display=html?'block':'none';
+}
+
+function makeRow(item,key,isCustom){
+  const d=!!done[key];
+  const es=effectiveStatus(item,key);
+  const show=cur==='all'
+    ||(cur==='done'&&d)
+    ||(!d&&es===cur)
+    ||(cur==='pending'&&!d&&(es==='pending'||!['urgent','in-progress','blocked','waiting'].includes(es)));
+  if(!show)return null;
+
+  const bm={
+    urgent:'<span class="badge urgent">Urgent</span>',
+    pending:'<span class="badge pending">Pending</span>',
+    'in-progress':'<span class="badge in-progress">In progress</span>',
+    blocked:'<span class="badge blocked">Blocked</span>',
+    waiting:'<span class="badge waiting">Waiting</span>'
+  };
+  const logCount=(itemLogs[key]||[]).length;
+  const subList=subs[key]||[];
+  const subCount=subList.length;
+  const subDone=subList.filter(x=>x.done).length;
+  const subBadge=subCount?`<span style="font-size:11px;color:#888;background:#f0f0f0;padding:1px 7px;border-radius:20px;margin-left:4px">${subDone}/${subCount} sub-tasks</span>`:'';
+  const noteBadge=logCount?`<span style="font-size:11px;color:#888;background:#f0f0f0;padding:1px 7px;border-radius:20px;margin-left:4px">${logCount} note${logCount>1?'s':''}</span>`:'';
+
+  const wrap=document.createElement('div');
+  const row=document.createElement('div');
+  row.className='item'+(d?' done':'');
+  row.style.cursor='default';
+  const safeKey=key.replace(/'/g,"\'");
+  const delBtn=isCustom?`<button onclick="deleteCustom('${item.id}')" title="Delete" style="border:none;background:none;cursor:pointer;color:#ddd;font-size:16px;padding:0 2px;flex-shrink:0" onmouseover="this.style.color='#a32d2d'" onmouseout="this.style.color='#ddd'">×</button>`:'';
+  row.innerHTML=`
+    <input type="checkbox"${d?' checked':''} style="margin-top:3px">
+    <div class="lbl">
+      <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:4px">
+        <span>${item.t}</span>${subBadge}${noteBadge}
+      </div>
+      ${item.n?`<span class="note">${item.n}</span>`:''}
+    </div>
+    ${d?'<span class="badge ok">Done</span>':(bm[es]||'')}
+    <button class="notes-toggle" id="toggle_${safeKey}" onclick="togglePanel('${safeKey}')">▸ details</button>
+    ${delBtn}`;
+  row.querySelector('input').onchange=function(){done[key]=this.checked;fbSave();stats();render();};
+  wrap.appendChild(row);
+
+  const inlineEl=document.createElement('div');
+  inlineEl.className='inline-notes';
+  inlineEl.id='inline_'+key;
+  wrap.appendChild(inlineEl);
+  setTimeout(()=>renderInline(key),0);
+
+  const panel=document.createElement('div');
+  panel.className='item-notes';
+  panel.id='panel_'+key;
+  const noteInputId='ninp_'+key;
+  const subInputId='sinp_'+key;
+  const selOpts=['urgent','pending','in-progress','blocked','waiting'].map(v=>`<option value="${v}"${es===v?' selected':''}>${v.charAt(0).toUpperCase()+v.slice(1).replace('-',' ')}</option>`).join('');
+  panel.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#aaa">Status</span>
+      <select class="status-sel" onchange="changeStatus('${safeKey}',this.value)">${selOpts}</select>
+      ${overrides[key]?'<span style="font-size:11px;color:#FF4B7B">● overridden</span>':''}
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#aaa;margin-bottom:6px">Sub-tasks</div>
+        <div id="subs_${key}" style="margin-bottom:8px"></div>
+        <div class="note-input-row">
+          <input id="${subInputId}" type="text" placeholder="Add sub-task…" onkeydown="if(event.key==='Enter')addSub('${safeKey}','${subInputId}')">
+          <button onclick="addSub('${safeKey}','${subInputId}')">Add</button>
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#aaa;margin-bottom:6px">Notes</div>
+        <div class="note-log" id="log_${key}"></div>
+        <div class="note-input-row">
+          <input id="${noteInputId}" type="text" placeholder="Add a note…" onkeydown="if(event.key==='Enter')addItemNote('${safeKey}','${noteInputId}')">
+          <button onclick="addItemNote('${safeKey}','${noteInputId}')">Add</button>
+        </div>
+      </div>
+    </div>`;
+  wrap.appendChild(panel);
+  setTimeout(()=>{renderLog(key);renderSubs(key);},0);
+  return wrap;
+}
+
+function togglePanel(key){
+  const panel=document.getElementById('panel_'+key);
+  const btn=document.getElementById('toggle_'+key);
+  if(!panel)return;
+  const open=panel.classList.toggle('open');
+  if(btn)btn.textContent=open?'▾ details':'▸ details';
+}
+
+const COLLAPSE_KEY='fd7_2026_collapsed';
+let collapsedSections={};
+try{const v=localStorage.getItem(COLLAPSE_KEY);if(v)collapsedSections=JSON.parse(v);}catch(e){}
+function saveCollapsed(){try{localStorage.setItem(COLLAPSE_KEY,JSON.stringify(collapsedSections));}catch(e){}}
+function toggleSection(cat){
+  collapsedSections[cat]=!collapsedSections[cat];
+  saveCollapsed();
+  const safeId=cat.replace(/[^a-z0-9]/gi,'_');
+  const body=document.getElementById('secbody_'+safeId);
+  const hdr=document.getElementById('sechdr_'+safeId);
+  const chev=document.getElementById('secchev_'+safeId);
+  if(body)body.classList.toggle('collapsed',!!collapsedSections[cat]);
+  if(hdr)hdr.classList.toggle('collapsed',!!collapsedSections[cat]);
+  if(chev)chev.style.transform=collapsedSections[cat]?'rotate(-90deg)':'rotate(0deg)';
+}
+
+function render(){
+  const el=document.getElementById('list');
+  el.innerHTML='';
+  allCats().forEach(cat=>{
+    const safeId=cat.replace(/[^a-z0-9]/gi,'_');
+    const isCollapsed=!!collapsedSections[cat];
+    let total=0,doneCount=0;
+    const sec=sections.find(s=>s.cat===cat);
+    if(sec)sec.items.forEach((it,i)=>{total++;if(done[cat+'_h_'+i])doneCount++;});
+    custom.filter(c=>c.cat===cat).forEach(it=>{total++;if(done['_c_'+it.id])doneCount++;});
+    const allDone=total>0&&doneCount===total;
+    const sd=document.createElement('div');
+    sd.className='section';
+    const hdr=document.createElement('div');
+    hdr.id='sechdr_'+safeId;
+    hdr.className='sec-hdr'+(allDone?' all-done':'')+(isCollapsed?' collapsed':'');
+    hdr.onclick=()=>toggleSection(cat);
+    hdr.innerHTML=`<div style="display:flex;align-items:center;flex:1;min-width:0">
+      <span class="sec-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cat}</span>
+      <span class="sec-meta">${doneCount}/${total}</span>
+      ${allDone?'<span style="font-size:10px;background:#3b6d11;color:#fff;padding:1px 7px;border-radius:20px;margin-left:8px;text-transform:none;letter-spacing:0;font-weight:400">All done</span>':''}
+    </div>
+    <span class="sec-chevron" id="secchev_${safeId}" style="transform:${isCollapsed?'rotate(-90deg)':'rotate(0deg)'}">▾</span>`;
+    sd.appendChild(hdr);
+    const body=document.createElement('div');
+    body.id='secbody_'+safeId;
+    body.className='sec-body'+(isCollapsed?' collapsed':'');
+    let count=0;
+    if(sec){sec.items.forEach((item,i)=>{const row=makeRow(item,cat+'_h_'+i,false);if(row){body.appendChild(row);count++;}});}
+    custom.filter(c=>c.cat===cat).forEach(item=>{const row=makeRow(item,'_c_'+item.id,true);if(row){body.appendChild(row);count++;}});
+    sd.appendChild(body);
+    if(count>0)el.appendChild(sd);
+  });
+}
+
+function populateCatDropdown(){
+  const sel=document.getElementById('new-cat');
+  const prev=sel.value;
+  sel.innerHTML='';
+  allCats().forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;if(c===prev)o.selected=true;sel.appendChild(o);});
+  const o=document.createElement('option');o.value='__new__';o.textContent='+ New category…';sel.appendChild(o);
+}
+
+function addTask(){
+  const title=document.getElementById('new-title').value.trim();
+  if(!title){alert('Please enter a task title.');return;}
+  let cat=document.getElementById('new-cat').value;
+  if(cat==='__new__'){cat=document.getElementById('new-cat-name').value.trim();if(!cat){alert('Please enter a category name.');return;}}
+  const note=document.getElementById('new-note').value.trim();
+  const status=document.getElementById('new-status').value;
+  const id=uid();
+  custom.push({id,cat,t:title,n:note,s:status});
+  fbSave();
+  document.getElementById('new-title').value='';
+  document.getElementById('new-note').value='';
+  document.getElementById('new-cat-name').value='';
+  document.getElementById('new-cat-name').style.display='none';
+  document.getElementById('add-form').style.display='none';
+  document.getElementById('add-toggle').textContent='+ Add task';
+  populateCatDropdown();stats();render();
+}
+
+function deleteCustom(id){
+  if(!confirm('Delete this task?'))return;
+  custom=custom.filter(c=>c.id!==id);
+  delete done['_c_'+id];delete itemLogs['_c_'+id];delete subs['_c_'+id];
+  fbSave();stats();render();populateCatDropdown();
+}
+
+document.getElementById('new-cat').addEventListener('change',function(){
+  document.getElementById('new-cat-name').style.display=this.value==='__new__'?'block':'none';
+});
+document.getElementById('add-toggle').addEventListener('click',function(){
+  const f=document.getElementById('add-form');
+  const open=f.style.display==='block';
+  f.style.display=open?'none':'block';
+  this.textContent=open?'+ Add task':'✕ Cancel';
+  if(!open)populateCatDropdown();
+});
+
+// ── Auth ─────────────────────────────────────────────────
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pwd=document.getElementById('loginPwd').value;
+  const err=document.getElementById('loginErr');
+  err.textContent='Signing in…';
+  const{auth,signInWithEmailAndPassword}=window._fb;
+  signInWithEmailAndPassword(auth,email,pwd)
+    .then(()=>{err.textContent='';})
+    .catch(e=>{err.textContent=e.code==='auth/invalid-credential'?'Incorrect email or password.':'Error: '+e.message;});
+}
+function doForgotPassword(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const err=document.getElementById('loginErr');
+  if(!email){err.style.color='#e67e22';err.textContent='Enter your email above first.';return;}
+  const{auth,sendPasswordResetEmail}=window._fb;
+  sendPasswordResetEmail(auth,email)
+    .then(()=>{err.style.color='#27ae60';err.textContent='Reset email sent.';})
+    .catch(e=>{err.style.color='#ef4444';err.textContent='Error: '+e.message;});
+}
+document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+</script>
+</body>
+</html>
