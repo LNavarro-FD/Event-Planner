@@ -269,8 +269,8 @@ window._loadTasks=async function(){
         const s=saved.find(t=>t.id===d.id);
         return s?{...d,currentStage:s.currentStage,status:s.status,dueDate:s.dueDate||'',taskNotes:s.taskNotes||''}:{...d};
       });
-    } else tasks=TASK_DEFS.map(d=>{...d});
-  } catch(e){tasks=TASK_DEFS.map(d=>{...d});}
+    } else tasks=TASK_DEFS.map(d=>({...d}));
+  } catch(e){tasks=TASK_DEFS.map(d=>({...d}));}
   populateFilters();
   renderAll();
 };
