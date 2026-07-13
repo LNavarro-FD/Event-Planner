@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FD Event Planner — FD7 Kanban</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Login */
+#loginOverlay{position:fixed;inset:0;background:#1a1a18;display:flex;align-items:center;justify-content:center;z-index:9999}
+#loginBox{background:#2c2c2a;border-radius:10px;padding:36px 40px;display:flex;flex-direction:column;gap:14px;min-width:300px}
+#loginBox h2{color:#fff;font-size:18px;text-align:center}
+#loginBox input{padding:9px 12px;border-radius:6px;border:1px solid #444;background:#1a1a18;color:#fff;font-size:14px;outline:none}
+#loginBox input:focus{border-color:#3b82f6}
+#loginBox .signin{padding:10px;border-radius:6px;background:#3b82f6;color:#fff;font-size:14px;font-weight:600;border:none;cursor:pointer}
+#loginBox .signin:hover{background:#2563eb}
+#loginErr{color:#ef4444;font-size:13px;text-align:center;min-height:18px}
+.forgotlink{text-align:center;font-size:12px;color:#888;cursor:pointer;text-decoration:underline}
+
+/* Top bar */
+#topbar{background:#0f172a;color:#fff;padding:0 16px;height:44px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+#topbar h1{font-size:14px;font-weight:700}
+.topbtn{font-size:11px;padding:3px 10px;border:1px solid #334155;border-radius:4px;background:transparent;color:#94a3b8;cursor:pointer}
+.topbtn.active,.topbtn:hover{background:#1e40af;color:#fff;border-color:#1e40af}
+#topbar .spacer{flex:1}
+#userEmail{font-size:11px;color:#64748b}
+
+/* View tabs */
+#viewTabs{background:#1e293b;display:flex;gap:0;flex-shrink:0}
+.vtab{padding:8px 20px;font-size:12px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.05em}
+.vtab:hover{color:#cbd5e1}
+.vtab.active{color:#3b82f6;border-bottom-color:#3b82f6}
+
+/* Stats bar */
+#statsbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:6px 16px;display:flex;gap:20px;flex-shrink:0;align-items:center}
+.stat{font-size:11px;display:flex;align-items:center;gap:5px;color:#64748b}
+.stat strong{color:#0f172a}
+.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+#filterBar{margin-left:auto;display:flex;gap:8px;align-items:center}
+#filterBar select,#filterBar input{font-size:11px;padding:3px 8px;border:1px solid #e2e8f0;border-radius:4px;color:#374151;background:#f8fafc}
+
+/* Main content */
+#mainContent{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── KANBAN ──────────────────────────────────────────────────────────── */
+#kanbanView{flex:1;overflow-x:auto;display:flex;gap:0;padding:12px 16px;min-height:0}
+.kb-col{background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;display:flex;flex-direction:column;min-width:240px;max-width:240px;margin-right:10px;flex-shrink:0}
+.kb-col-header{padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:space-between}
+.kb-col-header span.count{background:rgba(255,255,255,.3);border-radius:10px;padding:1px 7px;font-size:10px}
+.col-design .kb-col-header{background:#7c3aed;color:#fff}
+.col-purchase .kb-col-header{background:#0369a1;color:#fff}
+.col-build .kb-col-header{background:#0f766e;color:#fff}
+.col-done .kb-col-header{background:#15803d;color:#fff}
+.kb-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.kb-card{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px;cursor:pointer;transition:box-shadow .15s}
+.kb-card:hover{box-shadow:0 2px 8px #0001;border-color:#bfdbfe}
+.kb-card.stuck{border-left:3px solid #ef4444}
+.kb-card .kc-cat{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:2px}
+.kb-card .kc-name{font-size:12px;font-weight:600;color:#0f172a;line-height:1.3;margin-bottom:4px}
+.kb-card .kc-sup{font-size:10px;color:#64748b}
+.kb-card .kc-rel{font-size:10px;color:#7c3aed;margin-top:3px}
+.kb-card .kc-due{font-size:10px;color:#ef4444;margin-top:2px}
+.kb-card .kc-stage{font-size:9px;background:#eff6ff;color:#1d4ed8;padding:1px 6px;border-radius:8px;display:inline-block;margin-top:4px}
+.kb-section-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;padding:4px 2px 2px;font-weight:700;border-top:1px solid #e2e8f0;margin-top:4px}
+.kb-section-label:first-child{border-top:none;margin-top:0}
+
+/* ── GANTT ──────────────────────────────────────────────────────────── */
+#ganttView{flex:1;overflow:auto;display:none;padding:0}
+#ganttWrap{min-width:900px}
+.gantt-header{display:flex;background:#0f172a;color:#fff;font-size:10px;font-weight:700;position:sticky;top:0;z-index:10}
+.gh-label{width:220px;flex-shrink:0;padding:8px 12px;border-right:1px solid #1e293b}
+.gh-weeks{flex:1;display:flex}
+.gh-week{flex:1;padding:6px 4px;text-align:center;border-right:1px solid #1e293b;font-size:9px}
+.gh-week.today-week{background:#1e40af}
+.gantt-row{display:flex;align-items:center;border-bottom:1px solid #f1f5f9;min-height:32px}
+.gantt-row:hover{background:#f8fafc}
+.gantt-row.section-row{background:#e2e8f0;min-height:24px}
+.gr-label{width:220px;flex-shrink:0;padding:4px 12px;font-size:11px;color:#374151;border-right:1px solid #e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-row.section-row .gr-label{font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:.05em}
+.gr-bars{flex:1;position:relative;height:32px}
+.gantt-row.section-row .gr-bars{height:24px}
+.gantt-bar{position:absolute;height:18px;top:7px;border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:9px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s}
+.gantt-bar:hover{opacity:.85}
+.gantt-bar.design{background:#7c3aed}
+.gantt-bar.purchase{background:#0369a1}
+.gantt-bar.build{background:#0f766e}
+.gantt-bar.done{background:#15803d}
+.gantt-bar.stuck{background:#dc2626}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:#ef4444;z-index:5;pointer-events:none}
+.gantt-today::after{content:"TODAY";position:absolute;top:-16px;left:-18px;font-size:8px;color:#ef4444;font-weight:700;white-space:nowrap}
+.rel-line{position:absolute;height:2px;background:#7c3aed;opacity:.4;top:50%;transform:translateY(-50%);pointer-events:none;z-index:4}
+
+/* ── BUILD WEEK GRID ─────────────────────────────────────────────────── */
+#buildView{flex:1;overflow:auto;display:none;padding:12px 16px}
+#buildGrid{min-width:900px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden}
+.bg-title{background:#0f172a;color:#fff;padding:10px 14px;font-size:13px;font-weight:700}
+.bg-subtitle{background:#1e293b;color:#94a3b8;padding:4px 14px;font-size:10px}
+table.bgt{width:100%;border-collapse:collapse;font-size:11px}
+table.bgt th{background:#1e293b;color:#fff;padding:6px 8px;text-align:center;border:1px solid #334155;font-size:10px;white-space:nowrap}
+table.bgt th.section-th{background:#0f172a;text-align:left;padding-left:12px}
+table.bgt td{padding:5px 8px;border:1px solid #e2e8f0;vertical-align:top;min-width:80px}
+table.bgt td.task-col{background:#f8fafc;font-weight:600;color:#374151;min-width:160px;white-space:nowrap}
+table.bgt td.section-td{background:#e2e8f0;font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.06em;color:#64748b;padding:4px 12px}
+.bg-person{display:inline-block;border-radius:3px;padding:1px 5px;margin:1px;font-size:10px;font-weight:600;color:#fff;cursor:default}
+.bg-tbd{color:#94a3b8;font-style:italic;font-size:10px}
+table.bgt td.event-day{background:#eff6ff}
+table.bgt td.setup-day{background:#fefce8}
+table.bgt td.takedown-day{background:#f0fdf4}
+
+/* ── DETAIL PANEL ────────────────────────────────────────────────────── */
+#overlay{position:fixed;inset:0;background:#0003;z-index:499;display:none}
+#overlay.open{display:block}
+#detailPanel{position:fixed;right:0;top:0;bottom:0;width:380px;background:#fff;border-left:1px solid #e2e8f0;box-shadow:-4px 0 20px #0002;z-index:500;display:none;flex-direction:column}
+#detailPanel.open{display:flex}
+#dpHeader{padding:14px 16px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:flex-start;background:#f8fafc}
+#dpHeader h3{font-size:13px;font-weight:700;color:#0f172a;flex:1;margin-right:8px;line-height:1.4}
+#dpClose{background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8}
+#dpBody{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.dp-field label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;display:block;margin-bottom:3px}
+.dp-field p{font-size:12px;color:#374151;line-height:1.5}
+.dp-field select,.dp-field input[type=date],.dp-field textarea{width:100%;font-size:12px;padding:7px 10px;border:1px solid #e2e8f0;border-radius:6px;color:#374151;font-family:inherit;background:#f8fafc}
+.dp-field textarea{min-height:70px;resize:vertical}
+.pipeline{display:flex;gap:0;flex-wrap:wrap;margin-top:4px}
+.pipe-step{font-size:10px;padding:3px 10px;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8;white-space:nowrap}
+.pipe-step:first-child{border-radius:4px 0 0 4px}
+.pipe-step:last-child{border-radius:0 4px 4px 0}
+.pipe-step.completed{background:#dcfce7;color:#15803d;border-color:#86efac}
+.pipe-step.current{background:#fef3c7;color:#92400e;border-color:#fcd34d;font-weight:700}
+.pipe-arrow{font-size:10px;color:#cbd5e1;padding:0 2px;line-height:2.2}
+.rel-tags{display:flex;flex-wrap:wrap;gap:4px}
+.rel-tag{font-size:10px;background:#ede9fe;color:#7c3aed;padding:2px 8px;border-radius:10px;cursor:pointer}
+.rel-tag:hover{background:#ddd6fe}
+#dpSave{margin:12px 16px;padding:10px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+#dpSave:hover{background:#2563eb}
+#dpAdvance{margin:0 16px 4px;padding:8px;background:#0f766e;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+#dpAdvance:hover{background:#0d6b63}
+#dpAdvance:disabled{background:#e2e8f0;color:#94a3b8;cursor:default}
+
+#notify{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;display:none;z-index:999}
+</style>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+const app = initializeApp({
+  apiKey:"AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8",
+  authDomain:"event-planner-7944d.firebaseapp.com",
+  projectId:"event-planner-7944d",
+  storageBucket:"event-planner-7944d.firebasestorage.app",
+  messagingSenderId:"455768566205",
+  appId:"1:455768566205:web:c5274d85158e6b2bf8cad4"
+});
+const auth=getAuth(app), db=getFirestore(app);
+window._fb={auth,db,doc,getDoc,setDoc,signInWithEmailAndPassword,signOut,sendPasswordResetEmail};
+onAuthStateChanged(auth,user=>{
+  if(user){
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('userEmail').textContent=user.email;
+    window._fbUser=user;
+    window._loadTasks();
+  } else {
+    document.getElementById('loginOverlay').style.display='flex';
+    document.getElementById('app').style.display='none';
+  }
+});
+</script>
+</head>
+<body>
+<div id="loginOverlay">
+  <div id="loginBox">
+    <h2>FD7 Kanban</h2>
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"/>
+    <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"/>
+    <button class="signin" onclick="doLogin()">Sign in</button>
+    <div id="loginErr"></div>
+    <div class="forgotlink" onclick="doForgotPassword()">Forgot password?</div>
+  </div>
+</div>
+
+<div id="app" style="display:none;flex-direction:column;height:100vh;">
+<div id="topbar">
+  <h1>FD7 2026</h1>
+  <div class="spacer"></div>
+  <span id="userEmail"></span>
+  <button class="topbtn" onclick="doSignOut()">Sign out</button>
+</div>
+
+<div id="viewTabs">
+  <div class="vtab active" onclick="showView('kanban',this)">Kanban</div>
+  <div class="vtab" onclick="showView('gantt',this)">Timeline</div>
+  <div class="vtab" onclick="showView('build',this)">Build Week</div>
+</div>
+
+<div id="statsbar">
+  <div class="stat"><div class="stat-dot" style="background:#94a3b8"></div><span>Not started</span><strong id="s-ns">0</strong></div>
+  <div class="stat"><div class="stat-dot" style="background:#3b82f6"></div><span>In progress</span><strong id="s-ip">0</strong></div>
+  <div class="stat"><div class="stat-dot" style="background:#ef4444"></div><span>Stuck</span><strong id="s-st">0</strong></div>
+  <div class="stat"><div class="stat-dot" style="background:#15803d"></div><span>Done</span><strong id="s-dn">0</strong></div>
+  <div class="stat" style="margin-left:8px"><span>Progress</span><strong id="s-pct">0%</strong></div>
+  <div id="filterBar">
+    <select id="filterCat" onchange="renderAll()"><option value="">All categories</option></select>
+    <input type="text" id="filterSearch" placeholder="Search..." oninput="renderAll()" style="width:140px"/>
+  </div>
+</div>
+
+<div id="mainContent">
+  <div id="kanbanView"></div>
+  <div id="ganttView"></div>
+  <div id="buildView">
+    <div id="buildGrid"></div>
+  </div>
+</div>
+</div>
+
+<div id="overlay" onclick="closeDetail()"></div>
+<div id="detailPanel">
+  <div id="dpHeader"><h3 id="dpTitle"></h3><button id="dpClose" onclick="closeDetail()">✕</button></div>
+  <div id="dpBody">
+    <div class="dp-field"><label>Category</label><p id="dpCat"></p></div>
+    <div class="dp-field"><label>Supplier</label><p id="dpSupplier"></p></div>
+    <div class="dp-field"><label>Notes</label><p id="dpNotes"></p></div>
+    <div class="dp-field"><label>Stage</label><div id="dpPipeline"></div></div>
+    <div class="dp-field"><label>Related tasks</label><div id="dpRel" class="rel-tags"></div></div>
+    <div class="dp-field"><label>Status</label>
+      <select id="dpStatus"><option>Not Started</option><option>In Progress</option><option>Stuck</option><option>Done</option></select>
+    </div>
+    <div class="dp-field"><label>Due date</label><input type="date" id="dpDue"/></div>
+    <div class="dp-field"><label>Your notes</label><textarea id="dpTaskNotes" placeholder="Updates, costs, contacts..."></textarea></div>
+  </div>
+  <button id="dpAdvance" onclick="advanceFromPanel()">→ Advance to next stage</button>
+  <button id="dpSave" onclick="saveDetail()">Save</button>
+</div>
+<div id="notify"></div>
+
+<script>
+
+const TASK_DEFS=[{"id": 0, "cat": "Commercial", "task": "Field hire", "supplier": "Ashfields", "notes": "Rosie to speak to Zoe / Dulcie", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 1, "cat": "Commercial", "task": "License", "supplier": "Uttlesford Council", "notes": "Check requirements for 2,500 people re H&S, security", "stages": ["P", "X"], "related": [0], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 2, "cat": "Commercial", "task": "Insurance", "supplier": "", "notes": "Get new quote", "stages": ["P", "X"], "related": [0, 1], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 3, "cat": "Design & Print", "task": "Wrist bands", "supplier": "", "notes": "Print after numbers known", "stages": ["D", "P", "B", "X"], "related": [17, 18], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 4, "cat": "Design & Print", "task": "Stage banners", "supplier": "", "notes": "Have banners \u2014 consider reprinting sides", "stages": ["D", "P", "B", "X"], "related": [16, 17], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 5, "cat": "Design & Print", "task": "Road signs", "supplier": "", "notes": "Have Shindig signs \u2014 more if numbers bigger", "stages": ["D", "P", "B", "X"], "related": [0], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 6, "cat": "Design & Print", "task": "Flyers", "supplier": "", "notes": "", "stages": ["D", "P", "B", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 7, "cat": "Design & Print", "task": "Correx boards", "supplier": "", "notes": "", "stages": ["D", "P", "B", "X"], "related": [6], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 8, "cat": "Design & Print", "task": "Bar menu", "supplier": "", "notes": "Better way to publish bar prices?", "stages": ["D", "P", "B", "X"], "related": [40, 41], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 9, "cat": "Design & Print", "task": "Table numbers", "supplier": "", "notes": "Have last year design \u2014 print per numbers", "stages": ["D", "P", "B", "X"], "related": [55], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 10, "cat": "Design & Print", "task": "Table plan", "supplier": "", "notes": "Have last year design \u2014 print per numbers", "stages": ["D", "P", "B", "X"], "related": [55], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 11, "cat": "Design & Print", "task": "Selfie board", "supplier": "", "notes": "Check survived Shindig", "stages": ["D", "P", "B", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 12, "cat": "Design & Print", "task": "Flags and signage", "supplier": "", "notes": "Need large flags \u2014 new entrance flag", "stages": ["D", "P", "B", "X"], "related": [5], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 13, "cat": "Design & Print", "task": "Merchandise \u2014 fans", "supplier": "", "notes": "Last quote \u00a3318 for 100 fans", "stages": ["D", "P", "B", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 14, "cat": "Design & Print", "task": "Staff T-shirts", "supplier": "", "notes": "", "stages": ["D", "P", "B", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 15, "cat": "DJ, Stage & Dancefloor", "task": "Staging", "supplier": "Panache Audio \u2014 Dave Ong", "notes": "Confirmed same as last year", "stages": ["P", "X"], "related": [16, 17], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 16, "cat": "DJ, Stage & Dancefloor", "task": "Stage sound", "supplier": "Panache Audio \u2014 Dave Ong", "notes": "Confirmed same as last year", "stages": ["P", "X"], "related": [15, 17], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 17, "cat": "DJ, Stage & Dancefloor", "task": "Stage lighting", "supplier": "Panache Audio \u2014 Dave Ong", "notes": "Confirmed same as last year", "stages": ["P", "X"], "related": [15, 16], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 18, "cat": "DJ, Stage & Dancefloor", "task": "Stage DJ set-up", "supplier": "Kacy Sounds & Lighting", "notes": "Quote approved by Ronnie \u2014 check monitors with Dave Ong", "stages": ["P", "X"], "related": [16], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 19, "cat": "DJ, Stage & Dancefloor", "task": "Backstage setup", "supplier": "Funky Dory", "notes": "Tighten access \u2014 2 runners for artist riders", "stages": ["B", "X"], "related": [20, 18], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 20, "cat": "DJ, Stage & Dancefloor", "task": "Backstage access plan", "supplier": "Funky Dory", "notes": "Instructions in DJ/artist emails", "stages": ["B", "X"], "related": [19], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 21, "cat": "DJ, Stage & Dancefloor", "task": "Power supply", "supplier": "TBD \u2014 Matt Power unavailable", "notes": "Needed from Friday morning", "stages": ["P", "X"], "related": [15, 16, 17, 18, 46, 47], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 22, "cat": "Artist Liaison", "task": "Artist liaison", "supplier": "", "notes": "RH looks after travel, LN/RC book hotels", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 23, "cat": "Artist Liaison", "task": "Bobby & Steve", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 24, "cat": "Artist Liaison", "task": "Brandon Block", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 25, "cat": "Artist Liaison", "task": "Ricky Morrison", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 26, "cat": "Artist Liaison", "task": "Colin Francis", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 27, "cat": "Artist Liaison", "task": "Mark Knight", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 28, "cat": "Artist Liaison", "task": "John Morales", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 29, "cat": "Artist Liaison", "task": "Michael Gray", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 30, "cat": "Artist Liaison", "task": "Noah Herel", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 31, "cat": "Artist Liaison", "task": "Gordon Mac", "supplier": "Funky Dory Form", "notes": "", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 32, "cat": "Artist Liaison", "task": "Hotel & transport \u2014 Morales", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [28], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 33, "cat": "Artist Liaison", "task": "Hotel & transport \u2014 Gray", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [29], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 34, "cat": "Entrance", "task": "WiFi to VIP entrance", "supplier": "", "notes": "Make sure wifi reaches", "stages": ["B", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 35, "cat": "Entrance", "task": "Charging points \u2014 door", "supplier": "", "notes": "Test scanning, power needed", "stages": ["P", "X"], "related": [21], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 36, "cat": "Entrance", "task": "Separate VIP entrance", "supplier": "", "notes": "Gazebo? Lighting?", "stages": ["B", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 37, "cat": "Entrance", "task": "VIP staff \u2014 2 runners", "supplier": "", "notes": "Hand artists to Ronnie, collect riders", "stages": ["P", "X"], "related": [22], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 38, "cat": "Entrance", "task": "Gazebo for VIP entrance", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [36], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 39, "cat": "Entrance", "task": "Door staff \u2014 3 people", "supplier": "", "notes": "Need to find 3 people", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 40, "cat": "Entrance", "task": "Coconut matting", "supplier": "", "notes": "Already in stock \u2014 Ray sets up on day", "stages": ["B", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 41, "cat": "Entrance", "task": "Crowd barriers", "supplier": "Local Toilet Hire \u2014 James Parkin 0800 907 0086", "notes": "Work out with Ronnie how many needed", "stages": ["P", "X"], "related": [42, 43], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 42, "cat": "Infrastructure", "task": "Wellness tent", "supplier": "Under The Canvas \u2014 Ben 07711 072 438", "notes": "Ben to send quote", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 43, "cat": "Infrastructure", "task": "Stretch tent \u2014 main bar", "supplier": "Under The Canvas \u2014 Ben 07711 072 438", "notes": "Quote pending \u2014 decide bar layout first", "stages": ["P", "X"], "related": [44, 45], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 44, "cat": "Infrastructure", "task": "VIP tipi", "supplier": "Tipis 4 Hire", "notes": "Decide how many, new VIP area?", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 45, "cat": "Infrastructure", "task": "Sponsor tent tipi", "supplier": "Tipis 4 Hire", "notes": "Check availability and get quote", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 46, "cat": "Infrastructure", "task": "Site power design", "supplier": "TBD \u2014 Matt Power unavailable", "notes": "From Friday morning", "stages": ["P", "X"], "related": [21], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 47, "cat": "Infrastructure", "task": "Bins \u2014 all areas", "supplier": "TBD", "notes": "", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 48, "cat": "Infrastructure", "task": "Skip hire", "supplier": "Dunmow Group 01245 466646", "notes": "Account: Funky Dory Love Ltd. CM6 1JU", "stages": ["P", "X"], "related": [47], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 49, "cat": "Infrastructure", "task": "Internet on site", "supplier": "Lloydy", "notes": "Ronnie to book", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 50, "cat": "Toilets", "task": "Toilet units", "supplier": "Luxury Toilet Hire UK \u2014 Sharon 01371 873003", "notes": "1,500=5xWindsor \u00a33,625+VAT | 2,000=6+1 Balmoral \u00a34,975+VAT | 2,500=8xWindsor \u00a35,800+VAT", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 51, "cat": "Toilets", "task": "Screen in front of toilets", "supplier": "", "notes": "Decide if needed and location", "stages": ["B", "X"], "related": [50], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 52, "cat": "Toilets", "task": "Toilet attendants \u2014 2 per shift", "supplier": "", "notes": "Also keep stage area clear", "stages": ["P", "X"], "related": [50], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 53, "cat": "Toilets", "task": "Heras fencing around toilets", "supplier": "Local Toilet Hire \u2014 James Parkin 0800 907 0086", "notes": "", "stages": ["P", "X"], "related": [50, 41], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 54, "cat": "Bars", "task": "Bar structure \u2014 Main Bar", "supplier": "House Group \u2014 Andy Coleman", "notes": "Quote for 1,500/2,000/2,500 \u2014 not got hold of Andy", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 55, "cat": "Bars", "task": "Tills & card machines", "supplier": "Wireless Terminal Solutions \u2014 Matt Griffiths", "notes": "Get on Tuesday of setup week to configure prices", "stages": ["P", "X"], "related": [54], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 56, "cat": "Bars", "task": "Bar staff \u2014 all bars", "supplier": "", "notes": "Levels based on 1,500/2,000/2,500", "stages": ["P", "X"], "related": [54], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 57, "cat": "Bars", "task": "Drinks orders", "supplier": "", "notes": "Rosie to do 2 weeks before", "stages": ["P", "X"], "related": [54], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 58, "cat": "Furniture", "task": "Furniture \u2014 all areas", "supplier": "FurniHire \u2014 John Moore 01455 634125", "notes": "Load on pallets. 70 trestles/100 benches/150 chairs/8 picnic benches quoted", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 59, "cat": "Furniture", "task": "Furniture delivery \u2014 RDL", "supplier": "RDL \u2014 Sean 07845 999247", "notes": "Provisional book when numbers known. Jordan 07901 720844 / Kerry 07769 032942", "stages": ["P", "X"], "related": [58], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 60, "cat": "Furniture", "task": "Telehandler \u2014 offloading", "supplier": "Chris next door to Ashfields (TBC)", "notes": "Provisionally book when numbers known", "stages": ["P", "X"], "related": [59], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 61, "cat": "Lighting", "task": "Site lighting \u2014 all areas", "supplier": "Marvellous Glow \u2014 Paul", "notes": "Remember credit. Quote requested.", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 62, "cat": "Lighting", "task": "Toilet area lighting", "supplier": "Marvellous Glow \u2014 Paul", "notes": "Remember credit", "stages": ["P", "X"], "related": [61, 50], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 63, "cat": "Lighting", "task": "Car park lighting", "supplier": "Marvellous Glow \u2014 Paul", "notes": "Remember credit", "stages": ["P", "X"], "related": [61], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 64, "cat": "Lighting", "task": "Powered lettering signs", "supplier": "Marvellous Glow \u2014 Paul", "notes": "R&R want to hire again. Quote requested.", "stages": ["P", "X"], "related": [61], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 65, "cat": "Lighting", "task": "FD LED signs", "supplier": "Funky Dory", "notes": "Check power cables are in the box", "stages": ["B", "X"], "related": [21], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 66, "cat": "Fencing", "task": "Crowd barriers", "supplier": "Local Toilet Hire \u2014 James Parkin 0800 907 0086", "notes": "Work out numbers with Ronnie", "stages": ["P", "X"], "related": [41, 53], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 67, "cat": "Fencing", "task": "Heras fencing", "supplier": "Local Toilet Hire \u2014 James Parkin 0800 907 0086", "notes": "Panel covers budget \u00a3432 inc VAT. Delivery \u00a3780 inc VAT.", "stages": ["P", "X"], "related": [66], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 68, "cat": "Fencing", "task": "Heras panel covers", "supplier": "Local Toilet Hire \u2014 James Parkin 0800 907 0086", "notes": "Budget \u00a3432 inc VAT", "stages": ["P", "X"], "related": [67], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 69, "cat": "Security", "task": "Security", "supplier": "Swifty", "notes": "Quote pending", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 70, "cat": "Food", "task": "Cafe Caribbean", "supplier": "", "notes": "Rosie to speak to them", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 71, "cat": "Food", "task": "Hog roast", "supplier": "", "notes": "Rosie to chase", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 72, "cat": "Food", "task": "Ashfields Carriage & Polo Club", "supplier": "", "notes": "Rosie to speak to them", "stages": ["P", "X"], "related": [0], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 73, "cat": "Food", "task": "Danton Marshall", "supplier": "", "notes": "Rosie to speak to them", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 74, "cat": "Food", "task": "Lodoland \u2014 ice creams & coffee", "supplier": "", "notes": "Rosie to speak to them", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 75, "cat": "Food", "task": "Lebanese food trader", "supplier": "", "notes": "Rosie to speak to them", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 76, "cat": "Entertainment", "task": "Tarot card reading", "supplier": "June", "notes": "Rosie to speak to them", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 77, "cat": "Entertainment", "task": "Face painting", "supplier": "Emma Argent", "notes": "Rosie to speak to them", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 78, "cat": "Entertainment", "task": "Dancers", "supplier": "Be Entertained \u2014 Holly McDougall", "notes": "Get quote same as 2025", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 79, "cat": "Entertainment", "task": "Photo booth", "supplier": "Margot / Elle", "notes": "Rosie to speak to them", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 80, "cat": "Staffing", "task": "Set-up / take-down staff", "supplier": "", "notes": "Work out staffing levels", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 81, "cat": "Staffing", "task": "Bar staff \u2014 all bars", "supplier": "", "notes": "Decide on numbers", "stages": ["P", "X"], "related": [56], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 82, "cat": "Staffing", "task": "Cleaning staff \u2014 on the day", "supplier": "", "notes": "Keep site clean, stage area, behind bar", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 83, "cat": "Staffing", "task": "Door staff", "supplier": "", "notes": "Need 3 people", "stages": ["P", "X"], "related": [39], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 84, "cat": "Decor", "task": "Flowers", "supplier": "Fleur De Lys \u2014 Louise Stirland", "notes": "Email sent to request quote", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 85, "cat": "Decor", "task": "FD signs for new areas", "supplier": "Funky Dory", "notes": "", "stages": ["D", "B", "X"], "related": [12], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 86, "cat": "Marketing", "task": "Mi-Soul Radio", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 87, "cat": "Marketing", "task": "Magic Soul Radio", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 88, "cat": "Marketing", "task": "Billboards", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 89, "cat": "Marketing", "task": "Promotional flyer campaign", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [6], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 90, "cat": "Marketing", "task": "Printed Correx boards", "supplier": "", "notes": "", "stages": ["D", "P", "B", "X"], "related": [7], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 91, "cat": "Marketing", "task": "Social media", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 92, "cat": "Marketing", "task": "Videographer / photographer", "supplier": "Scott / Jake preferred", "notes": "Jake to cover stills and video", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 93, "cat": "Marketing", "task": "Roaming interviewer", "supplier": "Lisa & Neens", "notes": "", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 94, "cat": "Marketing", "task": "Press board", "supplier": "", "notes": "", "stages": ["P", "X"], "related": [], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 95, "cat": "On The Day", "task": "Supplier delivery plan", "supplier": "", "notes": "", "stages": ["B", "X"], "related": [59, 48, 50, 58], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 96, "cat": "On The Day", "task": "Power plan confirmation", "supplier": "", "notes": "", "stages": ["B", "X"], "related": [46, 21], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 97, "cat": "On The Day", "task": "Setup jobs list \u2014 team", "supplier": "", "notes": "", "stages": ["B", "X"], "related": [80], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}, {"id": 98, "cat": "On The Day", "task": "Team jobs lists \u2014 day of", "supplier": "", "notes": "", "stages": ["B", "X"], "related": [97], "currentStage": 0, "status": "Not Started", "dueDate": "", "taskNotes": ""}];
+const CATEGORIES=["Commercial", "Design & Print", "DJ, Stage & Dancefloor", "Artist Liaison", "Entrance", "Infrastructure", "Toilets", "Bars", "Furniture", "Lighting", "Fencing", "Security", "Food", "Entertainment", "Staffing", "Decor", "Marketing", "On The Day"];
+const BUILD_WEEK={"title": "FD7 2026 \u2014 Build Week Grid", "subtitle": "Event: Saturday 15 August 2026 | Venue: Ashfields Carriage & Polo Club, CM6 1JU", "days": [{"label": "Mon 10 Aug", "type": "setup"}, {"label": "Tue 11 Aug", "type": "setup"}, {"label": "Wed 12 Aug", "type": "setup"}, {"label": "Thu 13 Aug", "type": "setup"}, {"label": "Fri 14 Aug", "type": "setup"}, {"label": "Sat 15 Aug", "type": "event"}, {"label": "Sun 16 Aug", "type": "takedown"}], "sections": [{"name": "INFRASTRUCTURE", "tasks": [{"task": "Site access / field open", "days": ["LN / RC", "", "", "", "", "", ""]}, {"task": "Boundary marking (Karl)", "days": ["Karl", "", "", "", "", "", ""]}, {"task": "Pitch mark out (Karl)", "days": ["Karl", "", "", "", "", "", ""]}, {"task": "Toilet units installed", "days": ["", "Sharon \u2014 Luxury Toilet Hire", "", "", "", "", "Sharon \u2014 collect"]}, {"task": "Skip hire \u2014 Dunmow", "days": ["Skip delivery", "", "", "", "", "", "Skip collect (1-2 days after)"]}, {"task": "RoRo 40yd \u2014 Dunmow", "days": ["RoRo delivery", "", "", "", "", "", "RoRo collect"]}]}, {"name": "POWER & TECH", "tasks": [{"task": "Generator installed", "days": ["", "", "TBC supplier", "", "", "", "TBC collect"]}, {"task": "Cables run / power plan", "days": ["", "", "TBC supplier", "", "", "", ""]}, {"task": "Internet on site", "days": ["", "", "", "Lloydy (RH to book)", "", "", ""]}, {"task": "Till system setup", "days": ["", "", "", "", "Matt Griffiths \u2014 WTS", "", ""]}]}, {"name": "STAGE & SOUND", "tasks": [{"task": "Stage arrival / positioning", "days": ["", "", "", "StageACE", "", "", "StageACE collect"]}, {"task": "Stage build", "days": ["", "", "", "StageACE / Ray", "", "", ""]}, {"task": "Sound installed", "days": ["", "", "", "", "Panache \u2014 Dave Ong", "", ""]}, {"task": "Lighting rig installed", "days": ["", "", "", "", "Panache / Marvellous Glow", "", ""]}, {"task": "DJ equipment installed", "days": ["", "", "", "", "Kacy Sounds & Lighting", "", "Kacy collect"]}, {"task": "Sound check", "days": ["", "", "", "", "", "Panache / Ronnie", ""]}, {"task": "Stage barriers up", "days": ["", "", "", "", "Ray / LN", "", "Ray collect"]}]}, {"name": "BAR & FRIDGE", "tasks": [{"task": "Bar structure installed", "days": ["", "", "", "Andy Coleman \u2014 House Group", "", "", "Andy Coleman \u2014 remove"]}, {"task": "Fridge trailer(s) arrive", "days": ["", "", "", "Andy Coleman", "", "", "Andy Coleman \u2014 collect"]}, {"task": "Bar stock / drinks delivery", "days": ["", "", "", "", "RC \u2014 order 2 wks before", "", ""]}, {"task": "Ice", "days": ["", "", "", "", "", "LN / Paul Lachman", ""]}]}, {"name": "STRUCTURES", "tasks": [{"task": "Stretch tent \u2014 main bar", "days": ["", "", "Ben \u2014 Under The Canvas", "", "", "", "Ben \u2014 take down"]}, {"task": "VIP tipi", "days": ["", "", "Tipis 4 Hire", "", "", "", "Tipis 4 Hire \u2014 down"]}, {"task": "Sponsor tent tipi", "days": ["", "", "Tipis 4 Hire", "", "", "", "Tipis 4 Hire \u2014 down"]}, {"task": "Wellness tent", "days": ["", "", "Ben \u2014 Under The Canvas", "", "", "", "Ben \u2014 take down"]}]}, {"name": "FURNITURE & DECOR", "tasks": [{"task": "Furniture delivery \u2014 RDL", "days": ["", "", "", "RDL \u2014 Sean Bramwell", "", "", "RDL \u2014 collect"]}, {"task": "Telehandler for offloading", "days": ["", "", "", "Chris \u2014 next door (TBC)", "", "", ""]}, {"task": "Tables & chairs set up", "days": ["", "", "", "", "Ray / Setup team", "", "Ray \u2014 clear"]}, {"task": "Flowers / decor", "days": ["", "", "", "", "Fleur De Lys / Caroline", "", ""]}, {"task": "Lighting decoration \u2014 site", "days": ["", "", "", "", "Marvellous Glow \u2014 Paul", "", "Paul \u2014 take down"]}, {"task": "Powered signs / lettering", "days": ["", "", "", "", "Marvellous Glow \u2014 Paul", "", ""]}]}, {"name": "ENTRANCE & FENCING", "tasks": [{"task": "Heras fencing installed", "days": ["", "", "James \u2014 Local Toilet Hire", "", "", "", "James \u2014 collect"]}, {"task": "Crowd barriers installed", "days": ["", "", "", "James \u2014 Local Toilet Hire", "", "", "James \u2014 collect"]}, {"task": "Entrance gazebo / setup", "days": ["", "", "", "", "Ray", "", "Ray \u2014 clear"]}, {"task": "Signs installed", "days": ["", "", "", "", "Ray", "", ""]}, {"task": "Wristbands / scanners ready", "days": ["", "", "", "", "", "LN setup AM", ""]}]}, {"name": "STAFFING & EVENT DAY", "tasks": [{"task": "Staff briefing", "days": ["", "", "", "", "", "LN / RC \u2014 AM", ""]}, {"task": "Security on site", "days": ["", "", "", "", "", "Swifty", ""]}, {"task": "Bar staff on site", "days": ["", "", "", "", "", "Steve West + team", ""]}, {"task": "Dancers / entertainment", "days": ["", "", "", "", "", "Be Entertained \u2014 Holly", ""]}, {"task": "Photographer / videographer", "days": ["", "", "", "", "", "Scott / Jake", ""]}, {"task": "Artist liaison", "days": ["", "", "", "", "", "Ronnie Herel", ""]}, {"task": "Site clearance / rubbish run", "days": ["", "", "", "", "", "", "Ray + team"]}]}]};
+const STAGE_LABELS={D:'Design',P:'Purchase / Book',B:'Print / Build',X:'Done'};
+const STAGE_COLORS={D:'#7c3aed',P:'#0369a1',B:'#0f766e',X:'#15803d'};
+
+// Timeline: 13 Jul 2026 → 20 Aug 2026 = ~6 weeks
+const T_START=new Date('2026-07-13');
+const T_END=new Date('2026-08-20');
+const T_TODAY=new Date('2026-07-13');
+
+let tasks=[], selectedId=null;
+
+async function fbSave(){
+  if(!window._fb||!window._fbUser)return;
+  const{db,doc,setDoc}=window._fb;
+  try{await setDoc(doc(db,'jobs','fd7_kanban'),{tasks});}catch(e){console.warn('save failed',e);}
+}
+
+window._loadTasks=async function(){
+  if(!window._fb||!window._fbUser)return;
+  const{db,doc,getDoc}=window._fb;
+  try{
+    const snap=await getDoc(doc(db,'jobs','fd7_kanban'));
+    if(snap.exists()){
+      const saved=snap.data().tasks;
+      tasks=TASK_DEFS.map(d=>{
+        const s=saved.find(t=>t.id===d.id);
+        return s?{...d,currentStage:s.currentStage,status:s.status,dueDate:s.dueDate||'',taskNotes:s.taskNotes||''}:{...d};
+      });
+    } else tasks=TASK_DEFS.map(d=>{...d});
+  } catch(e){tasks=TASK_DEFS.map(d=>{...d});}
+  populateFilters();
+  renderAll();
+};
+
+function populateFilters(){
+  const sel=document.getElementById('filterCat');
+  CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+}
+
+function getFiltered(){
+  const cat=document.getElementById('filterCat').value;
+  const search=document.getElementById('filterSearch').value.toLowerCase();
+  return tasks.filter(t=>{
+    if(cat&&t.cat!==cat)return false;
+    if(search&&!t.task.toLowerCase().includes(search)&&!t.supplier.toLowerCase().includes(search))return false;
+    return true;
+  });
+}
+
+function renderAll(){
+  renderStats();
+  renderKanban();
+  renderGantt();
+}
+
+function renderStats(){
+  const ns=tasks.filter(t=>t.status==='Not Started').length;
+  const ip=tasks.filter(t=>t.status==='In Progress').length;
+  const st=tasks.filter(t=>t.status==='Stuck').length;
+  const dn=tasks.filter(t=>t.status==='Done').length;
+  document.getElementById('s-ns').textContent=ns;
+  document.getElementById('s-ip').textContent=ip;
+  document.getElementById('s-st').textContent=st;
+  document.getElementById('s-dn').textContent=dn;
+  document.getElementById('s-pct').textContent=Math.round(dn/tasks.length*100)+'%';
+}
+
+// ── KANBAN ─────────────────────────────────────────────────────────────────
+function renderKanban(){
+  const filtered=getFiltered();
+  const cols={D:[],P:[],B:[],X:[]};
+  filtered.forEach(t=>{
+    const stage=t.status==='Done'?'X':t.stages[t.currentStage]||'X';
+    if(cols[stage])cols[stage].push(t);
+  });
+
+  const colDefs=[
+    {key:'D',label:'Design',cls:'col-design'},
+    {key:'P',label:'Purchase / Book',cls:'col-purchase'},
+    {key:'B',label:'Print / Build',cls:'col-build'},
+    {key:'X',label:'Done',cls:'col-done'},
+  ];
+
+  const kb=document.getElementById('kanbanView');
+  kb.innerHTML='';
+  colDefs.forEach(cd=>{
+    const tasks=cols[cd.key];
+    const col=document.createElement('div');
+    col.className='kb-col '+cd.cls;
+    
+    // Group by category
+    const byCat={};
+    tasks.forEach(t=>{if(!byCat[t.cat])byCat[t.cat]=[];byCat[t.cat].push(t);});
+
+    let cardsHtml='';
+    Object.entries(byCat).forEach(([cat,catTasks])=>{
+      cardsHtml+=`<div class="kb-section-label">${cat}</div>`;
+      catTasks.forEach(t=>{
+        const relCount=t.related.length;
+        const stageLabel=STAGE_LABELS[t.stages[t.currentStage]]||'Done';
+        cardsHtml+=`
+          <div class="kb-card${t.status==='Stuck'?' stuck':''}" onclick="openDetail(${t.id})">
+            <div class="kc-name">${t.task}</div>
+            ${t.supplier?`<div class="kc-sup">📦 ${t.supplier.length>40?t.supplier.substring(0,40)+'...':t.supplier}</div>`:''}
+            ${relCount?`<div class="kc-rel">🔗 ${relCount} related task${relCount>1?'s':''}</div>`:''}
+            ${t.dueDate?`<div class="kc-due">📅 ${fmtDate(t.dueDate)}</div>`:''}
+            <div class="kc-stage">${stageLabel}</div>
+          </div>`;
+      });
+    });
+
+    col.innerHTML=`
+      <div class="kb-col-header">${cd.label}<span class="count">${tasks.length}</span></div>
+      <div class="kb-cards">${cardsHtml}</div>`;
+    kb.appendChild(col);
+  });
+}
+
+// ── GANTT ──────────────────────────────────────────────────────────────────
+function renderGantt(){
+  const filtered=getFiltered();
+  const totalDays=(T_END-T_START)/(1000*60*60*24);
+  const todayPct=((T_TODAY-T_START)/(T_END-T_START))*100;
+
+  // Build week labels
+  const weeks=[];
+  const d=new Date(T_START);
+  while(d<=T_END){
+    weeks.push(new Date(d));
+    d.setDate(d.getDate()+7);
+  }
+
+  const weeksHtml=weeks.map(w=>{
+    const isNow=Math.abs(w-T_TODAY)<7*24*60*60*1000;
+    return `<div class="gh-week${isNow?' today-week':''}">
+      ${w.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>`;
+  }).join('');
+
+  // Group by category
+  const byCat={};
+  filtered.forEach(t=>{if(!byCat[t.cat])byCat[t.cat]=[];byCat[t.cat].push(t);});
+
+  let rowsHtml='';
+  Object.entries(byCat).forEach(([cat,catTasks])=>{
+    rowsHtml+=`<div class="gantt-row section-row"><div class="gr-label">${cat}</div><div class="gr-bars"></div></div>`;
+    catTasks.forEach(t=>{
+      const barColor=t.status==='Stuck'?'#dc2626':STAGE_COLORS[t.stages[t.currentStage]]||'#15803d';
+      const barClass=t.status==='Done'?'done':t.status==='Stuck'?'stuck':(t.stages[t.currentStage]||'X').toLowerCase();
+      
+      // Bar position: if no due date, show as a 2-week task starting today
+      let start=T_TODAY, end=new Date(T_TODAY);
+      end.setDate(end.getDate()+14);
+      if(t.dueDate){
+        end=new Date(t.dueDate);
+        start=new Date(T_TODAY);
+        if(end<start)start=end;
+      }
+      const left=Math.max(0,((start-T_START)/(T_END-T_START))*100);
+      const width=Math.max(1,((end-start)/(T_END-T_START))*100);
+
+      // Relationship lines to related tasks (simple: shown as dot)
+      rowsHtml+=`
+        <div class="gantt-row" onclick="openDetail(${t.id})">
+          <div class="gr-label" title="${t.task}">${t.task}</div>
+          <div class="gr-bars">
+            <div class="gantt-today" style="left:${todayPct}%"></div>
+            <div class="gantt-bar ${barClass}" style="left:${left}%;width:${width}%;background:${barColor}" title="${t.task}">
+              ${t.task}
+            </div>
+          </div>
+        </div>`;
+    });
+  });
+
+  const gantt=document.getElementById('ganttView');
+  gantt.innerHTML=`
+    <div id="ganttWrap">
+      <div class="gantt-header">
+        <div class="gh-label">Task</div>
+        <div class="gh-weeks">${weeksHtml}</div>
+      </div>
+      ${rowsHtml}
+    </div>`;
+}
+
+// ── BUILD WEEK GRID ────────────────────────────────────────────────────────
+function renderBuildGrid(){
+  const bw=BUILD_WEEK;
+  const dayTypes=bw.days.map(d=>d.type);
+  const dayLabels=bw.days.map(d=>d.label);
+
+  const personColors={
+    'LN':'#1d4ed8','RC':'#7c3aed','Ray':'#0f766e','Karl':'#92400e',
+    'Sharon':'#be185d','Andy Coleman':'#0369a1','Ben':'#0891b2',
+    'Ronnie':'#7c3aed','Panache':'#15803d','Kacy':'#15803d',
+    'StageACE':'#374151','Marvellous Glow':'#d97706','Paul':'#d97706',
+    'Swifty':'#dc2626','RDL':'#0891b2','Sean':'#0891b2',
+    'Dunmow':'#374151','James':'#374151','Matt':'#0369a1',
+    'Lloydy':'#0f766e','Fleur':'#be185d','Caroline':'#be185d',
+    'Holly':'#d97706','Jake':'#7c3aed','Steve West':'#15803d',
+  };
+
+  function colorPerson(text){
+    if(!text||!text.trim())return `<span class="bg-tbd">TBC</span>`;
+    const parts=text.split('/').map(p=>p.trim()).filter(Boolean);
+    return parts.map(p=>{
+      const key=Object.keys(personColors).find(k=>p.toLowerCase().includes(k.toLowerCase()));
+      const color=key?personColors[key]:'#475569';
+      return `<span class="bg-person" style="background:${color}">${p}</span>`;
+    }).join('');
+  }
+
+  let html=`<div class="bg-title">${bw.title}</div>
+    <div class="bg-subtitle">${bw.subtitle}</div>
+    <table class="bgt">
+      <tr>
+        <th class="section-th">Section / Task</th>
+        ${dayLabels.map((l,i)=>`<th class="${dayTypes[i]}-day">${l}</th>`).join('')}
+      </tr>`;
+
+  bw.sections.forEach(sec=>{
+    html+=`<tr><td class="section-td" colspan="${bw.days.length+1}">${sec.name}</td></tr>`;
+    sec.tasks.forEach(t=>{
+      html+=`<tr><td class="task-col">${t.task}</td>`;
+      t.days.forEach((cell,i)=>{
+        html+=`<td class="${dayTypes[i]}-day">${colorPerson(cell)}</td>`;
+      });
+      html+='</tr>';
+    });
+  });
+
+  html+='</table>';
+  document.getElementById('buildGrid').innerHTML=html;
+}
+
+// ── VIEW SWITCHER ──────────────────────────────────────────────────────────
+function showView(view,el){
+  document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('kanbanView').style.display=view==='kanban'?'flex':'none';
+  document.getElementById('ganttView').style.display=view==='gantt'?'block':'none';
+  document.getElementById('buildView').style.display=view==='build'?'block':'none';
+  if(view==='build')renderBuildGrid();
+  if(view==='gantt')renderGantt();
+}
+
+// ── DETAIL PANEL ───────────────────────────────────────────────────────────
+function openDetail(id){
+  selectedId=id;
+  const t=tasks.find(t=>t.id===id);
+  document.getElementById('dpTitle').textContent=t.task;
+  document.getElementById('dpCat').textContent=t.cat;
+  document.getElementById('dpSupplier').textContent=t.supplier||'—';
+  document.getElementById('dpNotes').textContent=t.notes||'—';
+  
+  // Pipeline
+  const pipe=t.stages.map((s,i)=>{
+    let cls='pipe-step';
+    if(t.status==='Done')cls+=' completed';
+    else if(i<t.currentStage)cls+=' completed';
+    else if(i===t.currentStage)cls+=' current';
+    return `<span class="${cls}">${STAGE_LABELS[s]}</span><span class="pipe-arrow">›</span>`;
+  }).join('').replace(/›$/,'');
+  document.getElementById('dpPipeline').innerHTML=pipe;
+
+  // Related tasks
+  const relEl=document.getElementById('dpRel');
+  if(t.related.length){
+    relEl.innerHTML=t.related.map(rid=>{
+      const rt=tasks.find(r=>r.id===rid);
+      return rt?`<span class="rel-tag" onclick="openDetail(${rid})">${rt.task}</span>`:'';
+    }).join('');
+  } else {
+    relEl.innerHTML='<span style="font-size:11px;color:#94a3b8">No related tasks</span>';
+  }
+
+  document.getElementById('dpStatus').value=t.status;
+  document.getElementById('dpDue').value=t.dueDate||'';
+  document.getElementById('dpTaskNotes').value=t.taskNotes||'';
+  
+  // Advance button
+  const adv=document.getElementById('dpAdvance');
+  if(t.status==='Done'||t.currentStage>=t.stages.length-1){
+    adv.disabled=true;
+    adv.textContent='No further stages';
+  } else {
+    adv.disabled=false;
+    const nextStage=STAGE_LABELS[t.stages[t.currentStage+1]];
+    adv.textContent=`→ Advance to: ${nextStage}`;
+  }
+
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeDetail(){
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  selectedId=null;
+}
+
+function advanceFromPanel(){
+  const t=tasks.find(t=>t.id===selectedId);
+  if(!t||t.currentStage>=t.stages.length-1)return;
+  t.currentStage++;
+  if(t.currentStage===t.stages.length-1)t.status='Done';
+  else if(t.status==='Not Started')t.status='In Progress';
+  openDetail(selectedId); // refresh panel
+  fbSave();renderAll();notify('Advanced ✓');
+}
+
+function saveDetail(){
+  const t=tasks.find(t=>t.id===selectedId);
+  if(!t)return;
+  t.status=document.getElementById('dpStatus').value;
+  t.dueDate=document.getElementById('dpDue').value;
+  t.taskNotes=document.getElementById('dpTaskNotes').value;
+  if(t.status==='Done')t.currentStage=t.stages.length-1;
+  fbSave();renderAll();closeDetail();notify('Saved ✓');
+}
+
+function fmtDate(d){
+  if(!d)return'';
+  const[y,m,day]=d.split('-');
+  return`${day}/${m}/${y}`;
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pwd=document.getElementById('loginPwd').value;
+  const err=document.getElementById('loginErr');
+  err.textContent='Signing in…';
+  const{auth,signInWithEmailAndPassword}=window._fb;
+  signInWithEmailAndPassword(auth,email,pwd)
+    .then(()=>{err.textContent='';} )
+    .catch(e=>{err.textContent=e.code==='auth/invalid-credential'?'Incorrect email or password.':'Error: '+e.message;});
+}
+
+function doForgotPassword(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const err=document.getElementById('loginErr');
+  if(!email){err.style.color='#e67e22';err.textContent='Enter your email above first.';return;}
+  const{auth,sendPasswordResetEmail}=window._fb;
+  sendPasswordResetEmail(auth,email)
+    .then(()=>{err.style.color='#27ae60';err.textContent='Reset email sent.';} )
+    .catch(e=>{err.style.color='#ef4444';err.textContent='Error: '+e.message;});
+}
+
+function doSignOut(){
+  if(!confirm('Sign out?'))return;
+  const{auth,signOut}=window._fb;
+  signOut(auth);
+}
+
+function notify(msg){
+  const n=document.getElementById('notify');
+  n.textContent=msg;n.style.display='block';
+  clearTimeout(n._t);n._t=setTimeout(()=>{n.style.display='none';},2000);
+}
+
+document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+</script>
+</body>
+</html>
