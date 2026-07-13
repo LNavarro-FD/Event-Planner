@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>FD Venue Planner v1.2</title>
-<meta name="version" content="1.2">
+<title>FD Venue Planner v1.3</title>
+<meta name="version" content="1.3">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:system-ui,sans-serif;background:#f5f7fa;color:#222;overflow:hidden}
@@ -193,6 +193,8 @@ onAuthStateChanged(auth, user => {
   <button class="tb" onclick="rotateSelected(45)">+45°</button>
   <button class="tb" onclick="rotateSelected(90)">90°</button>
   <button class="tb" onclick="rotateCustom()">Custom°</button>
+  <div class="sep"></div>
+  <button class="tb" onclick="openQuoteSummary()" style="background:#e8f4e8;border-color:#4a7c59;color:#2d5a3d;font-weight:600;">&#128203; Quote Summary</button>
 </div>
 <div id="main">
   <div id="sidebar">
@@ -325,6 +327,22 @@ onAuthStateChanged(auth, user => {
     </div>
     <div id="warning"></div>
     <div id="notify"></div>
+  </div>
+</div>
+
+<!-- Quote Summary Modal -->
+<div class="overlay" id="quoteOverlay" style="display:none;position:fixed;inset:0;background:#0007;z-index:800;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:10px;width:min(860px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px #0005;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e0e0e0;">
+      <h2 style="font-size:16px;color:#185FA5;">📋 Quote Summary — <span id="qsVenueYear"></span></h2>
+      <button onclick="closeQuoteSummary()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#888;">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:16px 20px;" id="qsBody"></div>
+    <div style="padding:12px 20px;border-top:1px solid #e0e0e0;display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="copyQuoteText()" style="padding:8px 16px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Copy all text</button>
+      <button onclick="copyQuoteBySupplier()" style="padding:8px 16px;background:#4a7c59;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Copy grouped by supplier</button>
+      <button onclick="closeQuoteSummary()" style="padding:8px 16px;background:#f0f0f0;color:#333;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Close</button>
+    </div>
   </div>
 </div>
 <div id="statusbar">
@@ -981,6 +999,328 @@ function updateStatus(){
 }
 function notify(msg){const n=document.getElementById('notify');n.textContent=msg;n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>{n.style.display='none';},2200);}
 function exportPNG(){const a=document.createElement('a');a.download=`${currentVenue}-${currentYear}.png`;a.href=canvas.toDataURL('image/png');a.click();}
+
+// ── QUOTE SUMMARY ────────────────────────────────────────────────────────────
+
+// Associated items map — keyed by canvas item name keywords
+// Built from FD jobs list, budget, and supplier knowledge
+const QUOTE_ASSOC = [
+  {
+    match: /heras/i,
+    supplier: 'Fencing supplier (TBC)',
+    upsells: [
+      { item: 'Heras feet & clips', note: 'Check if included in hire price — often extra' },
+      { item: 'Heras panel covers / branding', note: 'Budget: £432 inc VAT (FD Festival 2026)' },
+      { item: 'Heras delivery & collection', note: 'Budget: £780 inc VAT — confirm separate charge' },
+      { item: 'Scaffold fixings', note: 'If attaching to stage or structure' },
+    ]
+  },
+  {
+    match: /crowd barrier/i,
+    supplier: 'Fencing supplier (TBC)',
+    upsells: [
+      { item: 'Crowd barrier feet / ballast', note: 'Often not included in base hire' },
+      { item: 'Steward for barrier line', note: 'Purple Guide recommends trained staff at barriers' },
+      { item: 'Stage barrier A-frames', note: 'Add if barrier is at front of stage' },
+    ]
+  },
+  {
+    match: /stage barrier a-frame/i,
+    supplier: 'Fencing supplier / StageACE',
+    upsells: [
+      { item: 'Crowd barrier run to connect A-frames', note: 'Standard run fills between A-frame uprights' },
+      { item: 'Stage barrier steward', note: 'Purple Guide requirement at licensed events' },
+    ]
+  },
+  {
+    match: /stage.*hrr|stage.*shindig|stage.*fd7/i,
+    supplier: 'StageACE — Tel: 01634 720700 / www.stageace.co.uk',
+    upsells: [
+      { item: 'Stage sound system', note: 'Panache Audio — Dave Ong (confirmed same as last year for HRR)' },
+      { item: 'Stage lighting rig', note: 'Panache Audio — Dave Ong' },
+      { item: 'DJ set-up (stage)', note: 'Kacy Sounds & Lighting — quote approved by Ronnie' },
+      { item: 'LED screen', note: 'Dimensions TBC — add to quote when spec confirmed' },
+      { item: 'Stage riser', note: 'Dimensions TBC — confirm with StageACE' },
+      { item: 'Stage banners (front fascia 8x0.92m)', note: 'Budget: £134.47 inc VAT for printing' },
+      { item: 'Stage banners (back screen 7.8x2.6m)', note: 'Side panels 1.6x3.2m x2 — check if existing or reprint needed' },
+      { item: 'Backstage area setup', note: 'Ronnie confirmed last year's layout worked — tighten access' },
+      { item: 'Stage power supply', note: 'Power needed from Friday morning — find supplier (Matt Power unavailable)' },
+      { item: 'Generator for stage', note: 'Budget: included in Generator / Stage / Sound line £8,573.52 inc VAT' },
+    ]
+  },
+  {
+    match: /stretch tent/i,
+    supplier: 'Under The Canvas — Ben (07711 072 438 / ben@underthecanvas.co.uk)',
+    upsells: [
+      { item: 'Groundsheet / flooring matting', note: 'Especially for bar tent — check with Ben' },
+      { item: 'Lighting inside tent', note: 'Marvellous Glow — Paul (remember credit)' },
+      { item: 'Power for tent lighting', note: 'Coordinate with generator/power plan' },
+      { item: 'Side walls (how many down?)', note: 'Capacity changes: floated 400 standing → 3 sides down 280' },
+    ]
+  },
+  {
+    match: /tipi/i,
+    supplier: 'Tipis 4 Hire',
+    upsells: [
+      { item: 'Tipi matting & fairy lights', note: 'Budget: £1,400 inc VAT (FD Festival 2026)' },
+      { item: 'Tipi bar setup', note: 'Bar structure — House Group / Andy Coleman' },
+      { item: 'VIP furniture for tipi', note: 'FurniHire — John. Load on pallets.' },
+      { item: 'Tipi lighting', note: 'Marvellous Glow — Paul' },
+      { item: 'Power for tipi', note: 'Include in site power plan' },
+    ]
+  },
+  {
+    match: /luxury toilet|disabled toilet/i,
+    supplier: 'Luxury Toilet Hire — Sharon',
+    upsells: [
+      { item: 'Toilet consumables pack (soap, paper, hand sanitiser)', note: 'Budget: £63.20 inc VAT (toiletries line)' },
+      { item: 'Toilet attendant (2 per shift)', note: 'On jobs list — also keep stage area clear of litter' },
+      { item: 'Power cable run to toilet trailer', note: '13/16amp required for 3+1 unit' },
+      { item: 'Heras screen in front of toilets', note: 'On jobs list — decide location and whether to screen' },
+      { item: 'Toilet lighting (night access)', note: 'Marvellous Glow — Paul. Zone 2 lighting budget.' },
+      { item: 'Service visit during event', note: 'Confirm with Sharon — included or extra?' },
+    ]
+  },
+  {
+    match: /skip|roro/i,
+    supplier: 'Dunmow Group — 01245 466646',
+    upsells: [
+      { item: 'Extra bins for site', note: 'Budget: £293.84 inc VAT misc bins line' },
+      { item: 'Waste collection schedule during event', note: 'Cleaning staff on jobs list — coordinate skip locations' },
+      { item: 'RoRo delivery/collection slots', note: 'Confirm access route — 10m clearance needed for stage trailer too' },
+    ]
+  },
+  {
+    match: /generator/i,
+    supplier: 'Power supplier TBC (Matt Power unavailable for festival)',
+    upsells: [
+      { item: 'Site power design / cable plan', note: 'On jobs list — power from Friday morning' },
+      { item: 'Distro boards & cable runs', note: 'Coordinate with stage, bar, lighting, toilets' },
+      { item: 'Electrician on site during event', note: 'Check insurance requirement' },
+    ]
+  },
+  {
+    match: /fridge trailer|chest freezer|under counter fridge/i,
+    supplier: 'Fridge hire supplier (TBC)',
+    upsells: [
+      { item: 'Power supply for fridges', note: 'Include in site power plan' },
+      { item: 'Temperature check log', note: 'Food safety requirement if catering on site' },
+    ]
+  },
+  {
+    match: /canteen|welfare/i,
+    supplier: 'Boss Cabins',
+    upsells: [
+      { item: 'Power for welfare unit', note: 'Include in site power plan' },
+      { item: 'Water connection', note: 'Confirm if mains or bowser fed' },
+    ]
+  },
+  {
+    match: /water bowser/i,
+    supplier: 'Water supplier (TBC)',
+    upsells: [
+      { item: 'Water stations for site', note: 'On jobs list — consider if numbers high and hot weather' },
+      { item: 'Refill schedule', note: 'Confirm bowser capacity vs expected usage' },
+    ]
+  },
+  {
+    match: /catering pitch|retail pitch/i,
+    supplier: 'Catering / retail traders',
+    upsells: [
+      { item: 'Power per pitch', note: 'Include in site power plan — confirm kW per trader' },
+      { item: 'Pitch marker stakes / rope', note: 'Karl to mark out pitches' },
+      { item: 'Waste management per trader', note: 'Confirm traders' own waste arrangements' },
+    ]
+  },
+  {
+    match: /trestle table|plumley set|saigon set|rustic bench/i,
+    supplier: 'FurniHire — John',
+    upsells: [
+      { item: 'Furniture delivery', note: 'Budget: £1,020 inc VAT. Sean Bramwell RDL also used for transport.' },
+      { item: 'Table linen / covers', note: 'Check if FD stock or hire' },
+      { item: 'Additional chairs', note: 'Load on pallets — John can arrange' },
+    ]
+  },
+  {
+    match: /rope and pole/i,
+    supplier: 'Fencing / event supplier (TBC)',
+    upsells: [
+      { item: 'Rope and pole uprights / stakes', note: 'Usually hired with the rope — confirm included' },
+      { item: 'Rope and pole signage clips', note: 'For attaching directional signage to rope lines' },
+    ]
+  },
+  {
+    match: /container|cabin office/i,
+    supplier: 'Container / cabin hire (TBC)',
+    upsells: [
+      { item: 'Power to container/cabin', note: 'Include in site power plan' },
+      { item: 'Internet connection', note: 'Lloydy for internet on site (Ronnie to book)' },
+      { item: 'Padlock & security', note: 'Confirm access control for event week' },
+    ]
+  },
+];
+
+// Measurement helpers
+function linearMetres(obj) {
+  // Returns dominant linear dimension (width) in metres
+  return Math.max(obj.w, obj.d);
+}
+
+function buildQuoteData() {
+  // Group objects by item name, count quantities, sum linear metres
+  const groups = {};
+  objects.forEach(o => {
+    if (o.type !== 'item') return;
+    const key = o.name;
+    if (!groups[key]) {
+      groups[key] = { name: o.name, cat: o.cat, count: 0, totalW: 0, totalD: 0, w: o.w, d: o.d };
+    }
+    groups[key].count++;
+    groups[key].totalW += o.w;
+    groups[key].totalD += o.d;
+  });
+  return Object.values(groups).sort((a,b) => a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name));
+}
+
+function getAssoc(itemName) {
+  return QUOTE_ASSOC.filter(a => a.match.test(itemName));
+}
+
+function openQuoteSummary() {
+  const groups = buildQuoteData();
+  if (!groups.length) { notify('Nothing on canvas to quote'); return; }
+
+  document.getElementById('qsVenueYear').textContent = currentVenue + ' ' + currentYear;
+
+  // Track which upsells we've shown (avoid duplicates across similar items)
+  const shownUpsells = new Set();
+  const supplierMap = {}; // supplier → [{item, qty, dims, upsells}]
+
+  groups.forEach(g => {
+    const assocs = getAssoc(g.name);
+    const supplier = assocs.length ? assocs[0].supplier : (g.supplier || 'Supplier TBC');
+
+    if (!supplierMap[supplier]) supplierMap[supplier] = { items: [], upsells: [] };
+
+    // Build dimension string
+    let dims = '';
+    if (/heras run/i.test(g.name)) {
+      const totalM = g.totalW;
+      const panels = Math.round(totalM / 3.5);
+      dims = `${totalM.toFixed(1)}m total (approx ${panels} panels)`;
+    } else if (/crowd barrier run/i.test(g.name)) {
+      dims = `${g.totalW.toFixed(1)}m total`;
+    } else if (/heras panel single/i.test(g.name)) {
+      dims = `${g.count} panels (${(g.count * 3.5).toFixed(1)}m)`;
+    } else if (/crowd barrier single/i.test(g.name)) {
+      dims = `${g.count} barriers (${(g.count * 2.5).toFixed(1)}m)`;
+    } else {
+      dims = `${g.w}m × ${g.d}m each`;
+    }
+
+    supplierMap[supplier].items.push({ name: g.name, count: g.count, dims, cat: g.cat });
+
+    // Add upsells (deduped)
+    assocs.forEach(a => {
+      a.upsells.forEach(u => {
+        const uk = u.item;
+        if (!shownUpsells.has(uk)) {
+          shownUpsells.add(uk);
+          supplierMap[supplier].upsells.push(u);
+        }
+      });
+    });
+  });
+
+  // Render HTML
+  let html = `<p style="color:#666;font-size:12px;margin-bottom:16px;">Generated from canvas — ${objects.filter(o=>o.type==='item').length} items placed. Review and edit before sending.</p>`;
+
+  Object.entries(supplierMap).forEach(([supplier, data]) => {
+    html += `<div style="margin-bottom:20px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">`;
+    html += `<div style="background:#f5f7fa;padding:10px 14px;border-bottom:1px solid #e0e0e0;font-weight:600;font-size:13px;color:#185FA5;">🏢 ${supplier}</div>`;
+    html += `<div style="padding:12px 14px;">`;
+
+    // Items
+    html += `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;">`;
+    html += `<tr style="border-bottom:1px solid #eee;"><th style="text-align:left;padding:4px 8px;color:#888;font-weight:500;">Item</th><th style="text-align:right;padding:4px 8px;color:#888;font-weight:500;">Qty</th><th style="text-align:left;padding:4px 8px;color:#888;font-weight:500;">Size / dimensions</th></tr>`;
+    data.items.forEach(item => {
+      html += `<tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:5px 8px;">${item.name}</td><td style="padding:5px 8px;text-align:right;font-weight:600;">${item.count}×</td><td style="padding:5px 8px;color:#555;">${item.dims}</td></tr>`;
+    });
+    html += `</table>`;
+
+    // Upsells
+    if (data.upsells.length) {
+      html += `<div style="background:#fffbe6;border:1px solid #f0d060;border-radius:6px;padding:10px 12px;">`;
+      html += `<div style="font-size:11px;font-weight:600;color:#856404;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">💡 Also consider / confirm with supplier</div>`;
+      data.upsells.forEach(u => {
+        html += `<div style="font-size:12px;margin-bottom:5px;"><span style="font-weight:600;">+ ${u.item}</span> <span style="color:#666;">— ${u.note}</span></div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `</div></div>`;
+  });
+
+  document.getElementById('qsBody').innerHTML = html;
+  document.getElementById('quoteOverlay').style.display = 'flex';
+}
+
+function closeQuoteSummary() {
+  document.getElementById('quoteOverlay').style.display = 'none';
+}
+
+function buildPlainText(bySupplier) {
+  const groups = buildQuoteData();
+  const lines = [];
+  lines.push(`QUOTE REQUEST — ${currentVenue} ${currentYear}`);
+  lines.push(`Generated: ${new Date().toLocaleDateString('en-GB')}`);
+  lines.push('');
+
+  if (bySupplier) {
+    // Group same way as modal
+    const supplierMap = {};
+    const shownUpsells = new Set();
+    groups.forEach(g => {
+      const assocs = getAssoc(g.name);
+      const supplier = assocs.length ? assocs[0].supplier : 'Supplier TBC';
+      if (!supplierMap[supplier]) supplierMap[supplier] = { items: [], upsells: [] };
+      let dims = g.w + 'm × ' + g.d + 'm each';
+      if (/heras run/i.test(g.name)) { const p = Math.round(g.totalW/3.5); dims = g.totalW.toFixed(1)+'m total (approx '+p+' panels)'; }
+      else if (/crowd barrier run/i.test(g.name)) dims = g.totalW.toFixed(1)+'m total';
+      else if (/heras panel single/i.test(g.name)) dims = g.count+' panels ('+(g.count*3.5).toFixed(1)+'m)';
+      supplierMap[supplier].items.push({ name: g.name, count: g.count, dims });
+      assocs.forEach(a => a.upsells.forEach(u => { if (!shownUpsells.has(u.item)) { shownUpsells.add(u.item); supplierMap[supplier].upsells.push(u); } }));
+    });
+    Object.entries(supplierMap).forEach(([supplier, data]) => {
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      lines.push('SUPPLIER: ' + supplier);
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      data.items.forEach(i => lines.push(`  • ${i.count}× ${i.name} (${i.dims})`));
+      if (data.upsells.length) {
+        lines.push('');
+        lines.push('  Please also quote for:');
+        data.upsells.forEach(u => lines.push(`  + ${u.item} — ${u.note}`));
+      }
+      lines.push('');
+    });
+  } else {
+    groups.forEach(g => lines.push(`${g.count}× ${g.name} (${g.w}m × ${g.d}m)`));
+  }
+  return lines.join('
+');
+}
+
+function copyQuoteText() {
+  navigator.clipboard.writeText(buildPlainText(false)).then(() => notify('Copied to clipboard ✓'));
+}
+function copyQuoteBySupplier() {
+  navigator.clipboard.writeText(buildPlainText(true)).then(() => notify('Copied by supplier ✓'));
+}
+
+// Close quote overlay on background click
+document.getElementById('quoteOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('quoteOverlay')) closeQuoteSummary();
+});
 
 // init() is now called by window._fbLoadAndInit() after Firebase auth
 
