@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FD Venue Planner v1.0</title>
+<meta name="version" content="1.0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:system-ui,sans-serif;background:#f5f7fa;color:#222;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh}
+#topbar{display:flex;align-items:center;background:#2c2c2a;color:#fff;flex-shrink:0;height:46px;overflow:hidden}
+.vtab{padding:0 13px;height:100%;display:flex;align-items:center;font-size:12px;cursor:pointer;border-right:1px solid #444;color:#bbb;white-space:nowrap;flex-shrink:0}
+.vtab:hover{background:#3a3a38;color:#fff}
+.vtab.active{background:#fff;color:#185FA5;font-weight:600;border-bottom:3px solid #185FA5}
+.vtab.vadd{color:#666;font-size:18px;flex-shrink:0}
+.ytab{padding:0 10px;height:100%;display:flex;align-items:center;font-size:11px;cursor:pointer;color:#aaa;border-right:1px solid #333;white-space:nowrap;flex-shrink:0}
+.ytab:hover{background:#3a3a38;color:#fff}
+.ytab.active{background:#185FA5;color:#fff;font-weight:600}
+.ytab.yadd{color:#555;font-size:16px;flex-shrink:0}
+#topright{margin-left:auto;display:flex;align-items:center;gap:6px;padding:0 10px}
+#topright button{font-size:11px;padding:3px 9px;border:1px solid #555;border-radius:4px;background:transparent;color:#ccc;cursor:pointer}
+#topright button:hover{background:#444;color:#fff}
+#toolbar{display:flex;align-items:center;gap:3px;padding:5px 8px;background:#fff;border-bottom:1px solid #ddd;flex-shrink:0;flex-wrap:wrap}
+.sep{width:1px;height:20px;background:#ddd;margin:0 4px}
+.lbl{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;margin-right:2px}
+button.tb{font-size:11px;padding:3px 9px;border:1px solid #ccc;border-radius:4px;background:#f8f8f8;color:#333;cursor:pointer;white-space:nowrap}
+button.tb:hover{background:#eee}
+button.tb.on{background:#185FA5;border-color:#185FA5;color:#fff}
+button.tb.red{color:#c0392b;border-color:#e0b0aa}
+#main{display:flex;flex:1;overflow:hidden}
+#sidebar{width:185px;flex-shrink:0;background:#fff;border-right:1px solid #ddd;display:flex;flex-direction:column;overflow:hidden}
+#stabs{display:flex;border-bottom:1px solid #ddd;flex-shrink:0}
+.stab{flex:1;padding:6px 2px;font-size:10px;text-align:center;cursor:pointer;color:#888;border-bottom:2px solid transparent}
+.stab:hover{color:#333}
+.stab.on{color:#185FA5;border-bottom-color:#185FA5}
+#scontent{flex:1;overflow-y:auto;padding:8px}
+.lib-item{display:flex;align-items:center;gap:6px;padding:5px 6px;border:1px solid #eee;border-radius:4px;margin-bottom:4px;cursor:grab;background:#fafafa;font-size:11px;user-select:none}
+.lib-item:hover{border-color:#185FA5;background:#eef4ff}
+.lib-item:active{cursor:grabbing}
+.swatch{width:20px;height:14px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,0.1)}
+/* safety reference panel */
+.ref-cat{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;padding:8px 0 3px;font-weight:500}
+.ref-rule{padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:11px;display:flex;gap:7px;align-items:flex-start}
+.ref-rule:last-child{border-bottom:none}
+.ref-val{font-weight:600;color:#185FA5;white-space:nowrap;min-width:54px;flex-shrink:0;font-size:11px}
+.ref-desc{color:#444;line-height:1.4;flex:1}
+.ref-src{color:#bbb;font-size:9px;display:block;margin-top:1px}
+.ref-badge{font-size:8px;padding:1px 4px;border-radius:2px;margin-left:3px;vertical-align:middle}
+.badge-legal{background:#fde8e8;color:#a32d2d}
+.badge-guide{background:#e8f0fd;color:#0c447c}
+.ref-search{width:100%;font-size:11px;padding:4px 7px;border:1px solid #ddd;border-radius:4px;background:#f8f8f8;margin-bottom:6px}
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background:#ffffff}
+canvas{display:block}
+#autoPanel{position:absolute;top:8px;right:8px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;width:205px;font-size:11px;display:none;z-index:10}
+#autoPanel.open{display:block}
+#autoPanel h4{font-size:12px;font-weight:500;margin-bottom:8px}
+#autoPanel label{display:block;color:#888;font-size:10px;margin:5px 0 2px}
+#autoPanel input,#autoPanel select{width:100%;font-size:11px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;background:#f8f8f8}
+.ap-btns{display:flex;gap:6px;margin-top:10px}
+.ap-btns button{flex:1;font-size:11px;padding:5px;border-radius:4px;border:1px solid #ccc;background:#f8f8f8;cursor:pointer}
+.ap-btns button.ok{background:#185FA5;border-color:#185FA5;color:#fff}
+/* warning toast */
+#warning{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);background:#c0392b;color:#fff;font-size:12px;padding:8px 16px;border-radius:6px;display:none;white-space:nowrap;z-index:300;max-width:420px;text-align:center;line-height:1.4}
+#warning.show{display:block}
+#notify{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);background:#2c2c2a;color:#fff;font-size:12px;padding:6px 14px;border-radius:20px;display:none;white-space:nowrap;z-index:200}
+#statusbar{padding:3px 10px;background:#2c2c2a;color:#999;font-size:10px;display:flex;gap:14px;flex-shrink:0;flex-wrap:wrap}
+/* setup overlay */
+#setup{position:absolute;inset:0;background:rgba(248,249,252,0.97);z-index:50;display:flex;align-items:center;justify-content:center}
+#setup.done{display:none}
+.setup-box{background:#fff;border-radius:12px;padding:26px;width:320px;border:1px solid #ddd}
+.setup-box h2{font-size:17px;font-weight:500;margin-bottom:5px}
+.setup-box p{font-size:12px;color:#888;margin-bottom:18px;line-height:1.5}
+.setup-box label{display:block;font-size:11px;color:#666;margin:9px 0 3px}
+.setup-box input{width:100%;font-size:14px;padding:7px 10px;border:1px solid #ccc;border-radius:5px;background:#f8f8f8;color:#222}
+.setup-box .row{display:flex;gap:10px}
+.setup-start{width:100%;margin-top:16px;padding:10px;font-size:13px;border-radius:6px;border:none;background:#185FA5;color:#fff;cursor:pointer;font-weight:500}
+.setup-start:hover{background:#0e4a8a}
+/* modals */
+.modal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.mbox{background:#fff;border-radius:10px;padding:18px;min-width:280px;max-width:340px;border:1px solid #ddd;max-height:92vh;overflow-y:auto}
+.mbox h3{font-size:14px;font-weight:500;margin-bottom:11px}
+.mbox label{display:block;font-size:11px;color:#666;margin:7px 0 2px}
+.mbox input,.mbox select{width:100%;font-size:12px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;background:#f8f8f8;color:#222}
+.mbox .hint{font-size:10px;color:#aaa;margin-top:4px;line-height:1.4}
+.mrow{display:flex;gap:8px;margin-top:12px}
+.mrow button{flex:1;padding:7px;font-size:12px;border-radius:5px;border:1px solid #ccc;background:#f8f8f8;color:#222;cursor:pointer}
+.mrow button.ok{background:#185FA5;border-color:#185FA5;color:#fff}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="topbar">
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Venue</span>
+  <div id="venueBar"></div>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
+  <div id="yearBar"></div>
+  <div id="topright">
+    <button onclick="saveLayout()">Save</button>
+    <button onclick="openCopy()">Copy from year...</button>
+    <button onclick="exportPNG()">Export PNG</button>
+  </div>
+</div>
+<div id="toolbar">
+  <span class="lbl">Draw</span>
+  <button class="tb on" id="tbSelect" onclick="setMode('select')">Select</button>
+  <button class="tb" id="tbWall" onclick="setMode('wall')">Wall</button>
+  <button class="tb" id="tbZone" onclick="setMode('zone')">Zone</button>
+  <button class="tb" id="tbMeasure" onclick="setMode('measure')">Measure</button>
+  <button class="tb" id="tbLabel" onclick="setMode('label')">Label</button>
+  <div class="sep"></div>
+  <span class="lbl">Auto-place</span>
+  <button class="tb" onclick="toggleAuto()">Place items...</button>
+  <div class="sep"></div>
+  <span class="lbl">Site</span>
+  <button class="tb" onclick="editBoundary()">Edit size</button>
+  <div class="sep"></div>
+  <button class="tb on" id="tbGrid" onclick="toggleGrid()">Grid</button>
+  <button class="tb on" id="tbSnap" onclick="toggleSnap()">Snap</button>
+  <button class="tb" onclick="zoomOut()">−</button>
+  <button class="tb" onclick="zoomIn()">+</button>
+  <button class="tb" onclick="fitView()">Fit</button>
+  <div class="sep"></div>
+  <button class="tb red" onclick="deleteSelected()">Delete</button>
+  <button class="tb red" onclick="clearCanvas()">Clear</button>
+  <div class="sep"></div>
+  <span class="lbl">Rotate selected</span>
+  <button class="tb" onclick="rotateSelected(-45)">−45°</button>
+  <button class="tb" onclick="rotateSelected(-15)">−15°</button>
+  <button class="tb" onclick="rotateSelected(15)">+15°</button>
+  <button class="tb" onclick="rotateSelected(45)">+45°</button>
+  <button class="tb" onclick="rotateSelected(90)">90°</button>
+  <button class="tb" onclick="rotateCustom()">Custom°</button>
+</div>
+<div id="main">
+  <div id="sidebar">
+    <div id="stabs">
+      <div class="stab on" onclick="showTab('library')">Library</div>
+      <div class="stab" onclick="showTab('equipment')">Equipment</div>
+      <div class="stab" onclick="showTab('safety')">Safety</div>
+    </div>
+    <div id="scontent">
+      <div id="tab-library"></div>
+      <div id="tab-equipment" style="display:none">
+        <button class="tb" style="width:100%;margin-bottom:8px" onclick="openAddEquip()">+ Add item</button>
+        <div id="equip-list"></div>
+      </div>
+      <div id="tab-safety" style="display:none">
+        <input class="ref-search" type="text" placeholder="Search rules..." oninput="filterRef(this.value)" id="refSearch">
+        <div id="ref-content"></div>
+        <div style="font-size:9px;color:#ccc;margin-top:8px;line-height:1.5;padding-top:6px;border-top:1px solid #f0f0f0">Source: Purple Guide to Health, Safety & Welfare at Music and Other Events (Feb 2026 edition) + HSE Managing Crowds Safely. Legal min = statutory minimum. Guide = Purple Guide recommendation.</div>
+      </div>
+    </div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+    <div id="setup">
+      <div class="setup-box">
+        <h2 id="setupTitle">Set up venue</h2>
+        <p>Enter the site boundary. This becomes the outer perimeter on your canvas — everything you plan sits inside it.</p>
+        <label>Width (m)</label><input id="setupW" type="number" placeholder="e.g. 120" min="1">
+        <label>Depth (m)</label><input id="setupD" type="number" placeholder="e.g. 120" min="1">
+        <button class="setup-start" onclick="applyBoundary()">Start planning</button>
+      </div>
+    </div>
+    <div id="autoPanel">
+      <h4>Auto-place items</h4>
+      <label>Item</label><select id="apItem"></select>
+      <label>Quantity</label><input id="apQty" type="number" value="10" min="1">
+      <label>Gap between items (m)</label><input id="apGap" type="number" value="1.5" step="0.5">
+      <label>Aisle every N items</label><input id="apEvery" type="number" value="4" min="1">
+      <label>Aisle width (m) — min 2m legal</label><input id="apAisleW" type="number" value="2.5" step="0.5">
+      <label>Start X (m)</label><input id="apX" type="number" value="5">
+      <label>Start Y (m)</label><input id="apY" type="number" value="5">
+      <div class="ap-btns">
+        <button onclick="toggleAuto()">Close</button>
+        <button class="ok" onclick="doAutoPlace()">Place</button>
+      </div>
+    </div>
+    <!-- modals -->
+    <div class="modal" id="zoneModal">
+      <div class="mbox"><h3>Name this zone</h3>
+        <label>Label</label><input id="zmLabel" type="text" placeholder="Bar, Stage, Dining, BOH...">
+        <label>Colour</label>
+        <select id="zmColour">
+          <option value="#4a7c59">Green — stage / performance</option>
+          <option value="#5a8db5">Blue — tent / structure</option>
+          <option value="#d4a843">Amber — dining / seating</option>
+          <option value="#8b5e3c">Brown — bar / catering</option>
+          <option value="#c0392b">Red — exit / safety</option>
+          <option value="#8b59a2">Purple — production / BOH</option>
+          <option value="#607d8b">Grey — parking / service</option>
+        </select>
+        <label>Fill strength</label>
+        <select id="zmOpacity"><option value="0.12">Light</option><option value="0.22" selected>Medium</option><option value="0.4">Strong</option></select>
+        <div class="mrow"><button onclick="closeModal('zoneModal')">Cancel</button><button class="ok" onclick="confirmZone()">Add zone</button></div>
+      </div>
+    </div>
+    <div class="modal" id="measureModal">
+      <div class="mbox"><h3>Label measurement</h3>
+        <label>Label (optional)</label><input id="mmLabel" type="text" placeholder="North wall, Aisle A...">
+        <div class="mrow"><button onclick="closeModal('measureModal')">Cancel</button><button class="ok" onclick="confirmMeasure()">Add</button></div>
+      </div>
+    </div>
+    <div class="modal" id="labelModal">
+      <div class="mbox"><h3>Add text label</h3>
+        <label>Text</label><input id="lmText" type="text" placeholder="Stage area, BOH entrance...">
+        <label>Size</label>
+        <select id="lmSize"><option value="10">Small</option><option value="13" selected>Medium</option><option value="18">Large</option><option value="26">Heading</option></select>
+        <div class="mrow"><button onclick="closeModal('labelModal')">Cancel</button><button class="ok" onclick="confirmLabel()">Place</button></div>
+      </div>
+    </div>
+    <div class="modal" id="equipModal">
+      <div class="mbox"><h3 id="eqTitle">Add equipment item</h3>
+        <label>Name</label><input id="eqName" type="text" placeholder="Alfresco rustic bench">
+        <label>Category</label>
+        <select id="eqCat">
+          <option value="seating">Seating</option><option value="stage">Stage / performance</option>
+          <option value="bar">Bar</option><option value="structure">Structure / tent</option>
+          <option value="toilet">Toilets</option><option value="catering">Catering</option>
+          <option value="production">Production / BOH</option><option value="safety">Safety / exit</option>
+          <option value="other">Other</option>
+        </select>
+        <label>Width (m)</label><input id="eqW" type="number" step="0.1" placeholder="1.8">
+        <label>Depth (m)</label><input id="eqD" type="number" step="0.1" placeholder="0.75">
+        <label>Sizing rule</label>
+        <select id="eqSnap"><option value="none">Any size</option><option value="3">Multiple of 3m (bar units)</option><option value="1">Whole metres</option><option value="0.5">Half-metre increments</option></select>
+        <label>Ownership</label>
+        <select id="eqOwner"><option value="fd">FD owned</option><option value="hire">Hired in</option></select>
+        <label>Supplier (if hired)</label><input id="eqSupplier" type="text" placeholder="Alfresco, PTL...">
+        <label>Colour on plan</label>
+        <select id="eqColour">
+          <option value="#4a7c59">Green</option><option value="#5a8db5">Blue</option>
+          <option value="#d4a843">Amber</option><option value="#8b5e3c">Brown</option>
+          <option value="#c0392b">Red</option><option value="#8b59a2">Purple</option>
+          <option value="#607d8b">Grey</option><option value="#e67e22">Orange</option>
+        </select>
+        <label>Notes</label><input id="eqNotes" type="text" placeholder="Optional">
+        <div class="mrow"><button onclick="closeModal('equipModal')">Cancel</button><button class="ok" onclick="confirmEquip()">Save</button></div>
+      </div>
+    </div>
+    <div class="modal" id="boundaryModal">
+      <div class="mbox"><h3>Edit site boundary</h3>
+        <p class="hint">All placed objects scale proportionally to the new size.</p>
+        <label>Width (m)</label><input id="bndW" type="number">
+        <label>Depth (m)</label><input id="bndD" type="number">
+        <div class="mrow"><button onclick="closeModal('boundaryModal')">Cancel</button><button class="ok" onclick="confirmBoundary()">Rescale</button></div>
+      </div>
+    </div>
+    <div class="modal" id="venueModal">
+      <div class="mbox"><h3>Add venue</h3>
+        <label>Name</label><input id="vnName" type="text" placeholder="HRR, FD7, FD Shindig...">
+        <div class="mrow"><button onclick="closeModal('venueModal')">Cancel</button><button class="ok" onclick="confirmVenue()">Add</button></div>
+      </div>
+    </div>
+    <div class="modal" id="copyModal">
+      <div class="mbox"><h3>Copy layout from year</h3>
+        <label>Venue</label><select id="cpVenue" onchange="updateCopyYears()"></select>
+        <label>Year</label><select id="cpYear"></select>
+        <p class="hint">Copies objects into current canvas. Existing objects kept.</p>
+        <div class="mrow"><button onclick="closeModal('copyModal')">Cancel</button><button class="ok" onclick="confirmCopy()">Copy in</button></div>
+      </div>
+    </div>
+    <div id="warning"></div>
+    <div id="notify"></div>
+  </div>
+</div>
+<div id="statusbar">
+  <span id="sCursor">—</span>
+  <span id="sMode">Mode: select</span>
+  <span id="sSel">Nothing selected</span>
+  <span id="sVenue">—</span>
+  <span>Scroll=zoom · Space+drag=pan · Dbl-click=finish · Esc=cancel · Del=delete selected</span>
+</div>
+</div>
+
+<script>
+// ── Purple Guide safety rules (direct from Feb 2026 edition) ──────────────────
+const SAFETY_RULES = [
+  {cat:'Emergency exits & egress',rules:[
+    {val:'≥1.2m',desc:'Minimum clear width of any gangway or queuing lane.',src:'Purple Guide – Accessibility §28',type:'legal'},
+    {val:'≥1.8m',desc:'Where an entrance also serves as an exit, minimum clear width increases to 1.8m.',src:'Purple Guide – Accessibility §28',type:'legal'},
+    {val:'82 p/min/m',desc:'Evacuation rate per metre of exit width. Divide your attendance by 82 to get minimum exit metres needed for a 1-minute clear. For 8-min target: attendance ÷ 82 ÷ 8 = metres needed.',src:'Purple Guide / Green Guide',type:'guide'},
+    {val:'8 min',desc:'Target: all persons evacuated to a place of relative safety within 8 minutes for open-air green-field events.',src:'HSE / Purple Guide',type:'guide'},
+    {val:'Always clear',desc:'Emergency exit routes must remain unobstructed at all times. No vendor stalls, stock, or vehicles in evacuation paths.',src:'Purple Guide – Catering §67',type:'legal'},
+    {val:'Multiple sides',desc:'Exits must be distributed on multiple sides of the site. Spread exits so a single incident cannot block all routes.',src:'Purple Guide – Venue & Site Design',type:'guide'},
+  ]},
+  {cat:'Gangways & corridors',rules:[
+    {val:'≥1.2m',desc:'Absolute minimum clear width for any internal gangway, aisle, or corridor between structures.',src:'Purple Guide – Accessibility §28',type:'legal'},
+    {val:'1.2m',desc:'Minimum clear access aisle to any bar or counter.',src:'Purple Guide – Accessibility §55',type:'legal'},
+    {val:'1.2m between benches',desc:'Minimum 1.2m clearance between picnic benches or dining furniture for wheelchair access.',src:'Purple Guide – Accessibility §58',type:'legal'},
+    {val:'≥3.7m',desc:'Minimum clear width for any route that must allow a fire engine to pass safely.',src:'Purple Guide – Catering §77',type:'legal'},
+    {val:'No dead ends',desc:'Avoid layouts creating dead-ends where crowds can be trapped. Every area must have at least two exit directions.',src:'Purple Guide – Venue & Site Design',type:'guide'},
+  ]},
+  {cat:'Catering & food traders',rules:[
+    {val:'≥6m',desc:'Minimum separation between trader structures that have ignition sources (gas appliances) in use. NFCC recommendation.',src:'Purple Guide – Catering §75',type:'legal'},
+    {val:'≥1m',desc:'Minimum distance between individual trader LPG supplies and any combustible materials.',src:'Purple Guide – Catering §76',type:'legal'},
+    {val:'3×3m min pitch',desc:'Average gazebo is 3×3m — traders need additional space around the perimeter for LPG, ignition sources, and generators.',src:'Purple Guide – Catering §73',type:'guide'},
+    {val:'No enclosed LPG',desc:'LPG cylinders and generators must not be used in enclosed spaces. Sufficient ventilated outdoor space required.',src:'Purple Guide – Catering §74',type:'legal'},
+    {val:'Rear exit',desc:'Each catering unit must have an emergency escape route — e.g. opening in rear of gazebo, clearance around mobile unit entry.',src:'Purple Guide – Catering §94',type:'legal'},
+    {val:'Extinguisher nearby',desc:'Firefighting equipment must be accessible near all LPG and ignition sources. Do not tackle LPG cylinder fires with extinguisher.',src:'Purple Guide – Catering §97–99',type:'legal'},
+  ]},
+  {cat:'Stage barriers',rules:[
+    {val:'A-frame required',desc:'Stage barriers must be load-bearing A-frame type where significant crowd pressure is expected.',src:'Purple Guide – Barriers §27',type:'guide'},
+    {val:'1.2m high, 1m wide',desc:'Standard stage barrier section dimensions: 1200mm high × 1000mm wide per panel.',src:'Purple Guide – Barriers §28',type:'guide'},
+    {val:'Convex face',desc:'Barrier must have a convex (not concave) front face to dissipate crowd energy outward, not concentrate it in one point.',src:'Purple Guide – Barriers §32',type:'legal'},
+    {val:'No pockets',desc:'Barrier shape must not create pockets where people can become trapped or from which kinetic energy cannot be safely dissipated.',src:'Purple Guide – Barriers §32',type:'legal'},
+    {val:'Side exits',desc:'Any stage pit must have dedicated escape/access points at both wings of the stage.',src:'Purple Guide – Barriers §35',type:'legal'},
+    {val:'Specialist erection',desc:'Stage barriers must be erected by a specialist contractor and signed off by a competent person before use.',src:'Purple Guide – Barriers §29, §39',type:'legal'},
+  ]},
+  {cat:'Crowd density',rules:[
+    {val:'≤2.5 p/m²',desc:'Absolute maximum for short-duration free-movement standing (Purple Guide). Never apply to extended events, children, or reduced-mobility audiences.',src:'Purple Guide – Crowd Management',type:'legal'},
+    {val:'~1 m²/person',desc:'Comfortable standing density — use as your planning baseline for general festival audience areas.',src:'Purple Guide – Crowd Management',type:'guide'},
+    {val:'2 p/m²',desc:'Global best-practice figure for capacity calculations in open standing areas.',src:'Purple Guide / HSE',type:'guide'},
+    {val:'4 p/m²',desc:'Moving queuing systems only. Never apply to static crowds or open event areas.',src:'Purple Guide',type:'guide'},
+  ]},
+  {cat:'Toilets (sanitation)',rules:[
+    {val:'1 per 100F',desc:'Minimum: one female toilet per 100 female attendees (non-alcohol events).',src:'Purple Guide – Sanitation',type:'legal'},
+    {val:'1 per 75F',desc:'Recommended for alcohol-licensed events: one female toilet per 75 female attendees.',src:'Purple Guide – Sanitation',type:'guide'},
+    {val:'1 per 500M',desc:'Minimum: one male toilet per 500 male attendees, plus urinals.',src:'Purple Guide – Sanitation',type:'legal'},
+    {val:'1 per 150M',desc:'Plus one urinal per 150 male attendees (in addition to WCs).',src:'Purple Guide – Sanitation',type:'legal'},
+    {val:'≥1 accessible',desc:'At minimum one dedicated accessible toilet per event. Must follow Approved Document M Volume 2 Section 5.',src:'Purple Guide – Sanitation / Accessibility §40–42',type:'legal'},
+    {val:'1 per 10 WC',desc:'Minimum one handwashing station per 10 toilets. Warm water and soap required.',src:'Purple Guide – Sanitation',type:'legal'},
+    {val:'Distributed',desc:'Locate toilet blocks at multiple points around the site — near car parks, entry queues, and camping. Not one cluster.',src:'Purple Guide – Sanitation',type:'guide'},
+  ]},
+  {cat:'Accessibility',rules:[
+    {val:'900×1350mm',desc:'Space required per wheelchair user on a viewing platform.',src:'Purple Guide – Accessibility §66',type:'guide'},
+    {val:'≥1.2m ramp',desc:'Ramp minimum width 1.2m, must have handrails, kickboards, and non-slip surface.',src:'Purple Guide – Accessibility §70',type:'legal'},
+    {val:'≥1:15 gradient',desc:'Ramp gradient should be at least 1:15 where possible. Steeper than 1:12 not advised — wheelchair users risk tipping.',src:'Purple Guide – Accessibility §68',type:'legal'},
+    {val:'800–850mm',desc:'Counter height for accessible service (ticket sales, bars, information).',src:'Purple Guide – Accessibility §29',type:'guide'},
+  ]},
+  {cat:'Emergency vehicle access',rules:[
+    {val:'≥3.7m',desc:'Minimum clear route width for a fire engine to pass safely through the site.',src:'Purple Guide – Catering §77',type:'legal'},
+    {val:'Within 50m',desc:'Emergency vehicles must be able to get within 50m of any structure on site at all times.',src:'HSE Event Safety Guide',type:'legal'},
+    {val:'Trackway',desc:'If ground conditions are wet or difficult, temporary trackways required to maintain emergency vehicle access routes.',src:'Purple Guide – Venue & Site Design',type:'guide'},
+  ]},
+];
+
+// ── proximity warning rules — checked on every object drop/move ───────────────
+// Each rule: {itemCat, nearCat, minDist, message}
+const PROX_RULES = [
+  {itemCat:'catering', nearCat:'catering', minDist:6,  msg:'Catering traders with ignition sources must be ≥6m apart (Purple Guide §75).'},
+  {itemCat:'catering', nearCat:'safety',   minDist:3,  msg:'Catering units must not obstruct or be within 3m of emergency exits (Purple Guide §67).'},
+  {itemCat:'catering', nearCat:'exit',     minDist:3,  msg:'Catering units must not obstruct emergency exit routes (Purple Guide §67).'},
+  {itemCat:'bar',      nearCat:'safety',   minDist:2,  msg:'Bar structures must not obstruct emergency exits. Keep ≥2m clearance.'},
+  {itemCat:'seating',  nearCat:'safety',   minDist:1.2,msg:'Seating must maintain a ≥1.2m clear gangway to all exits (Purple Guide §28).'},
+  {itemCat:'seating',  nearCat:'seating',  minDist:1.2,msg:'Minimum 1.2m between benches/seating rows for wheelchair access (Purple Guide §58).'},
+  {itemCat:'structure',nearCat:'catering', minDist:6,  msg:'Structures must be ≥6m from catering traders with ignition sources (NFCC/Purple Guide §75).'},
+  {itemCat:'toilet',   nearCat:'catering', minDist:6,  msg:'Toilet blocks should be kept well away from food preparation areas.'},
+  {itemCat:'stage',    nearCat:'safety',   minDist:3,  msg:'Stage structures need clear emergency access on all sides. Minimum 3m clearance to exits.'},
+];
+
+// ── storage ──────────────────────────────────────────────────────────────────
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}},set(k,v){localStorage.setItem(k,JSON.stringify(v))}};
+let venues=LS.get('fd_venues')||['HRR','FD7','FD Shindig'];
+let currentVenue=venues[0];
+let currentYear=String(new Date().getFullYear());
+let layouts=LS.get('fd_layouts')||{};
+let equipment=LS.get('fd_equipment')||[];
+let objects=[],boundary=null,selected=null,mode='select';
+let showGrid=true,snapOn=true,scale=8,ox=80,oy=60;
+let drawing=false,drawPts=[],mousePos={x:0,y:0};
+let panning=false,panSX=0,panSY=0,panOX=0,panOY=0;
+let spaceDown=false,dragging=false,dragOX=0,dragOY=0;
+let pending=null,pendingDragEquip=null,editingEquipIdx=-1;
+let rotating=false,rotStartAngle=0,rotStartObj=0;
+let warnTimer=null;
+
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const wrap=document.getElementById('canvas-wrap');
+const CAT_COL={seating:'#d4a843',stage:'#4a7c59',bar:'#8b5e3c',structure:'#5a8db5',toilet:'#607d8b',catering:'#e67e22',production:'#8b59a2',safety:'#c0392b',other:'#555'};
+
+function lkey(){return currentVenue+'_'+currentYear;}
+
+
+// ── default pitch library ─────────────────────────────────────────────────────
+const DEFAULT_PITCHES = [{"name": "Catering pitch 6x6m", "cat": "catering", "w": 6, "d": 6, "snap": "none", "owner": "hire", "supplier": "", "colour": "#e67e22", "notes": "Standard large catering pitch"}, {"name": "Catering pitch 6x4m", "cat": "catering", "w": 6, "d": 4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#e67e22", "notes": "Standard catering pitch"}, {"name": "Retail pitch 3x3m", "cat": "other", "w": 3, "d": 3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#8b59a2", "notes": "Standard small retail pitch"}, {"name": "Retail pitch 6x4m", "cat": "other", "w": 6, "d": 4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#8b59a2", "notes": "Standard medium retail pitch"}, {"name": "Retail pitch 6x6m", "cat": "other", "w": 6, "d": 6, "snap": "none", "owner": "hire", "supplier": "", "colour": "#8b59a2", "notes": "Standard large retail pitch"}, {"name": "Skip 2yd mini", "cat": "production", "w": 1.8, "d": 1.2, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#607d8b", "notes": "Dunmow 2yd: 1.80x1.20m"}, {"name": "Skip 4yd mini", "cat": "production", "w": 1.83, "d": 1.29, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#607d8b", "notes": "Dunmow 4yd: 1.83x1.29m"}, {"name": "Skip 6yd", "cat": "production", "w": 2.6, "d": 1.52, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#607d8b", "notes": "Dunmow 6yd: 2.60x1.52m"}, {"name": "Skip 8yd builders", "cat": "production", "w": 3.81, "d": 1.68, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#607d8b", "notes": "Dunmow 8yd: 3.81x1.68m"}, {"name": "Skip 12yd large", "cat": "production", "w": 3.7, "d": 1.78, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#607d8b", "notes": "Dunmow 12yd: 3.70x1.78m"}, {"name": "Skip 14yd maxi", "cat": "production", "w": 4.27, "d": 2.0, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#607d8b", "notes": "Dunmow 14yd: 4.27x2.0m"}, {"name": "Skip 16yd maxi", "cat": "production", "w": 4.2, "d": 1.84, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#607d8b", "notes": "Dunmow 16yd: 4.20x1.84m"}, {"name": "RoRo 20yd", "cat": "production", "w": 6.1, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#455a64", "notes": "Dunmow RoRo 20yd: 6.10x2.40m"}, {"name": "RoRo 40yd", "cat": "production", "w": 6.1, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "Dunmow", "colour": "#455a64", "notes": "Dunmow RoRo 40yd: 6.10x2.40m"}, {"name": "Heras panel single", "cat": "safety", "w": 3.5, "d": 0.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#888", "notes": "Standard Heras: 3.5m wide x 2.0m high"}, {"name": "Heras run 10m", "cat": "safety", "w": 10.0, "d": 0.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#888", "notes": "3x Heras panels"}, {"name": "Heras run 20m", "cat": "safety", "w": 20.0, "d": 0.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#888", "notes": "6x Heras panels"}, {"name": "Heras run 35m", "cat": "safety", "w": 35.0, "d": 0.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#888", "notes": "10x Heras panels"}, {"name": "Crowd barrier single", "cat": "safety", "w": 2.5, "d": 0.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#546e7a", "notes": "Pedestrian barrier: 2.5m x 1.1m high"}, {"name": "Crowd barrier run 10m", "cat": "safety", "w": 10.0, "d": 0.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#546e7a", "notes": "4x pedestrian barriers"}, {"name": "Stage barrier A-frame", "cat": "safety", "w": 1.0, "d": 0.5, "snap": "none", "owner": "hire", "supplier": "", "colour": "#c0392b", "notes": "Load-bearing A-frame: 1m wide x 1.2m high (Purple Guide)"}, {"name": "20ft container", "cat": "production", "w": 6.06, "d": 2.44, "snap": "none", "owner": "hire", "supplier": "", "colour": "#455a64", "notes": "ISO 20ft container: 6.06x2.44m"}, {"name": "24ft cabin office", "cat": "production", "w": 7.3, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "Standard 24ft portable cabin"}, {"name": "Fridge trailer 6m", "cat": "production", "w": 6.0, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "6m fridge trailer - confirm with supplier"}, {"name": "Fridge trailer 12m", "cat": "production", "w": 12.0, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "12m fridge trailer - confirm with supplier"}, {"name": "Generator small", "cat": "production", "w": 2.5, "d": 1.2, "snap": "none", "owner": "hire", "supplier": "", "colour": "#f39c12", "notes": "Small towable generator"}, {"name": "Generator large", "cat": "production", "w": 6.0, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#f39c12", "notes": "Large static generator set"}, {"name": "Water bowser", "cat": "production", "w": 3.5, "d": 1.8, "snap": "none", "owner": "hire", "supplier": "", "colour": "#2980b9", "notes": "Standard towed water bowser"}, {"name": "Vacuum waste tank", "cat": "production", "w": 4.0, "d": 2.0, "snap": "none", "owner": "hire", "supplier": "", "colour": "#7f8c8d", "notes": "Vacuum/waste holding tank"}, {"name": "Trestle table 6ft", "cat": "seating", "w": 1.83, "d": 0.76, "snap": "none", "owner": "fd", "supplier": "", "colour": "#d4a843", "notes": "6ft trestle: 1.83x0.76m"}, {"name": "Rustic bench 6ft", "cat": "seating", "w": 1.83, "d": 0.22, "snap": "none", "owner": "hire", "supplier": "Alfresco", "colour": "#8b5e3c", "notes": "Alfresco 6ft rustic bench: 1.83x0.22m"}, {"name": "Rope and pole 3m", "cat": "safety", "w": 3.0, "d": 0.1, "snap": "3", "owner": "hire", "supplier": "", "colour": "#c8a96e", "notes": "Single 3m bay - confirm width with supplier"}, {"name": "Rope and pole 6m", "cat": "safety", "w": 6.0, "d": 0.1, "snap": "3", "owner": "hire", "supplier": "", "colour": "#c8a96e", "notes": "2x 3m bays"}, {"name": "Rope and pole 12m", "cat": "safety", "w": 12.0, "d": 0.1, "snap": "3", "owner": "hire", "supplier": "", "colour": "#c8a96e", "notes": "4x 3m bays"}, {"name": "Welfare 20ft canteen+office", "cat": "production", "w": 6.1, "d": 2.74, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "20ft x 9ft welfare unit with canteen and office"}, {"name": "Canteen Space 12", "cat": "production", "w": 3.65, "d": 2.3, "snap": "none", "owner": "hire", "supplier": "Boss Cabins", "colour": "#5a8db5", "notes": "Boss Cabins C-Space 12ft: 3650x2300mm. 7-person canteen, toilet cubicle, generator room."}, {"name": "Luxury toilet 3+1", "cat": "toilet", "w": 6.71, "d": 2.32, "snap": "none", "owner": "hire", "supplier": "Luxury Toilet Hire", "colour": "#607d8b", "notes": "3+1 trailer: 6705x2316mm. 3 ladies, 1 gents, 3 urinals. Up to 200 guests/8hrs. 13/16amp power needed."}, {"name": "Luxury toilet 2+1", "cat": "toilet", "w": 5.5, "d": 2.3, "snap": "none", "owner": "hire", "supplier": "Luxury Toilet Hire", "colour": "#607d8b", "notes": "2+1 trailer: approx 5.5x2.3m. 2 ladies, 1 gents, urinals. Up to 150 guests/8hrs."}, {"name": "Disabled toilet unit", "cat": "toilet", "w": 3.5, "d": 2.3, "snap": "none", "owner": "hire", "supplier": "Luxury Toilet Hire", "colour": "#607d8b", "notes": "Accessible/disabled toilet unit approx 3.5x2.3m. 1 per 2000 guests (DDA guidance)."}, {"name": "Saigon sofa (2-seat)", "cat": "seating", "w": 1.91, "d": 0.8, "snap": "none", "owner": "fd", "supplier": "Rowlinson", "colour": "#8b5e3c", "notes": "Rowlinson Saigon sofa: 1910x800mm. Part of Saigon Coffee Set."}, {"name": "Saigon armchair", "cat": "seating", "w": 0.74, "d": 0.8, "snap": "none", "owner": "fd", "supplier": "Rowlinson", "colour": "#8b5e3c", "notes": "Rowlinson Saigon armchair: 735x800mm. Part of Saigon Coffee Set (2 per set)."}, {"name": "Saigon coffee table", "cat": "seating", "w": 1.1, "d": 0.65, "snap": "none", "owner": "fd", "supplier": "Rowlinson", "colour": "#6d4c2a", "notes": "Rowlinson Saigon coffee table: 1100x650mm. H300mm."}, {"name": "Saigon set (full layout)", "cat": "seating", "w": 2.5, "d": 2.2, "snap": "none", "owner": "fd", "supplier": "Rowlinson", "colour": "#8b5e3c", "notes": "Rowlinson Saigon Coffee Set full footprint approx 2.5x2.2m (sofa+2 chairs+table arranged). x3 sets owned."}, {"name": "Plumley dining table", "cat": "seating", "w": 1.4, "d": 0.85, "snap": "none", "owner": "fd", "supplier": "Rowlinson", "colour": "#d4a843", "notes": "Rowlinson Plumley table: 1400x850mm H730mm."}, {"name": "Plumley chair", "cat": "seating", "w": 0.46, "d": 0.57, "snap": "none", "owner": "fd", "supplier": "Rowlinson", "colour": "#d4a843", "notes": "Rowlinson Plumley chair: 460x570mm H860mm."}, {"name": "Plumley armchair", "cat": "seating", "w": 0.52, "d": 0.57, "snap": "none", "owner": "fd", "supplier": "Rowlinson", "colour": "#d4a843", "notes": "Rowlinson Plumley armchair: 520x570mm H860mm."}, {"name": "Plumley set (full layout)", "cat": "seating", "w": 2.4, "d": 1.85, "snap": "none", "owner": "fd", "supplier": "Rowlinson", "colour": "#d4a843", "notes": "Rowlinson Plumley 6-seater full footprint approx 2.4x1.85m (table+6 chairs pulled out). x15 sets owned."}, {"name": "Stretch tent 21x15m (large)", "cat": "structure", "w": 21.0, "d": 15.0, "snap": "none", "owner": "hire", "supplier": "Under The Canvas", "colour": "#5a8db5", "notes": "UTC Large: 21x15m. Floated: 240 seated/400 standing. 1 side down: 220/360. 2 sides: 200/320. 3 sides: 180/280."}, {"name": "Stretch tent 15x10.5m (medium)", "cat": "structure", "w": 15.0, "d": 10.5, "snap": "none", "owner": "hire", "supplier": "Under The Canvas", "colour": "#5a8db5", "notes": "UTC Medium: 15x10.5m. Floated: 140 seated/200 standing. 1 side: 120/180. 2 sides: 100/160. 3 sides: 80/140."}, {"name": "Stretch tent 10.5x7.5m (small)", "cat": "structure", "w": 10.5, "d": 7.5, "snap": "none", "owner": "hire", "supplier": "Under The Canvas", "colour": "#5a8db5", "notes": "UTC Small: 10.5x7.5m. Floated: 80 seated/90 standing. 1 side: 70/75. 2 sides: 50/65. 3 sides: 40/65."}, {"name": "Stretch tent 10.5x10.5m", "cat": "structure", "w": 10.5, "d": 10.5, "snap": "none", "owner": "hire", "supplier": "Under The Canvas", "colour": "#5a8db5", "notes": "UTC 10.5x10.5m. Mid-sized events with flexible configurations."}, {"name": "Stretch tent 8x7.5m", "cat": "structure", "w": 8.0, "d": 7.5, "snap": "none", "owner": "hire", "supplier": "Under The Canvas", "colour": "#5a8db5", "notes": "UTC 8x7.5m. Compact option for intimate gatherings or additional spaces."}, {"name": "Stretch tent 7.5x5.25m", "cat": "structure", "w": 7.5, "d": 5.25, "snap": "none", "owner": "hire", "supplier": "Under The Canvas", "colour": "#5a8db5", "notes": "UTC 7.5x5.25m. Smaller gatherings or shaded areas. 30-40 standing."}, {"name": "Stretch tent 4.5x4.5m (orange)", "cat": "structure", "w": 4.5, "d": 4.5, "snap": "none", "owner": "hire", "supplier": "Under The Canvas", "colour": "#e67e22", "notes": "UTC 4.5x4.5m orange. No centre pole. Unique shading solution."}, {"name": "Tipi small (Cirrus) 8.5m", "cat": "structure", "w": 8.5, "d": 8.5, "snap": "none", "owner": "hire", "supplier": "", "colour": "#c8a050", "notes": "Cirrus 40 style: 8.5m diameter, 5.5m peak. Approx from FD festival drawing. Bar/chill-out use. Confirm with supplier."}, {"name": "Tipi large (Stratus) 10.3m", "cat": "structure", "w": 10.3, "d": 10.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#c8a050", "notes": "Stratus 72 / Giant Hat style: 10.3m diameter, 7.4m peak. ~60 guests standing. Confirm with supplier."}, {"name": "Tipi linked x2 (10.3m each)", "cat": "structure", "w": 18.0, "d": 10.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#c8a050", "notes": "Two linked 10.3m tipis approx 18x10.3m combined footprint. ~120 guests. Confirm with supplier."}, {"name": "Tipi linked x3 (10.3m each)", "cat": "structure", "w": 26.0, "d": 10.3, "snap": "none", "owner": "hire", "supplier": "", "colour": "#c8a050", "notes": "Three linked 10.3m tipis approx 26x10.3m combined footprint. ~180 guests. Confirm with supplier."}, {"name": "Under counter fridge small", "cat": "production", "w": 0.6, "d": 0.6, "snap": "none", "owner": "fd", "supplier": "", "colour": "#2980b9", "notes": "Under counter fridge single door: approx 600x600mm footprint. Standard bar unit."}, {"name": "Under counter fridge medium", "cat": "production", "w": 0.9, "d": 0.6, "snap": "none", "owner": "fd", "supplier": "", "colour": "#2980b9", "notes": "Under counter fridge 2-door: approx 900x600mm footprint. Most common commercial bar size."}, {"name": "Under counter fridge large", "cat": "production", "w": 1.2, "d": 0.6, "snap": "none", "owner": "fd", "supplier": "", "colour": "#2980b9", "notes": "Under counter fridge 3-door: approx 1200x600mm footprint. Larger bar unit."}, {"name": "Fridge trailer 4.8m", "cat": "production", "w": 4.8, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "Small fridge trailer: 4.8x2.4m footprint. Confirm with supplier."}, {"name": "Fridge trailer 6m", "cat": "production", "w": 6.0, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "Standard fridge trailer: 6x2.4m footprint."}, {"name": "Fridge trailer 7.5m", "cat": "production", "w": 7.5, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "Medium fridge trailer: 7.5x2.4m footprint. Confirm with supplier."}, {"name": "Fridge trailer 9m", "cat": "production", "w": 9.0, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "Large fridge trailer: 9x2.4m footprint. Confirm with supplier."}, {"name": "Fridge trailer 12m", "cat": "production", "w": 12.0, "d": 2.4, "snap": "none", "owner": "hire", "supplier": "", "colour": "#5a8db5", "notes": "Extra large fridge trailer: 12x2.4m footprint."}, {"name": "Chest freezer 120L", "cat": "production", "w": 0.8, "d": 0.56, "snap": "none", "owner": "fd", "supplier": "", "colour": "#34495e", "notes": "120L chest freezer: approx 803x557mm footprint (Jubilee Hire spec). Standard small event unit."}, {"name": "Chest freezer 200L", "cat": "production", "w": 0.9, "d": 0.6, "snap": "none", "owner": "fd", "supplier": "", "colour": "#34495e", "notes": "200L chest freezer: approx 900x600mm footprint. Common medium event unit."}, {"name": "Chest freezer 300L", "cat": "production", "w": 1.1, "d": 0.65, "snap": "none", "owner": "fd", "supplier": "", "colour": "#34495e", "notes": "300L chest freezer: approx 1100x650mm footprint. Large event unit."}, {"name": "Chest freezer 370L", "cat": "production", "w": 1.3, "d": 0.7, "snap": "none", "owner": "hire", "supplier": "", "colour": "#34495e", "notes": "370L chest freezer: approx 1300x700mm footprint. Large hire unit."}, {"name": "Chest freezer 500L", "cat": "production", "w": 1.5, "d": 0.73, "snap": "none", "owner": "hire", "supplier": "", "colour": "#34495e", "notes": "500L chest freezer: approx 1500x730mm footprint. Commercial/bulk storage."}, {"name": "Pump dispense unit (Pimms etc)", "cat": "bar", "w": 3.0, "d": 0.6, "snap": "3", "owner": "hire", "supplier": "", "colour": "#8b5e3c", "notes": "3m pump/dispense unit for Pimms, cocktails etc. Standard bar depth 0.6m. Snaps to 3m units."}, {"name": "Stage \u2014 HRR (6x4m)", "cat": "stage", "w": 6.0, "d": 4.0, "snap": "none", "owner": "hire", "supplier": "", "colour": "#4a7c59", "notes": "HRR stage: 6x4m"}, {"name": "Stage \u2014 FD Shindig (6x4m)", "cat": "stage", "w": 6.0, "d": 4.0, "snap": "none", "owner": "hire", "supplier": "", "colour": "#4a7c59", "notes": "FD Shindig stage: 6x4m"}, {"name": "Stage \u2014 FD7 (8x6m)", "cat": "stage", "w": 8.0, "d": 6.0, "snap": "none", "owner": "hire", "supplier": "", "colour": "#4a7c59", "notes": "FD7 stage: 8x6m"}];
+function loadDefaultsIfEmpty(){
+  if(equipment.length===0){
+    equipment=[...DEFAULT_PITCHES];
+    LS.set('fd_equipment',equipment);
+  }
+}
+
+function init(){loadDefaultsIfEmpty();buildVenueTabs();buildYearTabs();loadLayout();renderEquipList();renderLibrary();renderSafety();setTimeout(()=>resize(),80);}
+
+// ── venue/year tabs ───────────────────────────────────────────────────────────
+function buildVenueTabs(){
+  const bar=document.getElementById('venueBar');bar.innerHTML='';bar.style.cssText='display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0';
+  venues.forEach(v=>{const t=document.createElement('div');t.className='vtab'+(v===currentVenue?' active':'');t.textContent=v;t.onclick=()=>switchVenue(v);bar.appendChild(t);});
+  const a=document.createElement('div');a.className='vtab vadd';a.textContent='+';a.title='Add venue';a.onclick=()=>openModal('venueModal');bar.appendChild(a);
+}
+function buildYearTabs(){
+  const bar=document.getElementById('yearBar');bar.innerHTML='';bar.style.cssText='display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;max-width:240px;flex-shrink:0';
+  const years=getYears(currentVenue);if(!years.includes(currentYear))years.push(currentYear);
+  years.sort().forEach(y=>{const t=document.createElement('div');t.className='ytab'+(y===currentYear?' active':'');t.textContent=y;t.onclick=()=>switchYear(y);bar.appendChild(t);});
+  const a=document.createElement('div');a.className='ytab yadd';a.textContent='+';a.title='New year';
+  a.onclick=()=>{const y=prompt('Year:',String(new Date().getFullYear()+1));if(y&&/^\d{4}$/.test(y)){currentYear=y;buildYearTabs();loadLayout();}};
+  bar.appendChild(a);
+  document.getElementById('sVenue').textContent='Active: '+currentVenue+' '+currentYear;
+}
+function getYears(v){return Object.keys(layouts).filter(k=>k.startsWith(v+'_')).map(k=>k.split('_')[1]);}
+function switchVenue(v){saveLayout();currentVenue=v;const yrs=getYears(v);currentYear=yrs.length?yrs[yrs.length-1]:String(new Date().getFullYear());buildVenueTabs();buildYearTabs();loadLayout();}
+function switchYear(y){saveLayout();currentYear=y;buildYearTabs();loadLayout();}
+function confirmVenue(){const n=document.getElementById('vnName').value.trim();if(!n)return;if(!venues.includes(n)){venues.push(n);LS.set('fd_venues',venues);}closeModal('venueModal');switchVenue(n);}
+
+// ── save/load ─────────────────────────────────────────────────────────────────
+function saveLayout(){layouts[lkey()]={objects:JSON.parse(JSON.stringify(objects)),boundary:boundary?{...boundary}:null};LS.set('fd_layouts',layouts);notify('Saved');}
+function loadLayout(){
+  const s=layouts[lkey()];
+  if(s){objects=JSON.parse(JSON.stringify(s.objects||[]));boundary=s.boundary?{...s.boundary}:null;}
+  else{objects=[];boundary=null;}
+  selected=null;
+  const su=document.getElementById('setup');
+  if(!boundary){document.getElementById('setupTitle').textContent='Set up '+currentVenue+' '+currentYear;su.classList.remove('done');document.getElementById('setupW').value='';document.getElementById('setupD').value='';}
+  else{su.classList.add('done');setTimeout(fitView,50);}
+  draw();updateStatus();
+}
+
+// ── boundary ──────────────────────────────────────────────────────────────────
+function applyBoundary(){
+  const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
+  if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
+  boundary={w,d};document.getElementById('setup').classList.add('done');saveLayout();setTimeout(()=>{resize();fitView();},50);
+}
+function editBoundary(){if(!boundary)return;document.getElementById('bndW').value=boundary.w;document.getElementById('bndD').value=boundary.d;openModal('boundaryModal');}
+function confirmBoundary(){
+  const nw=parseFloat(document.getElementById('bndW').value),nd=parseFloat(document.getElementById('bndD').value);if(!nw||!nd)return;
+  const sx=nw/boundary.w,sy=nd/boundary.d;
+  objects.forEach(o=>{
+    if(o.type==='item'){o.x*=sx;o.y*=sy;if(o.cat!=='seating'){o.w*=sx;o.d*=sy;}}
+    else if(o.type==='label'){o.x*=sx;o.y*=sy;}
+    else if(o.type==='measure'){o.x0*=sx;o.y0*=sy;o.x1*=sx;o.y1*=sy;}
+    else if(o.points)o.points.forEach(p=>{p.x*=sx;p.y*=sy;});
+  });
+  boundary={w:nw,d:nd};closeModal('boundaryModal');fitView();draw();notify('Boundary updated — objects rescaled');
+}
+
+// ── equipment ─────────────────────────────────────────────────────────────────
+function renderEquipList(){
+  const el=document.getElementById('equip-list');el.innerHTML='';
+  if(!equipment.length){el.innerHTML='<p style="color:#ccc;font-size:11px">No items yet.</p>';return;}
+  equipment.forEach((e,i)=>{
+    const d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:6px;padding:5px 6px;border:1px solid #eee;border-radius:4px;margin-bottom:4px;font-size:11px;background:#fafafa';
+    d.innerHTML=`<div style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:${e.colour||CAT_COL[e.cat]||'#888'}"></div>
+      <div style="flex:1;min-width:0"><div style="font-weight:500">${e.name}</div><div style="color:#aaa;font-size:10px">${e.w}×${e.d}m · ${e.owner==='fd'?'FD stock':e.supplier||'Hire'}</div></div>
+      <button onclick="editEquip(${i})" style="font-size:10px;padding:2px 5px;border:1px solid #ddd;border-radius:3px;background:#fff;cursor:pointer;color:#555">Edit</button>`;
+    el.appendChild(d);
+  });
+}
+function renderLibrary(){
+  const el=document.getElementById('tab-library');el.innerHTML='';
+  if(!equipment.length){el.innerHTML='<p style="color:#ccc;font-size:11px;padding:2px 0">Add items in the Equipment tab first.</p>';return;}
+  const cats={};equipment.forEach((e,i)=>{(cats[e.cat]=cats[e.cat]||[]).push({...e,idx:i});});
+  Object.entries(cats).forEach(([cat,items])=>{
+    const h=document.createElement('div');h.style.cssText='font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;padding:7px 0 3px';h.textContent=cat;el.appendChild(h);
+    items.forEach(e=>{
+      const d=document.createElement('div');d.className='lib-item';d.draggable=true;
+      d.innerHTML=`<div class="swatch" style="background:${e.colour||CAT_COL[e.cat]||'#888'}"></div><div><div style="font-weight:500;color:#222">${e.name}</div><div style="color:#aaa;font-size:10px">${e.w}×${e.d}m</div></div>`;
+      d.ondragstart=ev=>{pendingDragEquip=e;ev.dataTransfer.effectAllowed='copy';ev.dataTransfer.setData('text','equip');};
+      el.appendChild(d);
+    });
+  });
+  const ap=document.getElementById('apItem');ap.innerHTML='';
+  equipment.forEach((e,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${e.name} (${e.w}×${e.d}m)`;ap.appendChild(o);});
+}
+function openAddEquip(){editingEquipIdx=-1;clearEqForm();document.getElementById('eqTitle').textContent='Add equipment item';openModal('equipModal');}
+function editEquip(i){
+  editingEquipIdx=i;const e=equipment[i];
+  document.getElementById('eqName').value=e.name||'';document.getElementById('eqCat').value=e.cat||'other';
+  document.getElementById('eqW').value=e.w||'';document.getElementById('eqD').value=e.d||'';
+  document.getElementById('eqSnap').value=e.snap||'none';document.getElementById('eqOwner').value=e.owner||'hire';
+  document.getElementById('eqSupplier').value=e.supplier||'';document.getElementById('eqColour').value=e.colour||'#888';
+  document.getElementById('eqNotes').value=e.notes||'';document.getElementById('eqTitle').textContent='Edit item';openModal('equipModal');
+}
+function clearEqForm(){['eqName','eqW','eqD','eqSupplier','eqNotes'].forEach(id=>document.getElementById(id).value='');document.getElementById('eqCat').value='other';document.getElementById('eqSnap').value='none';document.getElementById('eqOwner').value='hire';document.getElementById('eqColour').value='#888';}
+function confirmEquip(){
+  const name=document.getElementById('eqName').value.trim();if(!name)return;
+  let w=parseFloat(document.getElementById('eqW').value)||1,d=parseFloat(document.getElementById('eqD').value)||1;
+  const snap=document.getElementById('eqSnap').value;if(snap==='3')w=Math.max(3,Math.round(w/3)*3);
+  const item={name,cat:document.getElementById('eqCat').value,w,d,snap,owner:document.getElementById('eqOwner').value,supplier:document.getElementById('eqSupplier').value,colour:document.getElementById('eqColour').value,notes:document.getElementById('eqNotes').value};
+  if(editingEquipIdx>=0)equipment[editingEquipIdx]=item;else equipment.push(item);
+  LS.set('fd_equipment',equipment);closeModal('equipModal');renderEquipList();renderLibrary();
+}
+
+// ── safety reference panel ────────────────────────────────────────────────────
+function renderSafety(filter=''){
+  const el=document.getElementById('ref-content');el.innerHTML='';
+  SAFETY_RULES.forEach(section=>{
+    const rules=section.rules.filter(r=>!filter||r.val.toLowerCase().includes(filter)||r.desc.toLowerCase().includes(filter)||r.src.toLowerCase().includes(filter));
+    if(!rules.length)return;
+    const h=document.createElement('div');h.className='ref-cat';h.textContent=section.cat;el.appendChild(h);
+    rules.forEach(r=>{
+      const d=document.createElement('div');d.className='ref-rule';
+      d.innerHTML=`<div class="ref-val">${r.val}</div><div><span>${r.desc}</span><span class="ref-badge ${r.type==='legal'?'badge-legal':'badge-guide'}">${r.type==='legal'?'Legal min':'Guide'}</span><span class="ref-src">${r.src}</span></div>`;
+      el.appendChild(d);
+    });
+  });
+  if(!el.innerHTML)el.innerHTML='<p style="color:#ccc;font-size:11px;padding:4px">No rules match.</p>';
+}
+function filterRef(v){renderSafety(v.toLowerCase());}
+
+// ── proximity warnings ────────────────────────────────────────────────────────
+function getItemCat(o){return o.cat||'other';}
+function itemBounds(o){return{x:o.x,y:o.y,w:o.w,d:o.d};}
+function distBetween(a,b){
+  const ax=a.x+a.w/2,ay=a.y+a.d/2,bx=b.x+b.w/2,by=b.y+b.d/2;
+  return Math.sqrt((ax-bx)**2+(ay-by)**2);
+}
+
+function checkProximity(obj){
+  if(obj.type!=='item')return null;
+  const cat=getItemCat(obj);
+  for(const other of objects){
+    if(other===obj||other.type!=='item')continue;
+    const oCat=getItemCat(other);
+    for(const rule of PROX_RULES){
+      const matches=(rule.itemCat===cat&&rule.nearCat===oCat)||(rule.itemCat===oCat&&rule.nearCat===cat);
+      if(!matches)continue;
+      const dist=distBetween(itemBounds(obj),itemBounds(other));
+      if(dist<rule.minDist)return rule.msg;
+    }
+  }
+  return null;
+}
+
+function showWarning(msg){
+  const w=document.getElementById('warning');
+  w.textContent='⚠ '+msg;w.classList.add('show');
+  clearTimeout(warnTimer);warnTimer=setTimeout(()=>w.classList.remove('show'),5000);
+}
+
+// ── coords ────────────────────────────────────────────────────────────────────
+const toCX=mx=>mx*scale+ox,toCY=my=>my*scale+oy;
+const toMX=cx=>(cx-ox)/scale,toMY=cy=>(cy-oy)/scale;
+function snp(v){return snapOn?Math.round(v*2)/2:v;}
+
+function resize(){const r=wrap.getBoundingClientRect();canvas.width=r.width;canvas.height=r.height;draw();}
+new ResizeObserver(resize).observe(wrap);
+
+// ── draw ──────────────────────────────────────────────────────────────────────
+function draw(){
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  if(showGrid)drawGrid(W,H);
+  if(boundary)drawBoundary();
+  objects.forEach(o=>{if(o.type==='zone')drawZone(o);else if(o.type==='wall')drawWall(o);else if(o.type==='measure')drawMeasure(o);else if(o.type==='label')drawLabel(o);else if(o.type==='item')drawItem(o);});
+  if(drawing)drawPreview();
+  drawCompass(W-46,48);
+}
+function drawGrid(W,H){
+  const sub=scale/4;ctx.strokeStyle='#e8e8e8';ctx.lineWidth=0.3;
+  for(let x=ox%sub;x<W;x+=sub){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=oy%sub;y<H;y+=sub){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.strokeStyle='#d0d0d0';ctx.lineWidth=0.6;
+  for(let x=ox%scale;x<W;x+=scale){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=oy%scale;y<H;y+=scale){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  const s5=scale*5;ctx.strokeStyle='#bbb';ctx.lineWidth=1;
+  for(let x=ox%s5;x<W;x+=s5){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=oy%s5;y<H;y+=s5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.fillStyle='#aaa';ctx.font='9px sans-serif';
+  ctx.textAlign='center';for(let x=ox%s5;x<W;x+=s5)ctx.fillText(Math.round(toMX(x))+'m',x,11);
+  ctx.textAlign='right';for(let y=oy%s5;y<H;y+=s5)ctx.fillText(Math.round(toMY(y))+'m',36,y+3);
+}
+function drawBoundary(){
+  const x=toCX(0),y=toCY(0),w=boundary.w*scale,h=boundary.d*scale;
+  ctx.fillStyle='rgba(250,250,255,0.3)';ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='#2c2c2a';ctx.lineWidth=3;ctx.strokeRect(x,y,w,h);
+  ctx.fillStyle='#2c2c2a';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText(boundary.w+'m',x+w/2,y-5);
+  ctx.save();ctx.translate(x-5,y+h/2);ctx.rotate(-Math.PI/2);ctx.fillText(boundary.d+'m',0,-2);ctx.restore();
+  ctx.fillStyle='#444';ctx.font='bold 13px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText(currentVenue+' '+currentYear,x+6,y+6);
+}
+function hexRgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
+function drawZone(o){
+  const sel=o===selected;ctx.save();
+  ctx.fillStyle=hexRgba(o.colour||'#5a8db5',o.opacity||0.2);
+  ctx.beginPath();o.points.forEach((p,i)=>i?ctx.lineTo(toCX(p.x),toCY(p.y)):ctx.moveTo(toCX(p.x),toCY(p.y)));
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle=sel?'#e74c3c':(o.colour||'#5a8db5');ctx.lineWidth=sel?2.5:1.5;ctx.stroke();
+  if(o.label){const cx=o.points.reduce((s,p)=>s+p.x,0)/o.points.length,cy=o.points.reduce((s,p)=>s+p.y,0)/o.points.length;ctx.fillStyle=o.colour||'#333';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(o.label,toCX(cx),toCY(cy));}
+  ctx.restore();
+}
+function drawWall(o){
+  const sel=o===selected;ctx.save();ctx.strokeStyle=sel?'#e74c3c':'#2c2c2a';ctx.lineWidth=sel?3:2.5;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();o.points.forEach((p,i)=>i?ctx.lineTo(toCX(p.x),toCY(p.y)):ctx.moveTo(toCX(p.x),toCY(p.y)));ctx.stroke();
+  for(let i=0;i<o.points.length-1;i++){const a=o.points[i],b=o.points[i+1],d=Math.hypot(b.x-a.x,b.y-a.y);if(d<0.1)continue;const mx=toCX((a.x+b.x)/2),my=toCY((a.y+b.y)/2),ang=Math.atan2(b.y-a.y,b.x-a.x);ctx.save();ctx.translate(mx,my);ctx.rotate(ang);ctx.fillStyle='#444';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(d.toFixed(1)+'m',0,-3);ctx.restore();}
+  ctx.restore();
+}
+function drawMeasure(o){
+  const sel=o===selected,x0=toCX(o.x0),y0=toCY(o.y0),x1=toCX(o.x1),y1=toCY(o.y1),d=Math.hypot(o.x1-o.x0,o.y1-o.y0);
+  ctx.save();ctx.strokeStyle=sel?'#e74c3c':'#185FA5';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();ctx.setLineDash([]);
+  const ang=Math.atan2(y1-y0,x1-x0);
+  [[x0,y0],[x1,y1]].forEach(([tx,ty])=>{ctx.save();ctx.translate(tx,ty);ctx.rotate(ang+Math.PI/2);ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(5,0);ctx.stroke();ctx.restore();});
+  ctx.save();ctx.translate((x0+x1)/2,(y0+y1)/2);ctx.rotate(ang);ctx.fillStyle='#185FA5';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText((o.label?o.label+' ':'')+d.toFixed(1)+'m',0,-4);ctx.restore();
+  ctx.restore();
+}
+function drawLabel(o){
+  const sel=o===selected;ctx.save();ctx.fillStyle=sel?'#e74c3c':'#222';ctx.font=`${o.size||13}px sans-serif`;ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText(o.text,toCX(o.x),toCY(o.y));
+  if(sel){const w=ctx.measureText(o.text).width,h=(o.size||13)+2;ctx.strokeStyle='#e74c3c';ctx.lineWidth=1;ctx.setLineDash([3,2]);ctx.strokeRect(toCX(o.x)-2,toCY(o.y)-2,w+4,h+4);ctx.setLineDash([]);}
+  ctx.restore();
+}
+function drawItem(o){
+  const sel=o===selected;
+  const cx=toCX(o.x+o.w/2), cy=toCY(o.y+o.d/2);
+  const w=o.w*scale, h=o.d*scale;
+  const col=o.colour||'#888';
+  const angle=(o.rotation||0)*Math.PI/180;
+  const warn=checkProximity(o);
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(angle);
+  ctx.fillStyle=hexRgba(col,0.8);ctx.fillRect(-w/2,-h/2,w,h);
+  if(warn){ctx.strokeStyle='#e74c3c';ctx.lineWidth=2.5;ctx.setLineDash([4,3]);ctx.strokeRect(-w/2-1,-h/2-1,w+2,h+2);ctx.setLineDash([]);}
+  else{ctx.strokeStyle=sel?'#e74c3c':col;ctx.lineWidth=sel?2.5:1.5;ctx.strokeRect(-w/2,-h/2,w,h);}
+  const fs=Math.min(11,Math.max(7,Math.min(w,h)/3.5));
+  ctx.fillStyle='#fff';ctx.font=`bold ${fs}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(o.name,0,0);
+  if(w>40&&h>22){ctx.font=`${Math.max(7,fs-1)}px sans-serif`;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.fillText(o.w+'×'+o.d+'m',0,fs);}
+  if(warn){ctx.fillStyle='#e74c3c';ctx.font='bold 10px sans-serif';ctx.textAlign='right';ctx.textBaseline='top';ctx.fillText('⚠',w/2,-h/2+2);}
+  if(sel){
+    // corner handles
+    ctx.fillStyle='#e74c3c';
+    [[-w/2,-h/2],[w/2,-h/2],[-w/2,h/2],[w/2,h/2]].forEach(([hx,hy])=>{ctx.beginPath();ctx.arc(hx,hy,4,0,Math.PI*2);ctx.fill();});
+    // rotation handle — circle above centre
+    ctx.strokeStyle='#e74c3c';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,-h/2);ctx.lineTo(0,-h/2-18);ctx.stroke();
+    ctx.fillStyle='#e74c3c';ctx.beginPath();ctx.arc(0,-h/2-18,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('↻',0,-h/2-18);
+    // angle label
+    if(o.rotation){
+      ctx.fillStyle='#e74c3c';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillText((o.rotation||0)+'°',0,h/2+4);
+    }
+  }
+  ctx.restore();
+}
+function drawPreview(){
+  ctx.save();ctx.strokeStyle='#e74c3c';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  if(mode==='zone'&&drawPts.length===1){const x0=toCX(drawPts[0].x),y0=toCY(drawPts[0].y),x1=toCX(mousePos.x),y1=toCY(mousePos.y);ctx.rect(Math.min(x0,x1),Math.min(y0,y1),Math.abs(x1-x0),Math.abs(y1-y0));}
+  else[...drawPts,mousePos].forEach((p,i)=>i?ctx.lineTo(toCX(p.x),toCY(p.y)):ctx.moveTo(toCX(p.x),toCY(p.y)));
+  ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#e74c3c';ctx.beginPath();ctx.arc(toCX(mousePos.x),toCY(mousePos.y),4,0,Math.PI*2);ctx.fill();
+  if(drawPts.length){const l=drawPts[drawPts.length-1],d=Math.hypot(mousePos.x-l.x,mousePos.y-l.y);if(d>0.1){ctx.fillStyle='#e74c3c';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(d.toFixed(1)+'m',toCX((l.x+mousePos.x)/2),toCY((l.y+mousePos.y)/2)-4);}}
+  ctx.restore();
+}
+function drawCompass(cx,cy){
+  const r=26;ctx.save();ctx.fillStyle='rgba(245,240,232,0.93)';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#ccc';ctx.lineWidth=0.8;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#c0392b';ctx.beginPath();ctx.moveTo(cx,cy-r+5);ctx.lineTo(cx-5,cy+3);ctx.lineTo(cx+5,cy+3);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#ccc';ctx.beginPath();ctx.moveTo(cx,cy+r-5);ctx.lineTo(cx-5,cy-3);ctx.lineTo(cx+5,cy-3);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#333';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N',cx,cy-r+13);
+  ctx.fillStyle='#aaa';ctx.font='8px sans-serif';ctx.fillText('S',cx,cy+r-11);ctx.fillText('E',cx+r-11,cy);ctx.fillText('W',cx-r+11,cy);
+  ctx.restore();
+}
+
+// ── interaction ───────────────────────────────────────────────────────────────
+canvas.addEventListener('dragover',e=>e.preventDefault());
+canvas.addEventListener('drop',e=>{
+  e.preventDefault();if(!pendingDragEquip)return;
+  const r=canvas.getBoundingClientRect();
+  const mx=snp(toMX(e.clientX-r.left)-pendingDragEquip.w/2),my=snp(toMY(e.clientY-r.top)-pendingDragEquip.d/2);
+  const obj={type:'item',x:mx,y:my,w:pendingDragEquip.w,d:pendingDragEquip.d,name:pendingDragEquip.name,cat:pendingDragEquip.cat,colour:pendingDragEquip.colour||CAT_COL[pendingDragEquip.cat]||'#888'};
+  objects.push(obj);pendingDragEquip=null;
+  const warn=checkProximity(obj);if(warn)showWarning(warn);
+  draw();updateStatus();
+});
+canvas.addEventListener('mousedown',e=>{
+  const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,mx=snp(toMX(sx)),my=snp(toMY(sy));
+  if(e.button===1||spaceDown){panning=true;panSX=e.clientX;panSY=e.clientY;panOX=ox;panOY=oy;return;}
+  if(mode==='select'){
+    const rmx=toMX(sx),rmy=toMY(sy);
+    // check rotation handle first
+    if(selected&&selected.type==='item'){
+      const angle=(selected.rotation||0)*Math.PI/180;
+      const icx=toCX(selected.x+selected.w/2),icy=toCY(selected.y+selected.d/2);
+      const hw=selected.w*scale/2,hh=selected.d*scale/2;
+      // handle pos in screen space
+      const hsx=icx+Math.sin(-angle)*0-(Math.sin(angle))*(0)+Math.cos(-angle)*0 - Math.sin(angle)*(hh+18)*(-1)*-1;
+      // simpler: check if near handle position
+      const handleX=icx-Math.sin(angle)*(hh+18);
+      const handleY=icy-Math.cos(angle)*(hh+18);
+      const hdx=e.clientX-canvas.getBoundingClientRect().left-handleX;
+      const hdy=e.clientY-canvas.getBoundingClientRect().top-handleY;
+      if(Math.hypot(hdx,hdy)<12){rotating=true;rotStartAngle=Math.atan2(e.clientY-canvas.getBoundingClientRect().top-icy,e.clientX-canvas.getBoundingClientRect().left-icx);rotStartObj=selected.rotation||0;return;}
+    }
+    const hit=hitTest(rmx,rmy);selected=hit||null;
+    if(hit){dragging=true;const g=org(hit);dragOX=rmx-g.x;dragOY=rmy-g.y;}
+    draw();updateStatus();return;
+  }
+  if(mode==='wall'){if(!drawing){drawing=true;drawPts=[{x:mx,y:my}];}else drawPts.push({x:mx,y:my});draw();return;}
+  if(mode==='zone'){if(!drawing){drawing=true;drawPts=[{x:mx,y:my}];}draw();return;}
+  if(mode==='measure'){if(!drawing){drawing=true;drawPts=[{x:mx,y:my}];}else{pending={type:'measure',x0:drawPts[0].x,y0:drawPts[0].y,x1:mx,y1:my};drawing=false;drawPts=[];openModal('measureModal');}draw();return;}
+  if(mode==='label'){pending={type:'label',x:mx,y:my};openModal('labelModal');return;}
+});
+canvas.addEventListener('dblclick',e=>{
+  if(!drawing)return;
+  const r=canvas.getBoundingClientRect(),mx=snp(toMX(e.clientX-r.left)),my=snp(toMY(e.clientY-r.top));
+  if(mode==='wall'){if(drawPts.length>=2)objects.push({type:'wall',points:[...drawPts]});drawing=false;drawPts=[];draw();return;}
+  if(mode==='zone'){const pts=drawPts.length===1?[drawPts[0],{x:mx,y:drawPts[0].y},{x:mx,y:my},{x:drawPts[0].x,y:my}]:[...drawPts,{x:mx,y:my}];pending={type:'zone',points:pts};drawing=false;drawPts=[];openModal('zoneModal');return;}
+});
+canvas.addEventListener('mousemove',e=>{
+  const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,mx=snp(toMX(sx)),my=snp(toMY(sy));
+  mousePos={x:mx,y:my};document.getElementById('sCursor').textContent=`${mx.toFixed(1)}m, ${my.toFixed(1)}m`;
+  if(panning){ox=panOX+(e.clientX-panSX);oy=panOY+(e.clientY-panSY);draw();return;}
+  if(rotating&&selected){
+    const r=canvas.getBoundingClientRect();
+    const icx=toCX(selected.x+selected.w/2),icy=toCY(selected.y+selected.d/2);
+    const curAngle=Math.atan2(e.clientY-r.top-icy,e.clientX-r.left-icx);
+    let deg=rotStartObj+Math.round((curAngle-rotStartAngle)*180/Math.PI);
+    if(e.shiftKey)deg=Math.round(deg/15)*15; // shift = snap to 15°
+    selected.rotation=((deg%360)+360)%360;
+    draw();return;
+  }
+  if(dragging&&selected){
+    const g=org(selected);moveObj(selected,mx-dragOX-g.x,my-dragOY-g.y);
+    if(selected.type==='item'){const warn=checkProximity(selected);if(warn)showWarning(warn);}
+    draw();return;
+  }
+  if(drawing)draw();
+});
+canvas.addEventListener('mouseup',e=>{if(e.button===1||spaceDown)panning=false;dragging=false;rotating=false;updateStatus();});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,mx=toMX(sx),my=toMY(sy);
+  scale=Math.max(3,Math.min(100,scale*(e.deltaY<0?1.12:0.89)));ox=sx-mx*scale;oy=sy-my*scale;draw();
+},{passive:false});
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&document.activeElement===document.body){spaceDown=true;canvas.style.cursor='grab';}
+  if(e.key==='Escape'){drawing=false;drawPts=[];pending=null;draw();}
+  if((e.key==='Delete'||e.key==='Backspace')&&selected&&document.activeElement===document.body)deleteSelected();
+});
+window.addEventListener('keyup',e=>{if(e.code==='Space'){spaceDown=false;canvas.style.cursor=mode==='select'?'default':'crosshair';}});
+
+function hitTest(mx,my){
+  for(let i=objects.length-1;i>=0;i--){
+    const o=objects[i];
+    if(o.type==='item'){
+      // rotate point into item's local space
+      const icx=o.x+o.w/2, icy=o.y+o.d/2;
+      const angle=-(o.rotation||0)*Math.PI/180;
+      const dx=mx-icx, dy=my-icy;
+      const lx=dx*Math.cos(angle)-dy*Math.sin(angle);
+      const ly=dx*Math.sin(angle)+dy*Math.cos(angle);
+      if(lx>=-o.w/2&&lx<=o.w/2&&ly>=-o.d/2&&ly<=o.d/2)return o;
+    }
+    else if(o.type==='label'){ctx.font=`${o.size||13}px sans-serif`;const w=ctx.measureText(o.text).width/scale,h=(o.size||13)/scale;if(mx>=o.x&&mx<=o.x+w&&my>=o.y&&my<=o.y+h)return o;}
+    else if(o.type==='wall'){for(let j=0;j<o.points.length-1;j++)if(nearSeg(mx,my,o.points[j],o.points[j+1],0.5))return o;}
+    else if(o.type==='measure'){if(nearSeg(mx,my,{x:o.x0,y:o.y0},{x:o.x1,y:o.y1},0.5))return o;}
+    else if(o.type==='zone'){if(inPoly(mx,my,o.points))return o;}
+  }return null;
+}
+function nearSeg(px,py,a,b,t){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return Math.hypot(px-a.x,py-a.y)<t;const s=Math.max(0,Math.min(1,((px-a.x)*dx+(py-a.y)*dy)/l));return Math.hypot(px-a.x-s*dx,py-a.y-s*dy)<t;}
+function inPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)inside=!inside;}return inside;}
+function org(o){if(o.type==='label'||o.type==='item')return{x:o.x,y:o.y};if(o.type==='measure')return{x:o.x0,y:o.y0};if(o.points)return{x:o.points[0].x,y:o.points[0].y};return{x:0,y:0};}
+function moveObj(o,dx,dy){if(o.type==='label'||o.type==='item'){o.x+=dx;o.y+=dy;}else if(o.type==='measure'){o.x0+=dx;o.y0+=dy;o.x1+=dx;o.y1+=dy;}else if(o.points)o.points.forEach(p=>{p.x+=dx;p.y+=dy;});}
+
+// ── mode/tools ────────────────────────────────────────────────────────────────
+function setMode(m){
+  mode=m;drawing=false;drawPts=[];
+  document.querySelectorAll('button.tb[id^=tb]').forEach(b=>b.classList.remove('on'));
+  const btn=document.getElementById('tb'+m[0].toUpperCase()+m.slice(1));if(btn)btn.classList.add('on');
+  canvas.style.cursor=m==='select'?'default':'crosshair';
+  document.getElementById('sMode').textContent='Mode: '+m;draw();
+}
+function toggleGrid(){showGrid=!showGrid;document.getElementById('tbGrid').classList.toggle('on',showGrid);draw();}
+function toggleSnap(){snapOn=!snapOn;document.getElementById('tbSnap').classList.toggle('on',snapOn);}
+function zoomIn(){const cx=canvas.width/2,cy=canvas.height/2,mx=toMX(cx),my=toMY(cy);scale=Math.min(100,scale*1.2);ox=cx-mx*scale;oy=cy-my*scale;draw();}
+function zoomOut(){const cx=canvas.width/2,cy=canvas.height/2,mx=toMX(cx),my=toMY(cy);scale=Math.max(3,scale/1.2);ox=cx-mx*scale;oy=cy-my*scale;draw();}
+function fitView(){if(!boundary){ox=80;oy=60;scale=8;draw();return;}const pad=70,W=canvas.width-pad*2,H=canvas.height-pad*2;scale=Math.max(3,Math.min(100,Math.min(W/boundary.w,H/boundary.d)));ox=pad;oy=pad;draw();}
+function rotateSelected(deg){
+  if(!selected||selected.type!=='item')return;
+  selected.rotation=(((selected.rotation||0)+deg)%360+360)%360;
+  draw();updateStatus();
+}
+function rotateCustom(){
+  if(!selected||selected.type!=='item'){alert('Select an item first.');return;}
+  const a=prompt('Enter angle in degrees:',selected.rotation||0);
+  if(a===null)return;
+  const deg=parseFloat(a);
+  if(isNaN(deg)){alert('Enter a number.');return;}
+  selected.rotation=((deg%360)+360)%360;
+  draw();updateStatus();
+}
+function deleteSelected(){if(!selected)return;objects=objects.filter(o=>o!==selected);selected=null;draw();updateStatus();}
+function clearCanvas(){if(confirm('Clear all objects? The site boundary stays.')){objects=[];selected=null;draw();updateStatus();}}
+
+function toggleAuto(){document.getElementById('autoPanel').classList.toggle('open');}
+function doAutoPlace(){
+  const idx=parseInt(document.getElementById('apItem').value);if(isNaN(idx)||!equipment[idx])return;
+  const e=equipment[idx],qty=parseInt(document.getElementById('apQty').value)||1,gap=parseFloat(document.getElementById('apGap').value)||1.5,every=parseInt(document.getElementById('apEvery').value)||4,aisleW=parseFloat(document.getElementById('apAisleW').value)||2.5;
+  let cx=parseFloat(document.getElementById('apX').value)||5,cy=parseFloat(document.getElementById('apY').value)||5;
+  objects=objects.filter(o=>!o._auto||o.name!==e.name);
+  let col=0,placed=0;
+  while(placed<qty){
+    const obj={type:'item',x:cx,y:cy,w:e.w,d:e.d,name:e.name,cat:e.cat,colour:e.colour||CAT_COL[e.cat]||'#888',_auto:true};
+    objects.push(obj);placed++;col++;cx+=e.w+gap;
+    if(col>0&&col%every===0)cx+=aisleW;
+  }
+  toggleAuto();draw();updateStatus();notify(`Placed ${placed} × ${e.name}`);
+}
+
+// ── modals ────────────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');pending=null;}
+function confirmZone(){if(!pending)return;pending.label=document.getElementById('zmLabel').value||'Zone';pending.colour=document.getElementById('zmColour').value;pending.opacity=parseFloat(document.getElementById('zmOpacity').value)||0.2;objects.push(pending);closeModal('zoneModal');draw();updateStatus();}
+function confirmMeasure(){if(!pending)return;pending.label=document.getElementById('mmLabel').value||'';objects.push(pending);closeModal('measureModal');draw();updateStatus();}
+function confirmLabel(){if(!pending)return;const txt=document.getElementById('lmText').value.trim();if(!txt){closeModal('labelModal');return;}pending.text=txt;pending.size=parseInt(document.getElementById('lmSize').value)||13;objects.push(pending);closeModal('labelModal');draw();updateStatus();}
+function openCopy(){const cv=document.getElementById('cpVenue');cv.innerHTML='';venues.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;cv.appendChild(o);});cv.value=currentVenue;updateCopyYears();openModal('copyModal');}
+function updateCopyYears(){const v=document.getElementById('cpVenue').value,cy=document.getElementById('cpYear');cy.innerHTML='';const yrs=getYears(v);if(!yrs.length){const o=document.createElement('option');o.textContent='No saved years';cy.appendChild(o);}else yrs.forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=y;cy.appendChild(o);});}
+function confirmCopy(){const v=document.getElementById('cpVenue').value,y=document.getElementById('cpYear').value,src=layouts[v+'_'+y];if(src){objects=[...objects,...JSON.parse(JSON.stringify(src.objects||[]))];draw();}closeModal('copyModal');notify('Layout copied in');}
+function showTab(t){
+  const tabs=['library','equipment','safety'];
+  document.querySelectorAll('.stab').forEach((el,i)=>el.classList.toggle('on',tabs[i]===t));
+  tabs.forEach(tab=>document.getElementById('tab-'+tab).style.display=tab===t?'':'none');
+}
+function updateStatus(){
+  const rotStr=selected&&selected.type==='item'&&selected.rotation?` · ${selected.rotation}°`:'';
+  document.getElementById('sSel').textContent=selected?
+    `Selected: ${selected.type}${selected.name?' — '+selected.name:selected.label?' — '+selected.label:selected.text?' — '+selected.text:''}${rotStr}`:
+    `${objects.length} object${objects.length!==1?'s':''} on canvas`;
+}
+function notify(msg){const n=document.getElementById('notify');n.textContent=msg;n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>{n.style.display='none';},2200);}
+function exportPNG(){const a=document.createElement('a');a.download=`${currentVenue}-${currentYear}.png`;a.href=canvas.toDataURL('image/png');a.click();}
+
+init();
+</script>
+</body>
+</html>
