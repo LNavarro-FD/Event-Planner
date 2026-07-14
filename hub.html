@@ -192,11 +192,12 @@ function switchTab(tab) {
   var frame = document.getElementById('frame-' + tab);
   if (!frame) return;
 
-  if (!frame.src) {
+  if (!frame.getAttribute('data-loaded')) {
     var loading = document.getElementById('loading');
     loading.classList.remove('hidden');
     document.getElementById('loading-msg').textContent =
       'Loading ' + { todo:'To-Do', planner:'Site Planner', kanban:'Kanban' }[tab] + '...';
+    frame.setAttribute('data-loaded', '1');
     frame.onload = function() { loading.classList.add('hidden'); };
     frame.src = frame.dataset.src;
   }
