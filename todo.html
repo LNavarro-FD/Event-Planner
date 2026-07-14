@@ -93,19 +93,8 @@ input[type=checkbox]{margin-top:2px;flex-shrink:0;accent-color:#FF4B7B;width:15p
 
 
 <!-- Firebase (no auth) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-firestore.min.js"></script>
+<script src="fd-db.js"></script>
 <script>
-firebase.initializeApp({
-  apiKey:            'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
-  authDomain:        'event-planner-7944d.firebaseapp.com',
-  projectId:         'event-planner-7944d',
-  storageBucket:     'event-planner-7944d.firebasestorage.app',
-  messagingSenderId: '455768566205',
-  appId:             '1:455768566205:web:c5274d85158e6b2bf8cad4'
-});
-var _db = firebase.firestore();
-window._fbUser = { email: 'local' };  // dummy user so existing code works
 window._fbLoad();
 </script>
 </head>
@@ -202,9 +191,8 @@ const FB_DOC='fd7_todo_2026';
 window._fbLoad=async function(){
   window._fbUser = window._fbUser || { email: "local" };
   try{
-    const snap=await _db.collection('todos').doc(FB_DOC).get();
-    if(snap.exists){
-      const d=snap.data();
+    const d=await FD.get('todos',FB_DOC);
+    if(d){
       done=d.done||{};
       custom=d.custom||[];
       itemLogs=d.itemLogs||{};
@@ -221,7 +209,7 @@ function fbSave(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     try{
-      await _db.collection('todos').doc(FB_DOC).set({done,custom,itemLogs,subs,overrides,generalNotes});
+      await FD.set('todos',FB_DOC,{sections:sections,done:done,custom:custom,itemLogs:itemLogs,subs:subs,overrides:overrides,generalNotes:generalNotes});
       const s=document.getElementById('saveStatus');
       s.textContent='✓ Saved';
       setTimeout(()=>s.textContent='',2000);
