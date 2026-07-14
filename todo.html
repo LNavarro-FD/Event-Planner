@@ -198,15 +198,26 @@ window._fbLoad=async function(){
     var docPath = CFG ? CFG.db.todos.fd7 : 'fd7_todo_2026';
     var data = await FD.get('todos', docPath);
     if(data){
-      if(data.sections && data.sections.length) sections = data.sections;
+      if(data.sections && data.sections.length){
+        sections = data.sections;
+      } else {
+        // Sections missing from existing doc — seed them in now
+        sections = window.FD_SEED ? window.FD_SEED.todoSections : [];
+        if(sections.length){
+          FD.set('todos', docPath, Object.assign({}, data, {sections: sections}));
+        }
+      }
       done         = data.done        || {};
       custom       = data.custom      || [];
       itemLogs     = data.itemLogs    || {};
       subs         = data.subs        || {};
       overrides    = data.overrides   || {};
       generalNotes = data.generalNotes|| '';
+    } else {
+      // No doc at all — use seed data
+      sections = window.FD_SEED ? window.FD_SEED.todoSections : [];
     }
-  }catch(e){ console.warn('[FD Todo] Load failed',e); }
+  }catch(e){ console.warn('[FD Todo] Load failed',e); sections = window.FD_SEED ? window.FD_SEED.todoSections : []; }
   document.getElementById('notes-area').value = generalNotes;
   stats(); render(); populateCatDropdown(); renderSwimlane();
 };
