@@ -410,10 +410,7 @@ function doUndo(){
 // ── firebase helpers ──────────────────────────────────────────────────────────
 async function fbSaveLayout(key,data){
   
-  try{
-    const {db,doc,setDoc}=window._fb;
-    await setDoc(doc(db,'venues',key),data);
-  }catch(e){console.warn('FB save failed',e);}
+  try{ await FD.set('venues',key,data); }catch(e){console.warn('FB save failed',e);}
 }
 async function fbLoadAll(){
   try{
@@ -423,10 +420,7 @@ async function fbLoadAll(){
 }
 async function fbSaveEquipment(eq){
   
-  try{
-    const {db,doc,setDoc}=window._fb;
-    await setDoc(doc(db,'equipment','library'),{items:eq});
-  }catch(e){console.warn('FB equipment save failed',e);}
+  try{ await FD.set('equipment','library',{items:eq}); }catch(e){console.warn('FB equipment save failed',e);}
 }
 async function fbLoadEquipment(){
   try{
