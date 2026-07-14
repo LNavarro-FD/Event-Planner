@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FD Artists & DJs</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:#22224C;height:44px;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+#topbar h1{color:#fff;font-size:14px;font-weight:700;margin-right:4px}
+.view-btn{padding:4px 12px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer}
+.view-btn.active{background:#FF4B7B;border-color:#FF4B7B;color:#fff}
+#toolbar{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #e2e8f0;flex-shrink:0;align-items:center;flex-wrap:wrap}
+#toolbar select{padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;background:#fff;outline:none}
+.btn{padding:6px 14px;background:#FF4B7B;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn:hover{background:#e0436a}
+.btn-sm{padding:4px 10px;font-size:11px;border:none;border-radius:5px;cursor:pointer;font-weight:600}
+#content{flex:1;overflow-y:auto;padding:16px}
+#statusbar{background:#0f172a;height:22px;display:flex;align-items:center;padding:0 12px;flex-shrink:0}
+#statusbar span{font-size:10px;color:#334155}
+
+/* Artist cards */
+.artist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.a-card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:14px;transition:box-shadow .15s}
+.a-card:hover{box-shadow:0 2px 8px #0001}
+.a-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.a-name{font-weight:700;font-size:15px;color:#22224C}
+.a-legal{font-size:11px;color:#64748b}
+.a-set{font-size:12px;color:#FF4B7B;font-weight:600;margin-bottom:6px}
+.a-contact{font-size:11px;color:#475569;margin-bottom:8px}
+.a-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-aaa{background:#fce7f3;color:#9d174d}
+.badge-info{background:#f1f5f9;color:#475569}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-amber{background:#fef9c3;color:#854d0e}
+.badge-red{background:#fee2e2;color:#dc2626}
+.a-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Runsheet view */
+.run-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}
+.run-table th{background:#22224C;color:#fff;padding:8px 12px;text-align:left;font-size:11px;font-weight:600}
+.run-table td{padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:12px}
+.run-table tr:hover td{background:#fafafa}
+.set-time{font-weight:700;color:#FF4B7B;font-family:monospace}
+
+/* Guest list view */
+.guest-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}
+.guest-table th{background:#f8fafc;padding:7px 12px;text-align:left;font-size:11px;font-weight:600;color:#64748b;border-bottom:1px solid #e2e8f0}
+.guest-table td{padding:7px 12px;border-bottom:1px solid #f1f5f9;font-size:12px}
+.access-aaa{background:#fce7f3;color:#9d174d;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.access-gr{background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.access-foh{background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:#0005;z-index:100;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:560px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px #0003}
+.modal-header{padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:700;color:#22224C}
+.modal-body{flex:1;overflow-y:auto;padding:16px 20px}
+.modal-footer{padding:12px 20px;border-top:1px solid #e5e7eb;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#FF4B7B}
+.field textarea{min-height:60px;resize:vertical}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.section-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#FF4B7B;margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid #fce7f3}
+.guest-row{display:grid;grid-template-columns:1fr 120px 28px;gap:6px;align-items:center;margin-bottom:6px}
+.guest-row input,.guest-row select{padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:11px;font-family:inherit;outline:none;width:100%}
+.del-btn{background:none;border:none;cursor:pointer;color:#e2e8f0;font-size:16px}
+.del-btn:hover{color:#ef4444}
+
+/* Email preview */
+.email-preview{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;font-size:11px;line-height:1.7;white-space:pre-wrap;font-family:monospace;max-height:400px;overflow-y:auto}
+
+@media print {
+  @page{size:A4 portrait;margin:14mm}
+  #topbar,#toolbar,#statusbar,.a-actions,button{display:none!important}
+  body{background:#fff!important;height:auto!important;overflow:visible!important}
+  #content{overflow:visible!important;height:auto!important}
+}
+</style>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
+  authDomain:'event-planner-7944d.firebaseapp.com',
+  projectId:'event-planner-7944d',
+  storageBucket:'event-planner-7944d.firebasestorage.app',
+  messagingSenderId:'455768566205',
+  appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
+});
+var _db = firebase.firestore();
+</script>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>🎧 Artists & DJs</h1>
+  <button class="view-btn active" onclick="setView('artists')">Artists</button>
+  <button class="view-btn" onclick="setView('runsheet')">Runsheet</button>
+  <button class="view-btn" onclick="setView('guestlist')">Guest List</button>
+</div>
+
+<div id="toolbar">
+  <select id="eventFilter" onchange="render()">
+    <option value="FD7">FD7 2026</option>
+    <option value="HRR26">HRR 2026</option>
+    <option value="FD Shindig">FD Shindig</option>
+  </select>
+  <button class="btn" onclick="openAddArtist()">+ Add artist</button>
+  <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
+</div>
+
+<div id="content"></div>
+<div id="statusbar"><span>FD Artists & DJs · v1.0.0</span></div>
+
+<!-- Add/Edit Artist Modal -->
+<div class="overlay" id="artistModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add artist</h3>
+      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-head">Artist details</div>
+      <div class="field-row">
+        <div class="field"><label>Performance name *</label><input id="a-perfname" type="text" placeholder="e.g. Gordon Mac"></div>
+        <div class="field"><label>Legal name</label><input id="a-legalname" type="text" placeholder="e.g. Gordon McTavish"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Email</label><input id="a-email" type="email"></div>
+        <div class="field"><label>Mobile</label><input id="a-phone" type="tel"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Emergency contact name</label><input id="a-emname" type="text" placeholder="Must not be attending"></div>
+        <div class="field"><label>Emergency contact number</label><input id="a-emphone" type="tel"></div>
+      </div>
+
+      <div class="section-head">Agent (if applicable)</div>
+      <div class="field-row">
+        <div class="field"><label>Agent name</label><input id="a-agentname" type="text"></div>
+        <div class="field"><label>Agent email</label><input id="a-agentemail" type="email"></div>
+      </div>
+      <div class="field"><label>Agent phone</label><input id="a-agentphone" type="tel"></div>
+
+      <div class="section-head">Event assignment</div>
+      <div class="field-row">
+        <div class="field"><label>Events</label>
+          <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap" id="a-events">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD7" checked> FD7</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="HRR26"> HRR26</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD Shindig"> Shindig</label>
+          </div>
+        </div>
+        <div class="field"><label>Fee £</label><input id="a-fee" type="number" placeholder="0"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Set time</label><input id="a-settime" type="time"></div>
+        <div class="field"><label>Set length (mins)</label><input id="a-setlength" type="number" placeholder="60"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Changeover time (mins)</label><input id="a-changeover" type="number" placeholder="15"></div>
+        <div class="field"><label>Hotel needed</label>
+          <select id="a-hotel"><option value="no">No</option><option value="yes">Yes</option><option value="tbc">TBC</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Hotel details</label><input id="a-hoteldetails" type="text" placeholder="Hotel name, booking ref, check-in/out"></div>
+
+      <div class="section-head">Riders</div>
+      <div class="field"><label>Technical rider</label><textarea id="a-techrider" placeholder="Stage plot, input list, backline requirements..."></textarea></div>
+      <div class="field"><label>Hospitality rider</label><textarea id="a-hosprider" placeholder="Food, drink, dressing room requirements..."></textarea></div>
+
+      <div class="section-head">Guest list <span style="font-size:10px;font-weight:400;color:#64748b;text-transform:none">— Artist guests get green room access only (not stage)</span></div>
+      <div id="guest-rows"></div>
+      <button onclick="addGuestRow()" style="font-size:11px;color:#FF4B7B;background:none;border:1px dashed #fca5a5;border-radius:5px;padding:5px 12px;cursor:pointer;width:100%;margin-top:4px">+ Add guest</button>
+
+      <div class="section-head">Status</div>
+      <div class="field-row">
+        <div class="field"><label>Info received</label>
+          <select id="a-infostatus"><option value="pending">Pending</option><option value="received">Received</option><option value="confirmed">Confirmed</option></select>
+        </div>
+        <div class="field"><label>Pack sent</label>
+          <select id="a-packsent"><option value="no">Not sent</option><option value="yes">Sent</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Notes</label><textarea id="a-notes"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal()" style="padding:7px 14px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Cancel</button>
+      <button onclick="saveArtist()" class="btn">Save artist</button>
+    </div>
+  </div>
+</div>
+
+<!-- Email Modal -->
+<div class="overlay" id="emailModal" onclick="if(event.target===this)closeEmailModal()">
+  <div class="modal" style="width:620px">
+    <div class="modal-header">
+      <h3 id="emailTitle">Artist information email</h3>
+      <button onclick="closeEmailModal()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>To</label><input id="email-to" type="email"></div>
+      <div class="field"><label>Subject</label><input id="email-subject" type="text"></div>
+      <div class="field"><label>Message</label><div class="email-preview" id="email-body"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="copyEmailBody()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;cursor:pointer">📋 Copy</button>
+      <button onclick="openInMail()" class="btn">Open in Mail</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+var SEED_ARTISTS = [
+  {id:'gordon_mac', perfName:'Gordon Mac', legalName:'Gordon McTavish', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:300, setTime:'21:00', setLength:60,
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+  {id:'michael_gray', perfName:'Michael Gray', legalName:'Michael Gray', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:1700, setTime:'22:00', setLength:60,
+   changeover:15, hotel:'yes', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'PAID 50%'},
+  {id:'bobby_steve', perfName:'Bobby & Steve', legalName:'', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:600, setTime:'19:00', setLength:60,
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+  {id:'brandon_block', perfName:'Brandon Block', legalName:'Brandon Block', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7','HRR26'], fee:600, setTime:'20:00', setLength:60,
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also played HRR26'},
+  {id:'john_morales', perfName:'John Morales', legalName:'John Morales', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:1587.5, setTime:'23:00', setLength:60,
+   changeover:15, hotel:'yes', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Hotel + transport required'},
+  {id:'mark_knight', perfName:'Mark Knight', legalName:'Mark Knight', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:500, setTime:'18:00', setLength:60,
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+  {id:'ricky_morrison', perfName:'Ricky Morrison', legalName:'Ricky Morrison', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:400, setTime:'17:00', setLength:60,
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+  {id:'colin_francis', perfName:'Colin Francis', legalName:'Colin Francis', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:500, setTime:'16:00', setLength:60,
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+  {id:'noah_herel', perfName:'Noah Herel', legalName:'Noah Herel', email:'', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:150, setTime:'15:00', setLength:60,
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+];
+
+var artists = [];
+var currentView = 'artists';
+var editingId = null;
+
+// ── Firebase ──────────────────────────────────────────────────────────────────
+async function load() {
+  try {
+    var snap = await _db.collection('artists_db').doc('artists').get();
+    if (snap.exists && snap.data().list && snap.data().list.length) {
+      artists = snap.data().list;
+    } else {
+      artists = SEED_ARTISTS;
+      await _db.collection('artists_db').doc('artists').set({list: artists});
+    }
+  } catch(e) {
+    console.warn('Load failed', e);
+    artists = SEED_ARTISTS;
+  }
+  render();
+}
+
+function save() {
+  _db.collection('artists_db').doc('artists').set({list: artists}).catch(function(e){ console.warn(e); });
+}
+
+// ── Views ─────────────────────────────────────────────────────────────────────
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.view-btn').forEach(function(b, i) {
+    b.classList.toggle('active', ['artists','runsheet','guestlist'][i] === v);
+  });
+  render();
+}
+
+function render() {
+  var evt = document.getElementById('eventFilter').value;
+  var filtered = artists.filter(function(a){ return a.events && a.events.includes(evt); });
+  filtered.sort(function(a,b){ return (a.setTime||'').localeCompare(b.setTime||''); });
+  document.getElementById('countLabel').textContent = filtered.length + ' artists';
+
+  if (currentView === 'artists') renderArtists(filtered);
+  else if (currentView === 'runsheet') renderRunsheet(filtered);
+  else renderGuestList(filtered, evt);
+}
+
+function ragStatus(a) {
+  if (a.infoStatus === 'confirmed') return 'green';
+  if (a.infoStatus === 'received') return 'amber';
+  return 'red';
+}
+
+function ragLabel(a) {
+  if (a.infoStatus === 'confirmed') return '✓ Confirmed';
+  if (a.infoStatus === 'received') return 'Info received';
+  return 'Awaiting info';
+}
+
+function fmtTime(t) {
+  if (!t) return '—';
+  return t;
+}
+
+function fmtEndTime(setTime, setLength) {
+  if (!setTime || !setLength) return '';
+  var parts = setTime.split(':').map(Number);
+  var mins = parts[0]*60 + parts[1] + parseInt(setLength||0);
+  return String(Math.floor(mins/60)%24).padStart(2,'0') + ':' + String(mins%60).padStart(2,'0');
+}
+
+function renderArtists(filtered) {
+  if (!filtered.length) {
+    document.getElementById('content').innerHTML = '<p style="padding:20px;color:#94a3b8">No artists for this event.</p>';
+    return;
+  }
+  var html = '<div class="artist-grid">';
+  filtered.forEach(function(a) {
+    var rag = ragStatus(a);
+    var endTime = fmtEndTime(a.setTime, a.setLength);
+    var guestCount = (a.guests||[]).length;
+    html += '<div class="a-card">';
+    html += '<div class="a-top"><div>';
+    html += '<div class="a-name">'+a.perfName+'</div>';
+    if (a.legalName && a.legalName !== a.perfName) html += '<div class="a-legal">'+a.legalName+'</div>';
+    html += '</div>';
+    html += '<span class="badge badge-'+rag+'">'+ragLabel(a)+'</span>';
+    html += '</div>';
+    if (a.setTime) html += '<div class="a-set">'+fmtTime(a.setTime)+(endTime?' – '+endTime:'')+(a.setLength?' ('+a.setLength+'min)':'')+'</div>';
+    html += '<div class="a-contact">';
+    if (a.email) html += '<a href="mailto:'+a.email+'" style="color:#FF4B7B;text-decoration:none">'+a.email+'</a><br>';
+    if (a.phone) html += '📞 '+a.phone;
+    if (a.agentName) html += '<br>Agent: '+a.agentName+(a.agentPhone?' · '+a.agentPhone:'');
+    html += '</div>';
+    html += '<div class="a-badges">';
+    html += '<span class="badge badge-aaa">AAA Access</span>';
+    if (guestCount > 0) html += '<span class="badge badge-info">'+guestCount+' guest'+(guestCount>1?'s':'')+'</span>';
+    if (a.hotel === 'yes') html += '<span class="badge badge-info">Hotel needed</span>';
+    if (a.packSent === 'yes') html += '<span class="badge badge-green">Pack sent</span>';
+    if (a.fee) html += '<span class="badge badge-info">£'+a.fee+'</span>';
+    if (a.notes) html += '<span class="badge badge-amber" title="'+a.notes+'">Note</span>';
+    html += '</div>';
+    html += '<div class="a-actions">';
+    html += '<button class="btn-sm edit-btn" data-id="'+a.id+'" style="background:#f1f5f9;color:#475569">Edit</button>';
+    html += '<button class="btn-sm email-btn" data-id="'+a.id+'" style="background:#fce7f3;color:#9d174d">📧 Send info</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+
+  document.querySelectorAll('.edit-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ openEditArtist(this.getAttribute('data-id')); });
+  });
+  document.querySelectorAll('.email-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ openEmailModal(this.getAttribute('data-id')); });
+  });
+}
+
+function renderRunsheet(filtered) {
+  var html = '<table class="run-table"><thead><tr><th>Time</th><th>Artist</th><th>Set length</th><th>Changeover</th><th>Hotel</th><th>Status</th></tr></thead><tbody>';
+  filtered.forEach(function(a) {
+    var endTime = fmtEndTime(a.setTime, a.setLength);
+    var rag = ragStatus(a);
+    html += '<tr>';
+    html += '<td class="set-time">'+fmtTime(a.setTime)+(endTime?' – '+endTime:'')+'</td>';
+    html += '<td style="font-weight:600">'+a.perfName+'</td>';
+    html += '<td>'+(a.setLength||'—')+'min</td>';
+    html += '<td>'+(a.changeover||'—')+'min</td>';
+    html += '<td>'+(a.hotel==='yes'?'✓':'—')+'</td>';
+    html += '<td><span class="badge badge-'+rag+'">'+ragLabel(a)+'</span></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderGuestList(filtered, evt) {
+  var html = '<div style="margin-bottom:8px;font-size:11px;color:#64748b">🔵 AAA — stage + green room + everywhere &nbsp;·&nbsp; 🟢 Green room — green room only, not stage &nbsp;·&nbsp; ⚪ FOH — front of house only</div>';
+  html += '<table class="guest-table"><thead><tr><th>Artist</th><th>Guest name</th><th>Access</th><th>Notes</th></tr></thead><tbody>';
+
+  // First add artists themselves
+  filtered.forEach(function(a) {
+    html += '<tr style="background:#fafafa">';
+    html += '<td style="font-weight:700;color:#22224C">'+a.perfName+'</td>';
+    html += '<td style="font-weight:600">'+a.perfName+' (artist)</td>';
+    html += '<td><span class="access-aaa">AAA</span></td>';
+    html += '<td style="color:#64748b;font-size:11px">'+fmtTime(a.setTime)+(a.setLength?' · '+a.setLength+'min':'')+'</td>';
+    html += '</tr>';
+
+    (a.guests||[]).forEach(function(g) {
+      html += '<tr>';
+      html += '<td style="color:#64748b;font-size:11px">'+a.perfName+'</td>';
+      html += '<td>'+g.name+'</td>';
+      html += '<td><span class="access-gr">Green room</span></td>';
+      html += '<td style="color:#64748b;font-size:11px">'+(g.notes||'')+'</td>';
+      html += '</tr>';
+    });
+  });
+
+  html += '</tbody></table>';
+
+  // Export to Tapgate note
+  var totalGuests = filtered.reduce(function(n,a){ return n+(a.guests||[]).length; },0);
+  html += '<div style="margin-top:12px;padding:10px 14px;background:#fce7f3;border-radius:6px;font-size:11px;color:#9d174d">';
+  html += '🎧 '+filtered.length+' artists · '+totalGuests+' guests · All guest list data feeds into Tapgate for door scanning';
+  html += '</div>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
+// ── Add/Edit ──────────────────────────────────────────────────────────────────
+function openAddArtist() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add artist';
+  var fields = ['a-perfname','a-legalname','a-email','a-phone','a-emname','a-emphone',
+    'a-agentname','a-agentemail','a-agentphone','a-fee','a-settime','a-setlength',
+    'a-changeover','a-hoteldetails','a-techrider','a-hosprider','a-notes'];
+  fields.forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('a-hotel').value = 'no';
+  document.getElementById('a-infostatus').value = 'pending';
+  document.getElementById('a-packsent').value = 'no';
+  document.querySelectorAll('#a-events input').forEach(function(cb){ cb.checked = cb.value==='FD7'; });
+  document.getElementById('guest-rows').innerHTML = '';
+  document.getElementById('artistModal').classList.add('open');
+}
+
+function openEditArtist(id) {
+  var a = artists.find(function(x){ return x.id===id; });
+  if (!a) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit '+a.perfName;
+  document.getElementById('a-perfname').value    = a.perfName||'';
+  document.getElementById('a-legalname').value   = a.legalName||'';
+  document.getElementById('a-email').value       = a.email||'';
+  document.getElementById('a-phone').value       = a.phone||'';
+  document.getElementById('a-emname').value      = a.emName||'';
+  document.getElementById('a-emphone').value     = a.emPhone||'';
+  document.getElementById('a-agentname').value   = a.agentName||'';
+  document.getElementById('a-agentemail').value  = a.agentEmail||'';
+  document.getElementById('a-agentphone').value  = a.agentPhone||'';
+  document.getElementById('a-fee').value         = a.fee||'';
+  document.getElementById('a-settime').value     = a.setTime||'';
+  document.getElementById('a-setlength').value   = a.setLength||'';
+  document.getElementById('a-changeover').value  = a.changeover||'';
+  document.getElementById('a-hotel').value       = a.hotel||'no';
+  document.getElementById('a-hoteldetails').value= a.hotelDetails||'';
+  document.getElementById('a-techrider').value   = a.techRider||'';
+  document.getElementById('a-hosprider').value   = a.hospRider||'';
+  document.getElementById('a-notes').value       = a.notes||'';
+  document.getElementById('a-infostatus').value  = a.infoStatus||'pending';
+  document.getElementById('a-packsent').value    = a.packSent||'no';
+  document.querySelectorAll('#a-events input').forEach(function(cb){ cb.checked = a.events && a.events.includes(cb.value); });
+
+  // Guest rows
+  var gr = document.getElementById('guest-rows');
+  gr.innerHTML = '';
+  (a.guests||[]).forEach(function(g){ gr.innerHTML += buildGuestRow(g.name, g.notes); });
+
+  document.getElementById('artistModal').classList.add('open');
+}
+
+function buildGuestRow(name, notes) {
+  return '<div class="guest-row">'+
+    '<input type="text" value="'+(name||'')+'" placeholder="Guest full name">'+
+    '<input type="text" value="'+(notes||'')+'" placeholder="Notes">'+
+    '<button class="del-btn" onclick="this.closest(\'.guest-row\').remove()">×</button>'+
+    '</div>';
+}
+
+function addGuestRow() {
+  var gr = document.getElementById('guest-rows');
+  var div = document.createElement('div');
+  div.innerHTML = buildGuestRow('','');
+  gr.appendChild(div.firstChild);
+}
+
+function closeModal() {
+  document.getElementById('artistModal').classList.remove('open');
+}
+
+function saveArtist() {
+  var perfName = document.getElementById('a-perfname').value.trim();
+  if (!perfName) { alert('Performance name required'); return; }
+  var id = editingId || perfName.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+
+  var events = [];
+  document.querySelectorAll('#a-events input:checked').forEach(function(cb){ events.push(cb.value); });
+
+  var guests = [];
+  document.querySelectorAll('.guest-row').forEach(function(row){
+    var inputs = row.querySelectorAll('input');
+    var name = inputs[0] ? inputs[0].value.trim() : '';
+    var notes = inputs[1] ? inputs[1].value.trim() : '';
+    if (name) guests.push({name:name, notes:notes, access:'greenroom'});
+  });
+
+  var a = {
+    id:id, perfName:perfName,
+    legalName:   document.getElementById('a-legalname').value.trim(),
+    email:       document.getElementById('a-email').value.trim(),
+    phone:       document.getElementById('a-phone').value.trim(),
+    emName:      document.getElementById('a-emname').value.trim(),
+    emPhone:     document.getElementById('a-emphone').value.trim(),
+    agentName:   document.getElementById('a-agentname').value.trim(),
+    agentEmail:  document.getElementById('a-agentemail').value.trim(),
+    agentPhone:  document.getElementById('a-agentphone').value.trim(),
+    events:      events,
+    fee:         parseFloat(document.getElementById('a-fee').value)||0,
+    setTime:     document.getElementById('a-settime').value,
+    setLength:   parseInt(document.getElementById('a-setlength').value)||60,
+    changeover:  parseInt(document.getElementById('a-changeover').value)||15,
+    hotel:       document.getElementById('a-hotel').value,
+    hotelDetails:document.getElementById('a-hoteldetails').value.trim(),
+    techRider:   document.getElementById('a-techrider').value.trim(),
+    hospRider:   document.getElementById('a-hosprider').value.trim(),
+    notes:       document.getElementById('a-notes').value.trim(),
+    infoStatus:  document.getElementById('a-infostatus').value,
+    packSent:    document.getElementById('a-packsent').value,
+    guests:      guests,
+  };
+
+  var idx = artists.findIndex(function(x){ return x.id===id; });
+  if (idx>=0) artists[idx]=a; else artists.push(a);
+  save();
+  closeModal();
+  render();
+}
+
+// ── Email ─────────────────────────────────────────────────────────────────────
+function openEmailModal(id) {
+  var a = artists.find(function(x){ return x.id===id; });
+  if (!a) return;
+  var evt = document.getElementById('eventFilter').value;
+  var endTime = fmtEndTime(a.setTime, a.setLength);
+
+  var to = a.agentEmail || a.email || '';
+  var subject = 'Funky Dory Festival 7 — Artist Information — '+a.perfName;
+
+  var body =
+'Dear '+(a.agentName||a.perfName)+',\n\n'+
+'We are delighted to have '+a.perfName+' joining us for Funky Dory Festival 7. Please find below all the information needed for the day.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'SET TIME\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+a.perfName+' · '+fmtTime(a.setTime)+(endTime?' – '+endTime:'')+(a.setLength?' ('+a.setLength+' minutes)':'')+'\n\n'+
+'Please arrive at least 1 hour before your set time.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'EVENT DETAILS\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'Funky Dory Festival 7\n'+
+'Saturday 15 August 2026 · 12pm – 10pm\n'+
+'Ashfields Carriage & Polo Club, Dunmow Road, Great Easton, CM6 1JU\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'GETTING THERE\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'SatNav: CM6 1JU · Ashfields Carriage & Polo Club\n\n'+
+'On arrival follow signs to the Artist & Crew entrance. Ask for Louise or Ronnie at the gate.\n'+
+'Your parking pass is attached — please print or show on your phone.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'ACCREDITATION & ACCESS\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+a.perfName+' will receive AAA access (stage, green room, full site).\n\n'+
+'Artist guests receive green room access. Please note: guests are not permitted on stage.\n'+
+'All 21+ only — no exceptions.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'KEY CONTACTS\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'Louise Navarro (Event Manager) · 07832 153489 · WhatsApp: +34 604 336810\n'+
+'Ronnie Herel (Production) · 07775 875522 · ronnie@funkydorylove.co.uk\n'+
+'On the day: Artist Liaison will meet you at the artist entrance.\n\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'WHAT WE NEED FROM YOU\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'Please reply to this email or call Louise with the following by 1 August:\n\n'+
+'1. Artist full legal name\n'+
+'2. Mobile number (day of event)\n'+
+'3. Emergency contact name & number (must not be attending)\n'+
+'4. Guest list — full names of any guests (max 2 · green room access · 21+ only)\n'+
+'5. Technical rider (if not already provided)\n'+
+'6. Hospitality requirements\n'+
+(a.hotel==='yes'?'7. Hotel — please confirm check-in details required\n\n':'')+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'IMPORTANT\n'+
+'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
+'· This is a strictly 21+ event — photographic ID required for all guests\n'+
+'· No additions to the guest list on the day\n'+
+'· Stage is strictly artists and DJs only — no exceptions\n'+
+'· Ask for Angela policy is in operation across the whole event\n\n'+
+'We look forward to welcoming '+a.perfName+' to Funky Dory Festival 7.\n\n'+
+'Chic by Tradition, Funky by Nature.\n\n'+
+'Louise Navarro\n'+
+'Event Manager · Funky Dory Love Ltd\n'+
+'louise@funkydorylove.co.uk · 07832 153489\n'+
+'funkydorylove.co.uk · @funkydorylove';
+
+  document.getElementById('emailTitle').textContent = 'Artist info — '+a.perfName;
+  document.getElementById('email-to').value = to;
+  document.getElementById('email-subject').value = subject;
+  document.getElementById('email-body').textContent = body;
+  document.getElementById('emailModal').classList.add('open');
+}
+
+function closeEmailModal() { document.getElementById('emailModal').classList.remove('open'); }
+function copyEmailBody() {
+  navigator.clipboard.writeText(document.getElementById('email-body').textContent)
+    .then(function(){ alert('Copied to clipboard'); });
+}
+function openInMail() {
+  var to = document.getElementById('email-to').value;
+  var subject = encodeURIComponent(document.getElementById('email-subject').value);
+  var body = encodeURIComponent(document.getElementById('email-body').textContent);
+  window.open('mailto:'+to+'?subject='+subject+'&body='+body);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', load);
+} else { load(); }
+</script>
+</body>
+</html>
