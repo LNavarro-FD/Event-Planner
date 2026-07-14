@@ -26,7 +26,19 @@
       "description": "Simple task tracker (legacy \u2014 superseded by todo.html)"
     }
   },
-  "checkpoint": "v1-stable",
+  "checkpoint": "v2-stable",
   "checkpoint_date": "2026-07-14",
-  "notes": "Stable checkpoint before refactor. No auth, Firebase v8, all tools working."
+  "notes": "Stable checkpoint \u2014 staff module added, venue planner working, hub tabs working, no auth.",
+  "file_shas": {
+    "hub.html": "b5d3f5960a46",
+    "todo.html": "1e420b50026c",
+    "kanban.html": "26b252c19dd4",
+    "venue-planner.html": "570ab34475bb",
+    "staff.html": "b9b00651f7f0",
+    "config.js": "b25203ba75eb",
+    "fd-db.js": "f8a90314d8a5",
+    "seed-data.js": "47184a042ea3",
+    "seed-todo.html": "28c2a8cb853a",
+    "VERSION.json": "4b2bf529a068"
+  }
 }
