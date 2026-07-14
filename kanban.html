@@ -635,192 +635,22 @@ function renderBuildGrid(){
     const key = cellKey(secName, taskName, dayIdx);
     const saved = cells[key];
     const display = saved !== undefined ? saved : defaultText;
-    const colorHtml = colorPerson(display);
-    return `<td class="${dayType}-day" style="cursor:pointer;min-width:90px;position:relative" 
-      onclick="editBuildCell(this,'${key.replace(/'/g,"\'")}','${(defaultText||'').replace(/'/g,"\'")}')"
-      title="Click to edit">
-      <div id="bcell_${key}" style="min-height:20px">
-        ${colorHtml || (display ? `<span style="font-size:11px;color:#555">${display}</span>` : '<span style="color:#ddd;font-size:10px">+ add</span>')}
-      </div>
+    const isDerig = dayType === 'takedown';
+    const colorHtml = colorPerson(display, isDerig);
+    const safeKey = key.replace(/'/g,"\'");
+    const safeDefault = (defaultText||'').replace(/'/g,"\'");
+    const safeDisplay = (display||'').replace(/'/g,"\'");
+    const chipInner = colorHtml
+      ? colorHtml.replace(/class="bg-person/g, 'draggable="true" ondragstart="onChipDragStart(event,\'' + safeKey + '\',\'' + safeDisplay + '\')" ondragend="onChipDragEnd(event)" class="bg-person')
+      : (display ? '<span draggable="true" ondragstart="onChipDragStart(event,\'' + safeKey + '\',\'' + safeDisplay + '\')" ondragend="onChipDragEnd(event)" style="font-size:11px;color:#555;cursor:grab">' + display + '</span>' : '<span style="color:#ddd;font-size:10px">+ add</span>');
+    return `<td class="${dayType}-day" style="cursor:pointer;min-width:90px;position:relative"
+      onclick="editBuildCell(this,'${safeKey}','${safeDefault}')"
+      ondragover="onCellDragOver(event)"
+      ondragleave="onCellDragLeave(event)"
+      ondrop="onCellDrop(event,'${safeKey}')"
+      title="Click to edit · Drag to move">
+      <div id="bcell_${key}" style="min-height:24px">${chipInner}</div>
     </td>`;
   }
 
-  let html=`<div class="bg-title">${bw.title}</div>
-    <div class="bg-subtitle">${bw.subtitle}</div>
-    <table class="bgt">
-      <thead><tr>
-        <th class="section-th">Section / Task</th>
-        ${dayLabels.map((l,i)=>`<th class="${dayTypes[i]}-day">${l}</th>`).join('')}
-      </tr></thead><tbody>`;
-
-  bw.sections.forEach(sec=>{
-    html+=`<tr><td class="section-td" colspan="${bw.days.length+1}">${sec.name}</td></tr>`;
-    sec.tasks.forEach(t=>{
-      html+=`<tr><td class="task-col">${t.task}</td>`;
-      t.days.forEach((cell,i)=>{
-        html += makeCell(sec.name, t.task, i, cell, dayTypes[i]);
-      });
-      html+='</tr>';
-    });
-  });
-
-  html+='</tbody></table>';
-  document.getElementById('buildGrid').innerHTML=html;
-}
-
-function editBuildCell(td, key, defaultVal){
-  const div = document.getElementById('bcell_' + key);
-  if (!div) return;
-  const current = (window._buildCells && window._buildCells[key] !== undefined) 
-    ? window._buildCells[key] : defaultVal;
-  
-  // Replace cell content with input
-  div.innerHTML = `<input type="text" value="${current.replace(/"/g,'&quot;')}" 
-    style="width:100%;font-size:11px;padding:2px 4px;border:1px solid #3b82f6;border-radius:3px;background:#fff;color:#111;outline:none"
-    onblur="saveBuildCell('${key.replace(/'/g,"\'")}', this.value)"
-    onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value='${current.replace(/'/g,"\'")}';this.blur();}"
-    autofocus>`;
-  div.querySelector('input').focus();
-  div.querySelector('input').select();
-}
-
-async function saveBuildCell(key, value){
-  if(!window._buildCells) window._buildCells = {};
-  window._buildCells[key] = value;
-  
-  // Re-render cell
-  renderBuildGrid();
-  
-  // Save to Firestore
-  try{
-    await _db.collection('buildweek').doc('fd7_2026').set({cells: window._buildCells});
-  }catch(e){ console.warn('Build cell save failed', e); }
-}
-
-async function loadBuildCells(){
-  try{
-    const snap = await _db.collection('buildweek').doc('fd7_2026').get();
-    if(snap.exists){ window._buildCells = snap.data().cells || {}; }
-    else { window._buildCells = {}; }
-  }catch(e){ window._buildCells = {}; }
-}
-
-
-// ── VIEW SWITCHER ──────────────────────────────────────────────────────────
-function showView(view,el){
-  document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('kanbanView').style.display=view==='kanban'?'flex':'none';
-  document.getElementById('ganttView').style.display=view==='gantt'?'block':'none';
-  document.getElementById('buildView').style.display=view==='build'?'block':'none';
-  if(view==='build'){loadBuildCells().then(()=>renderBuildGrid());document.getElementById('print-build-btn').style.display='inline-block';}else{document.getElementById('print-build-btn').style.display='none';}
-  if(view==='gantt')renderGantt();
-}
-
-// ── DETAIL PANEL ───────────────────────────────────────────────────────────
-function openDetail(id){
-  selectedId=id;
-  const t=tasks.find(t=>t.id===id);
-  document.getElementById('dpTitle').textContent=t.task;
-  document.getElementById('dpCat').textContent=t.cat;
-  document.getElementById('dpSupplier').textContent=t.supplier||'—';
-  document.getElementById('dpNotes').textContent=t.notes||'—';
-  
-  // Pipeline
-  const pipe=t.stages.map((s,i)=>{
-    let cls='pipe-step';
-    if(t.status==='Done')cls+=' completed';
-    else if(i<t.currentStage)cls+=' completed';
-    else if(i===t.currentStage)cls+=' current';
-    return `<span class="${cls}">${STAGE_LABELS[s]}</span><span class="pipe-arrow">›</span>`;
-  }).join('').replace(/›$/,'');
-  document.getElementById('dpPipeline').innerHTML=pipe;
-
-  // Related tasks
-  const relEl=document.getElementById('dpRel');
-  if(t.related.length){
-    relEl.innerHTML=t.related.map(rid=>{
-      const rt=tasks.find(r=>r.id===rid);
-      return rt?`<span class="rel-tag" onclick="openDetail(${rid})">${rt.task}</span>`:'';
-    }).join('');
-  } else {
-    relEl.innerHTML='<span style="font-size:11px;color:#94a3b8">No related tasks</span>';
-  }
-
-  document.getElementById('dpStatus').value=t.status;
-  document.getElementById('dpDue').value=t.dueDate||'';
-  document.getElementById('dpTaskNotes').value=t.taskNotes||'';
-  
-  // Advance button
-  const adv=document.getElementById('dpAdvance');
-  if(t.status==='Done'||t.currentStage>=t.stages.length-1){
-    adv.disabled=true;
-    adv.textContent='No further stages';
-  } else {
-    adv.disabled=false;
-    const nextStage=STAGE_LABELS[t.stages[t.currentStage+1]];
-    adv.textContent=`→ Advance to: ${nextStage}`;
-  }
-
-  document.getElementById('detailPanel').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
-}
-
-function closeDetail(){
-  document.getElementById('detailPanel').classList.remove('open');
-  document.getElementById('overlay').classList.remove('open');
-  selectedId=null;
-}
-
-function advanceFromPanel(){
-  const t=tasks.find(t=>t.id===selectedId);
-  if(!t||t.currentStage>=t.stages.length-1)return;
-  t.currentStage++;
-  if(t.currentStage===t.stages.length-1)t.status='Done';
-  else if(t.status==='Not Started')t.status='In Progress';
-  openDetail(selectedId); // refresh panel
-  fbSave();renderAll();notify('Advanced ✓');
-}
-
-function saveDetail(){
-  const t=tasks.find(t=>t.id===selectedId);
-  if(!t)return;
-  t.status=document.getElementById('dpStatus').value;
-  t.dueDate=document.getElementById('dpDue').value;
-  t.taskNotes=document.getElementById('dpTaskNotes').value;
-  if(t.status==='Done')t.currentStage=t.stages.length-1;
-  fbSave();renderAll();closeDetail();notify('Saved ✓');
-}
-
-function fmtDate(d){
-  if(!d)return'';
-  const[y,m,day]=d.split('-');
-  return`${day}/${m}/${y}`;
-}
-
-// ── AUTH ──────────────────────────────────────────────────────────────────
-
-
-
-function notify(msg){
-  const n=document.getElementById('notify');
-  n.textContent=msg;n.style.display='block';
-  clearTimeout(n._t);n._t=setTimeout(()=>{n.style.display='none';},2000);
-}
-
-
-
-
-// Initialise app directly
-(function() {
-  function start() { window._loadTasks(); }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start);
-  } else {
-    start();
-  }
-})();
-
-</script>
-</body>
-</html>
+  >
