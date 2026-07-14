@@ -26,22 +26,22 @@
       "description": "Simple task tracker (legacy \u2014 superseded by todo.html)"
     }
   },
-  "checkpoint": "v5-stable",
-  "checkpoint_date": "2026-07-14",
-  "notes": "v5-stable \u2014 pre real-world use checkpoint.\nModules: home, site planner, to-do, kanban, staff, suppliers, print.\nKnown issues to revisit:\n- Purple Guide content needs commercial licence before redistribution (Event Safety Alliance)\n- Auth needs to come back before white labelling / multi-tenant\n- Architecture migration to proper SPA + module isolation needed for commercial platform\n- Firestore open rules (allow read/write: if true) - temporary for development\n- todo sections may need reseeding via seed-todo.html if Firestore doc has no sections field\n- Magic Mouse pan not fully tested\n- Mobile tap-to-place for library items not yet built\n- Copy task + subtasks (artist accreditation template) not yet built\n- Fencing add/delete by number not yet built\n- Sub-canvas (interior of marquee/bar) not yet built\n- Financials module not yet built\n- White label / multi-tenant architecture not yet built",
+  "checkpoint": "v6-stable",
+  "checkpoint_date": "2026-07-15",
+  "notes": "v6-stable checkpoint \u2014 real world use session.\nFixed: venue picker bug (setup modal no longer appears before venue chosen).\nFixed: build week drag & drop chips between cells.\nFixed: build week colour coding (isDerig passed correctly).\nAdded: collapse all / expand all in To-Do.\nAdded: Artist Liaison section in To-Do, free-text category input.\nAdded: people sorted A-Z by first name in Staff.\nAdded: tab renamed Design & Print.\nPending features agreed this session:\n- Smart bar planning tool (width/shape/stations/staff/revenue/lost revenue/RAG)\n- Smart toilet planning tool (capacity/pump-out timing/RAG)\n- Centre selected item on canvas (H/V/both)\n- Point-to-point measurement tool\n- Zone templates (bar, catering, stage)\n- Ticket sales as single source of truth (target + actuals audit log drives all calculations)\n- Staff roles sheet (roles first, people assigned with % split, utilisation & gap RAG)\n- Design & Print workflow (brief \u2192 quote \u2192 approved \u2192 production \u2192 print)\n- Designer shared workspace (brief sent, quote, timeline, draft review, approval)\n- Nothing hardcoded \u2014 all values from config/Firestore\n- Purple Guide commercial licence needed (Event Safety Alliance) before redistribution",
   "file_shas": {
-    "hub.html": "25dedb9b114b",
+    "hub.html": "1fe26382b8a0",
     "home.html": "0f32d9a5f063",
-    "todo.html": "1102d2e68e50",
-    "kanban.html": "e8effa3950e9",
-    "venue-planner.html": "3dcc7bc3eb57",
-    "staff.html": "a266dfa35528",
+    "todo.html": "962afce6ac03",
+    "kanban.html": "77bca4308edf",
+    "venue-planner.html": "2250a0dac390",
+    "staff.html": "3d6432818281",
     "suppliers.html": "47f5ba9269e6",
-    "print.html": "963c21912b13",
+    "print.html": "40159c2cc3b8",
     "config.js": "c5ed0ce7f4b5",
     "fd-db.js": "f8a90314d8a5",
     "seed-data.js": "47184a042ea3",
     "seed-todo.html": "28c2a8cb853a",
-    "VERSION.json": "81cc932152c7"
+    "VERSION.json": "ab75eb0ae697"
   }
 }
