@@ -1253,6 +1253,23 @@ function updateStatus(){
 }
 function notify(msg){const n=document.getElementById('notify');n.textContent=msg;n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>{n.style.display='none';},2200);}
 
+
+function centreSelected(axis) {
+  if (!selected || !boundary) return;
+  var bCx = boundary.x + boundary.w / 2;
+  var bCy = boundary.y + boundary.d / 2;
+  if (axis === 'both' || axis === 'h') {
+    selected.x = bCx - selected.w / 2;
+  }
+  if (axis === 'both' || axis === 'v') {
+    selected.y = bCy - selected.d / 2;
+  }
+  pushUndo();
+  draw();
+  saveLayout();
+  notify('Centred ' + (axis === 'both' ? '' : axis === 'h' ? 'horizontally ' : 'vertically ') + selected.name);
+}
+
 function printPlan() {
   // Populate print header
   var venue = currentVenue + ' ' + currentYear;
