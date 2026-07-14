@@ -812,10 +812,11 @@ function calcBar() {
   var minStations = Math.ceil(guestsPerBar / 100);
   var maxStations = Math.ceil(guestsPerBar / 75);
 
-  // Queue length per lane at peak
-  // Assume 3 people deep per station, 0.5m per person
+  // Queue lanes — rope & pole standard width 1.5m per lane
+  // Assume 3 people deep per station at 0.5m per person
+  var laneWidth = 1.5;
   var queueDepth = 3;
-  var queueLength = queueDepth * 0.5; // metres at comfortable level
+  var queueLength = queueDepth * 0.5; // metres depth at comfortable level
 
   // Revenue per peak hour
   var revPerHour = guestsPerBar * (spend / 4); // assume 4 hour peak spread
@@ -850,7 +851,7 @@ function calcBar() {
     {label:'Serving stations', value: stations},
     {label:'Staff needed', value: staffNeeded},
     {label:'Guests per bar', value: guestsPerBar.toLocaleString()},
-    {label:'Queue length', value: queueLength.toFixed(1) + 'm per lane'},
+    {label:'Queue lanes', value: stations + ' lanes × 1.5m (rope & pole)'},
     {label:'Revenue potential', value: '£' + Math.round(revPerHour).toLocaleString() + '/hr'},
     {label:'Stations needed', value: minStations + '–' + maxStations},
   ];
@@ -897,7 +898,8 @@ function placeBar() {
   objects.push({type:'item',name:'Bar front ('+b.stations+' stations) '+( b.ragStatus==='red'?'⚠':'✓'),cat:'bar',w:w,d:1,x:x,y:y+2.6,rot:0,colour:ragCol,snap:'grid',supplier:'',confirmed:false,isBarZone:true});
   // Queue lanes
   if (b.showQueues) {
-    objects.push({type:'item',name:'Queue zone',cat:'bar',w:w,d:3,x:x,y:y+3.6,rot:0,colour:'#bfdbfe',snap:'grid',supplier:'',confirmed:false,isBarZone:true,opacity:0.5});
+    // Queue lanes at 1.5m wide (rope & pole) x 3m deep per station
+    objects.push({type:'item',name:'Queue lanes (rope & pole 1.5m x '+b.stations+' lanes)',cat:'bar',w:w,d:3,x:x,y:y+3.6,rot:0,colour:'#bfdbfe',snap:'grid',supplier:'Local Toilet Hire',confirmed:false,isBarZone:true});
   }
 
   draw();
