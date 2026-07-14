@@ -433,5 +433,22 @@ function renderKit(event) {
   });
   html += '</tr></thead><tbody>';
   kit.forEach(function(row, i) {
+    
     html += buildKitRow(row, i);
->
+  });
+  html += '<tr class="power-total"><td colspan="4">TOTAL</td>';
+  html += '<td>' + totalW.toLocaleString() + 'W</td>';
+  html += '<td>' + (totalW/230).toFixed(1) + 'A</td>';
+  html += '<td colspan="5"></td></tr>';
+  html += '</tbody></table>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', load);
+} else { load(); }
+</script>
+</body>
+</html>
