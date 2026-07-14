@@ -647,20 +647,14 @@ function isInHub() { try { return window.parent !== window; } catch(e) { return 
   }
 })();
 
-// ── App initialisation ───────────────────────────────────────────────────────
-(function() {
-  // Call the appropriate load function directly — no auth needed
-  function init() {
-    if (window._fbLoadAndInit) window._fbLoadAndInit();
-    else if (window._loadTasks) window._loadTasks();
-    else if (window._fbLoad) window._fbLoad();
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+
+
+// Start app directly — no auth needed
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { window._fbLoad(); });
+} else {
+  window._fbLoad();
+}
 </script>
 </body>
 </html>
