@@ -978,12 +978,45 @@ function drawWall(o){
   ctx.restore();
 }
 function drawMeasure(o){
-  const sel=o===selected,x0=toCX(o.x0),y0=toCY(o.y0),x1=toCX(o.x1),y1=toCY(o.y1),d=Math.hypot(o.x1-o.x0,o.y1-o.y0);
-  ctx.save();ctx.strokeStyle=sel?'#e74c3c':'#185FA5';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+  const sel=o===selected;
+  const x0=toCX(o.x0),y0=toCY(o.y0),x1=toCX(o.x1),y1=toCY(o.y1);
+  const dTotal=Math.hypot(o.x1-o.x0,o.y1-o.y0);
+  const dH=Math.abs(o.x1-o.x0);
+  const dV=Math.abs(o.y1-o.y0);
+  const col=sel?'#e74c3c':'#185FA5';
+  ctx.save();
+
+  // Main diagonal line
+  ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
   ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();ctx.setLineDash([]);
+
+  // End ticks
   const ang=Math.atan2(y1-y0,x1-x0);
-  [[x0,y0],[x1,y1]].forEach(([tx,ty])=>{ctx.save();ctx.translate(tx,ty);ctx.rotate(ang+Math.PI/2);ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(5,0);ctx.stroke();ctx.restore();});
-  ctx.save();ctx.translate((x0+x1)/2,(y0+y1)/2);ctx.rotate(ang);ctx.fillStyle='#185FA5';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText((o.label?o.label+' ':'')+d.toFixed(1)+'m',0,-4);ctx.restore();
+  [[x0,y0],[x1,y1]].forEach(function(pt){
+    ctx.save();ctx.translate(pt[0],pt[1]);ctx.rotate(ang+Math.PI/2);
+    ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(5,0);ctx.stroke();ctx.restore();
+  });
+
+  // H and V helper lines (light grey dashed)
+  if(dH>0.2&&dV>0.2){
+    ctx.strokeStyle='rgba(100,116,139,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y0);ctx.stroke(); // horizontal
+    ctx.beginPath();ctx.moveTo(x1,y0);ctx.lineTo(x1,y1);ctx.stroke(); // vertical
+    ctx.setLineDash([]);
+    // H label
+    ctx.fillStyle='#64748b';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.fillText('↔ '+dH.toFixed(1)+'m',(x0+x1)/2,y0-3);
+    // V label
+    ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('↕ '+dV.toFixed(1)+'m',x1+4,(y0+y1)/2);
+  }
+
+  // Main distance label on diagonal
+  ctx.save();ctx.translate((x0+x1)/2,(y0+y1)/2);ctx.rotate(ang);
+  ctx.fillStyle=col;ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText((o.label?o.label+' ':'')+dTotal.toFixed(1)+'m',0,-4);
+  ctx.restore();
+
   ctx.restore();
 }
 function drawLabel(o){
