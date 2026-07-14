@@ -83,16 +83,16 @@ body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;height:10
 .rel-line{position:absolute;height:2px;background:#7c3aed;opacity:.4;top:50%;transform:translateY(-50%);pointer-events:none;z-index:4}
 
 /* ── BUILD WEEK GRID ─────────────────────────────────────────────────── */
-#buildView{flex:1;overflow:auto;display:none;padding:0}
-#buildGrid{min-width:900px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden;margin:12px 16px}
+#buildView{flex:1;overflow:auto;display:none;padding:12px 16px}
+#buildGrid{min-width:900px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden}
 .bg-title{background:#0f172a;color:#fff;padding:10px 14px;font-size:13px;font-weight:700}
 .bg-subtitle{background:#1e293b;color:#94a3b8;padding:4px 14px;font-size:10px}
 table.bgt{width:100%;border-collapse:collapse;font-size:11px}
-table.bgt th{background:#1e293b;color:#fff;padding:6px 8px;text-align:center;border:1px solid #334155;font-size:10px;white-space:nowrap;position:sticky;top:0;z-index:10}
-table.bgt th.section-th{background:#0f172a;text-align:left;padding-left:12px;position:sticky;top:0;left:0;z-index:15}
+table.bgt th{background:#1e293b;color:#fff;padding:6px 8px;text-align:center;border:1px solid #334155;font-size:10px;white-space:nowrap}
+table.bgt th.section-th{background:#0f172a;text-align:left;padding-left:12px}
 table.bgt td{padding:5px 8px;border:1px solid #e2e8f0;vertical-align:top;min-width:80px}
-table.bgt td.task-col{background:#f8fafc;font-weight:600;color:#374151;min-width:160px;white-space:nowrap;position:sticky;left:0;z-index:5}
-table.bgt td.section-td{background:#e2e8f0;font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.06em;color:#64748b;padding:4px 12px;position:sticky;left:0;z-index:5}
+table.bgt td.task-col{background:#f8fafc;font-weight:600;color:#374151;min-width:160px;white-space:nowrap}
+table.bgt td.section-td{background:#e2e8f0;font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.06em;color:#64748b;padding:4px 12px}
 .bg-person{display:inline-block;border-radius:3px;padding:1px 5px;margin:1px;font-size:10px;font-weight:600;color:#fff;cursor:default}
 .bg-tbd{color:#94a3b8;font-style:italic;font-size:10px}
 table.bgt td.event-day{background:#eff6ff}
@@ -133,8 +133,19 @@ table.bgt td.takedown-day{background:#f0fdf4}
 
 <!-- Firebase -->
 
-<script src="fd-db.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script>
+firebase.initializeApp({
+  apiKey:'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
+  authDomain:'event-planner-7944d.firebaseapp.com',
+  projectId:'event-planner-7944d',
+  storageBucket:'event-planner-7944d.firebasestorage.app',
+  messagingSenderId:'455768566205',
+  appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
+});
+var _db=firebase.firestore();
+window._fbUser={email:'local'};
 window._loadTasks();
 </script>
 </head>
@@ -317,12 +328,12 @@ const T_TODAY=new Date('2026-07-13');
 let tasks=[], selectedId=null;
 
 async function fbSave(){
-  
-  FD.set('jobs','fd7_kanban',{tasks:tasks}).catch(function(e){console.warn('save failed',e);});
+  if(!window._fb||!window._fbUser)return;
+  try{await _db.collection('jobs').doc('fd7_kanban').set({tasks});}catch(e){console.warn('save failed',e);}
 }
 
 window._loadTasks=async function(){
-  
+  if(!window._fb||!window._fbUser)return;
   try{
     const snap=await _db.collection('jobs').doc('fd7_kanban').get();
     if(snap.exists){
@@ -584,7 +595,7 @@ async function saveBuildCell(key, value){
   
   // Save to Firestore
   try{
-    await FD.set('buildweek','fd7_2026',{cells:window._buildCells});
+    await _db.collection('buildweek').doc('fd7_2026').set({cells: window._buildCells});
   }catch(e){ console.warn('Build cell save failed', e); }
 }
 
@@ -702,18 +713,13 @@ function notify(msg){
 
 
 
-// ── App initialisation ───────────────────────────────────────────────────────
+// Initialise app directly
 (function() {
-  // Call the appropriate load function directly — no auth needed
-  function init() {
-    if (window._fbLoadAndInit) window._fbLoadAndInit();
-    else if (window._loadTasks) window._loadTasks();
-    else if (window._fbLoad) window._fbLoad();
-  }
+  function start() { window._loadTasks(); }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', start);
   } else {
-    init();
+    start();
   }
 })();
 
