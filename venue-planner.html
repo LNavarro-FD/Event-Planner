@@ -190,7 +190,7 @@ var _db=firebase.firestore();
         <p>Enter the site boundary. This becomes the outer perimeter on your canvas — everything you plan sits inside it.</p>
         <label>Width (m)</label><input id="setupW" type="number" placeholder="e.g. 120" min="1">
         <label>Depth (m)</label><input id="setupD" type="number" placeholder="e.g. 120" min="1">
-        <button class="setup-start" onclick="applyBoundary()">Start planning</button>
+        <button class="setup-start" onclick="if(typeof applyBoundary==='function'){applyBoundary();}else{alert('applyBoundary not defined - JS error on load');}">Start planning</button>
       </div>
     </div>
     <div id="autoPanel">
