@@ -1271,7 +1271,8 @@ document.getElementById('quoteOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('quoteOverlay')) closeQuoteSummary();
 });
 
-// init() is now called by window._fbLoadAndInit() after Firebase auth
+// Start app
+window._fbLoadAndInit();
 
 
 
