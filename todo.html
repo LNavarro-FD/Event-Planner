@@ -89,6 +89,29 @@ input[type=checkbox]{margin-top:2px;flex-shrink:0;accent-color:#FF4B7B;width:15p
 .sl-col-header-build{color:#0f766e}
 .sl-col-header-done{color:#15803d}
 .sl-filter-active{outline:2px solid #FF4B7B;outline-offset:2px}
+
+@media print {
+  @page { size: A4 portrait; margin: 14mm; }
+  .filters, #swimlane, .stats, #notesSection, button, select { display: none !important; }
+  body { background: #fff !important; font-size: 11px !important; padding: 0 !important; }
+  #mainContent { padding: 0 !important; }
+  h1 { font-size: 16px !important; }
+  .section-header { background: #1e293b !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .item { break-inside: avoid; border-bottom: 1px solid #f0f0f0 !important; }
+  .item.done { opacity: 0.5; }
+  #print-header { display: block !important; }
+  #print-footer { display: block !important; }
+  .sub-item { font-size: 10px !important; }
+  /* Print checkbox */
+  .item-check::before { content: "☐ "; font-size: 14px; }
+  .item.done .item-check::before { content: "☑ "; }
+}
+#print-header { display: none; font-family: system-ui, sans-serif; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #1e293b; }
+#print-header h2 { font-size: 15px; font-weight: 700; color: #1e293b; }
+#print-header .ph-meta { font-size: 10px; color: #64748b; margin-top: 3px; display: flex; gap: 16px; flex-wrap: wrap; }
+#print-footer { display: none; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 4px; font-family: system-ui, sans-serif; }
+#print-footer .pf-meta { font-size: 9px; color: #94a3b8; display: flex; justify-content: space-between; }
+
 </style>
 
 
@@ -111,6 +134,20 @@ window._fbLoad();
 </head>
 <body>
 <div id="mainContent">
+<div id="print-header">
+  <h2 id="ph-title">FD7 2026 — Master To-Do List</h2>
+  <div class="ph-meta">
+    <span>Ashfields Carriage &amp; Polo Club, CM6 1JU · Sat 15 Aug 2026</span>
+    <span id="ph-filter"></span>
+    <span id="ph-printed"></span>
+  </div>
+</div>
+<div id="print-footer">
+  <div class="pf-meta">
+    <span>FD Event Planner · To-Do v3.2.0</span>
+    <span id="pf-right"></span>
+  </div>
+</div>
 <h1>Funky Dory Festival 7 — 2026</h1>
 <p class="sub">Master to-do list · Sat 15 Aug 2026 · Ashfields Carriage &amp; Polo Club, CM6 1JU <span id="saveStatus"></span></p>
 
@@ -640,7 +677,22 @@ function toggleSwimlane() {
 // Initialise app directly
 (function() {
   function start() { window._fbLoad(); }
-  if (document.readyState === 'loading') {
+  
+function printTodo() {
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  var activeFilter = document.querySelector('.filters button.active');
+  var filterText = activeFilter ? 'Filter: ' + activeFilter.textContent : 'All tasks';
+  var doneCount  = Object.keys(done).filter(function(k){return done[k];}).length;
+  var totalCount = sections.reduce(function(n,s){return n+s.items.length;},0);
+
+  document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
+  document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.2.0 · ' + dateStr;
+  window.print();
+}
+
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);
   } else {
     start();
