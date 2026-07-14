@@ -188,10 +188,21 @@ function doLogin() {
   err.textContent   = 'Signing in...';
   document.getElementById('signinBtn').disabled = true;
 
-  window._auth.persist(remember)
-    .then(function() { return window._auth.signIn(email, pwd); })
-    .then(function() { err.textContent = ''; })
+  // Timeout after 10s
+  var loginTimeout = setTimeout(function() {
+    err.style.color = '#ef4444';
+    err.textContent = 'Sign in timed out — check your connection and try again.';
+    document.getElementById('signinBtn').disabled = false;
+  }, 10000);
+
+  // Skip persistence call — just sign in directly
+  window._auth.signIn(email, pwd)
+    .then(function() {
+      clearTimeout(loginTimeout);
+      err.textContent = '';
+    })
     .catch(function(e) {
+      clearTimeout(loginTimeout);
       err.style.color = '#ef4444';
       var msg = e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password'
         ? 'Incorrect email or password.'
@@ -199,10 +210,8 @@ function doLogin() {
         ? 'No account found with that email.'
         : e.code === 'auth/too-many-requests'
         ? 'Too many attempts — try again later.'
-        : 'Error: ' + e.message;
+        : 'Error (' + e.code + '): ' + e.message;
       err.textContent = msg;
-    })
-    .finally(function() {
       document.getElementById('signinBtn').disabled = false;
     });
 }
