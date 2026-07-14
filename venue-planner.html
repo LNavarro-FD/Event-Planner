@@ -65,7 +65,7 @@ canvas{display:block}
 #notify{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);background:#2c2c2a;color:#fff;font-size:12px;padding:6px 14px;border-radius:20px;display:none;white-space:nowrap;z-index:200}
 #statusbar{padding:3px 10px;background:#2c2c2a;color:#999;font-size:10px;display:flex;gap:14px;flex-shrink:0;flex-wrap:wrap}
 /* setup overlay */
-#setup{position:absolute;inset:0;background:rgba(248,249,252,0.97);z-index:50;display:flex;align-items:center;justify-content:center}
+#setup{position:fixed;inset:0;background:rgba(248,249,252,0.97);z-index:900;display:flex;align-items:center;justify-content:center}
 #setup.done{display:none}
 .setup-box{background:#fff;border-radius:12px;padding:26px;width:320px;border:1px solid #ddd}
 .setup-box h2{font-size:17px;font-weight:500;margin-bottom:5px}
@@ -297,7 +297,7 @@ var _db=firebase.firestore();
 </div>
 
 <!-- Quote Summary Modal -->
-<div class="overlay" id="quoteOverlay" style="display:none;position:fixed;inset:0;background:#0007;z-index:800;align-items:center;justify-content:center;">
+<div class="overlay" id="quoteOverlay" style="display:none;position:fixed;inset:0;background:#0007;z-index:800;align-items:center;justify-content:center;pointer-events:none;">
   <div style="background:#fff;border-radius:10px;width:min(860px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px #0005;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e0e0e0;">
       <h2 style="font-size:16px;color:#185FA5;">📋 Quote Summary — <span id="qsVenueYear"></span></h2>
@@ -554,7 +554,6 @@ function loadLayout(){
 
 // ── boundary ──────────────────────────────────────────────────────────────────
 function applyBoundary(){
-  alert('applyBoundary called, w='+document.getElementById('setupW').value);
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
   boundary={w,d};document.getElementById('setup').classList.add('done');try{saveLayout();}catch(e){console.warn('save failed',e);}setTimeout(()=>{resize();fitView();},50);
@@ -1233,11 +1232,11 @@ function openQuoteSummary() {
   });
 
   document.getElementById('qsBody').innerHTML = html;
-  document.getElementById('quoteOverlay').style.display = 'flex';
+  var qo=document.getElementById('quoteOverlay');qo.style.display='flex';qo.style.pointerEvents='auto';
 }
 
 function closeQuoteSummary() {
-  document.getElementById('quoteOverlay').style.display = 'none';
+  var qo=document.getElementById('quoteOverlay');qo.style.display='none';qo.style.pointerEvents='none';
 }
 
 function buildPlainText(bySupplier) {
