@@ -331,16 +331,19 @@ window._loadTasks=async function(){
     var CFG = window.FD_CONFIG;
     var docPath = CFG ? CFG.db.kanban.fd7 : 'fd7_kanban';
     var data = await FD.get('jobs', docPath);
-    if(data && data.tasks && data.tasks.length){
-      tasks=data.tasks.map(function(d){
-        return Object.assign({currentStage:0,status:'Not Started',dueDate:'',taskNotes:''},d);
-      });
-      // Rebuild categories from task data
-      var seen={};
-      tasks.forEach(function(t){ seen[t.cat]=true; });
-      CATEGORIES.length=0;
-      Object.keys(seen).forEach(function(c){ CATEGORIES.push(c); });
+    var taskDefs = (data && data.tasks && data.tasks.length) ? data.tasks
+                 : (window.FD_SEED ? window.FD_SEED.kanbanTasks : []);
+    if(!data || !data.tasks || !data.tasks.length){
+      // Seed tasks into Firestore
+      if(taskDefs.length) FD.set('jobs', docPath, {tasks: taskDefs});
     }
+    tasks = taskDefs.map(function(d){
+      return Object.assign({currentStage:0,status:'Not Started',dueDate:'',taskNotes:''},d);
+    });
+    var seen={};
+    tasks.forEach(function(t){ seen[t.cat]=true; });
+    CATEGORIES.length=0;
+    Object.keys(seen).forEach(function(c){ CATEGORIES.push(c); });
   }catch(e){ console.warn('[FD Kanban] Load failed',e); }
   populateFilters(); renderAll();
 };
