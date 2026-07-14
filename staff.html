@@ -345,7 +345,7 @@ function renderAssignments(q, sec, evt) {
     html += '<td><span class="pill ' + sectionClass(a.section) + '">' + a.section + '</span></td>';
     html += '<td>' + (a.role || '—') + '</td>';
     html += '<td class="' + (a.confirmed ? 'confirmed' : 'pending') + '">' + (a.confirmed ? '✓ Confirmed' : '⏳ Pending') + '</td>';
-    html += '<td style="font-size:10px">' + (shiftSummary || '—') + '</td>';
+    html += '<td style="font-size:10px;font-family:monospace">' + (shiftSummary || '<span style="color:#94a3b8">Default: ' + defaultShiftStart(a.event) + '</span>') + '</td>';
     html += '<td>' + (h > 0 ? h + 'h' : '—') + '</td>';
     html += '<td>' + (a.rate ? '£' + a.rate + '/hr' : '—') + '</td>';
     html += '</tr>';
@@ -476,6 +476,27 @@ async function savePerson() {
 
   closeForm();
   render();
+}
+
+// ── Event config ──────────────────────────────────────────────────────────────
+var EVENT_TIMES = {
+  'HRR26': { start: '12:00', end: '23:00', date: '2026-07-04' },
+  'FD7':   { start: '12:00', end: '22:00', date: '2026-08-15' },
+  'FD Shindig': { start: '12:00', end: '22:00', date: '2026-08-15' },
+};
+
+function defaultShiftStart(event) {
+  var et = EVENT_TIMES[event];
+  if (!et) return '11:00';
+  var parts = et.start.split(':').map(Number);
+  var h = parts[0] - 1;
+  if (h < 0) h = 23;
+  return String(h).padStart(2,'0') + ':' + String(parts[1]).padStart(2,'0');
+}
+
+function defaultShiftEnd(event) {
+  var et = EVENT_TIMES[event];
+  return et ? et.end : '23:00';
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
