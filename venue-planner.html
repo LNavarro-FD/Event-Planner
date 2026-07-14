@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  document.body.innerHTML = '<div style="padding:20px;font-family:sans-serif;background:#fee2e2;color:#991b1b;font-size:13px;line-height:1.6">' +
+    '<b>JS Error:</b><br>' + msg + '<br>' +
+    '<b>Line:</b> ' + line + '<br>' +
+    '<b>Source:</b> ' + src + '</div>';
+  return true;
+};
+</script>
 <meta charset="UTF-8">
 <title>FD Event Planner v3.0</title>
 <meta name="version" content="2.7">
