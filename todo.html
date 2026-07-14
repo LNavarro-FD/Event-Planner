@@ -678,6 +678,16 @@ function toggleSwimlane() {
 (function() {
   function start() { window._fbLoad(); }
   
+
+function collapseAll(collapse) {
+  var cats = allCats();
+  cats.forEach(function(cat) {
+    collapsedSections[cat] = collapse;
+  });
+  fbSave();
+  render();
+}
+
 function printTodo() {
   var now = new Date();
   var dateStr = now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
