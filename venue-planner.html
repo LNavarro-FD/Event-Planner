@@ -150,6 +150,7 @@ var _db=firebase.firestore();
   <button class="tb" onclick="fitView()">Fit</button>
   <div class="sep"></div>
   <button class="tb red" onclick="deleteSelected()">Delete</button>
+  <button class="tb red" onclick="deleteByCount()" title="Delete multiple of same item">Delete N</button>
   <button class="tb red" onclick="clearCanvas()">Clear</button>
   <div class="sep"></div>
   <span class="lbl">Rotate selected</span>
@@ -705,9 +706,20 @@ function draw(){
   drawCompass(W-46,48);
 }
 function drawGrid(W,H){
-  const sub=scale/4;ctx.strokeStyle='#e8e8e8';ctx.lineWidth=0.3;
+  const sub=scale/4;
+  // Sub-grid lines
+  ctx.strokeStyle='#eeeeee';ctx.lineWidth=0.3;
   for(let x=ox%sub;x<W;x+=sub){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=oy%sub;y<H;y+=sub){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // Major grid lines (every metre)
+  ctx.strokeStyle='#cccccc';ctx.lineWidth=0.7;
+  for(let x=ox%scale;x<W;x+=scale){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=oy%scale;y<H;y+=scale){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // 10m grid lines
+  ctx.strokeStyle='#bbbbbb';ctx.lineWidth=1;
+  const ten=scale*10;
+  for(let x=ox%ten;x<W;x+=ten){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=oy%ten;y<H;y+=ten){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   ctx.strokeStyle='#d0d0d0';ctx.lineWidth=0.6;
   for(let x=ox%scale;x<W;x+=scale){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=oy%scale;y<H;y+=scale){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
@@ -944,6 +956,23 @@ function rotateCustom(){
   selected.rotation=((deg%360)+360)%360;
   draw();updateStatus();
 }
+
+function deleteByCount(){
+  if(!selected)return;
+  const name=selected.name;
+  if(!name)return;
+  const matches=objects.filter(o=>o.name===name);
+  const n=parseInt(prompt('Delete how many "'+name+'" panels? ('+matches.length+' on canvas)','1'));
+  if(!n||n<1)return;
+  pushUndo();
+  let removed=0;
+  objects=objects.filter(o=>{
+    if(o.name===name&&removed<n){removed++;return false;}
+    return true;
+  });
+  selected=null;draw();updateStatus();notify('Removed '+removed+' × '+name);
+}
+
 function deleteSelected(){if(!selected)return;pushUndo();objects=objects.filter(o=>o!==selected);selected=null;draw();updateStatus();}
 function clearCanvas(){if(confirm('Clear all objects? The site boundary stays.')){objects=[];selected=null;draw();updateStatus();}}
 
@@ -1327,6 +1356,36 @@ document.getElementById('quoteOverlay').addEventListener('click', e => {
   } else {
     start();
   }
+})();
+
+
+// ── Touch pan (mobile) ────────────────────────────────────────────────────────
+(function(){
+  var lastTouchX=0, lastTouchY=0, touching=false, touchCount=0;
+  canvas.addEventListener('touchstart',function(e){
+    touchCount=e.touches.length;
+    if(e.touches.length===2){
+      // Two-finger pan
+      touching=true;
+      lastTouchX=(e.touches[0].clientX+e.touches[1].clientX)/2;
+      lastTouchY=(e.touches[0].clientY+e.touches[1].clientY)/2;
+      e.preventDefault();
+    }
+  },{passive:false});
+  canvas.addEventListener('touchmove',function(e){
+    if(touching&&e.touches.length===2){
+      var cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+      var cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
+      ox+=cx-lastTouchX;
+      oy+=cy-lastTouchY;
+      lastTouchX=cx;lastTouchY=cy;
+      draw();
+      e.preventDefault();
+    }
+  },{passive:false});
+  canvas.addEventListener('touchend',function(e){
+    if(e.touches.length<2)touching=false;
+  });
 })();
 
 // Start app
