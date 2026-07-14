@@ -142,47 +142,29 @@ table.bgt td.takedown-day{background:#f0fdf4}
 </style>
 
 <!-- Firebase -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-const app = initializeApp({
-  apiKey:"AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8",
-  authDomain:"event-planner-7944d.firebaseapp.com",
-  projectId:"event-planner-7944d",
-  storageBucket:"event-planner-7944d.firebasestorage.app",
-  messagingSenderId:"455768566205",
-  appId:"1:455768566205:web:c5274d85158e6b2bf8cad4"
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-firestore.min.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
+  authDomain:'event-planner-7944d.firebaseapp.com',
+  projectId:'event-planner-7944d',
+  storageBucket:'event-planner-7944d.firebasestorage.app',
+  messagingSenderId:'455768566205',
+  appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
 });
-const auth=getAuth(app), db=getFirestore(app);
-window._fb={auth,db,doc,getDoc,setDoc,signInWithEmailAndPassword,signOut,sendPasswordResetEmail};
-onAuthStateChanged(auth,user=>{
-  if(user){
-    document.getElementById('loginOverlay').style.display='none';
-    document.getElementById('app').style.display='flex';
-    document.getElementById('userEmail').textContent=user.email;
-    window._fbUser=user;
-    window._loadTasks();
-  } else {
-    document.getElementById('loginOverlay').style.display='flex';
-    document.getElementById('app').style.display='none';
-  }
-});
+var _db=firebase.firestore();
+window._fbUser={email:'local'};
+window._loadTasks();
 </script>
 </head>
 <body>
-<div id="loginOverlay">
-  <div id="loginBox">
-    <h2>FD7 Kanban</h2>
-    <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"/>
-    <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"/>
-    <button class="signin" onclick="doLogin()">Sign in</button>
-    <div id="loginErr"></div>
     <div class="forgotlink" onclick="doForgotPassword()">Forgot password?</div>
   </div>
 </div>
 
-<div id="app" style="display:none;flex-direction:column;height:100vh;">
+<div id="app" style="display:flex;flex-direction:column;height:100vh;">
 <div id="topbar">
   <h1>FD7 2026</h1>
   <div class="spacer"></div>
@@ -254,16 +236,14 @@ let tasks=[], selectedId=null;
 
 async function fbSave(){
   if(!window._fb||!window._fbUser)return;
-  const{db,doc,setDoc}=window._fb;
-  try{await setDoc(doc(db,'jobs','fd7_kanban'),{tasks});}catch(e){console.warn('save failed',e);}
+  try{await _db.collection('jobs').doc('fd7_kanban').set({tasks});}catch(e){console.warn('save failed',e);}
 }
 
 window._loadTasks=async function(){
   if(!window._fb||!window._fbUser)return;
-  const{db,doc,getDoc}=window._fb;
   try{
-    const snap=await getDoc(doc(db,'jobs','fd7_kanban'));
-    if(snap.exists()){
+    const snap=await _db.collection('jobs').doc('fd7_kanban').get();
+    if(snap.exists){
       const saved=snap.data().tasks;
       tasks=TASK_DEFS.map(d=>{
         const s=saved.find(t=>t.id===d.id);
