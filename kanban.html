@@ -133,19 +133,8 @@ table.bgt td.takedown-day{background:#f0fdf4}
 
 <!-- Firebase -->
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-firestore.min.js"></script>
+<script src="fd-db.js"></script>
 <script>
-firebase.initializeApp({
-  apiKey:'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
-  authDomain:'event-planner-7944d.firebaseapp.com',
-  projectId:'event-planner-7944d',
-  storageBucket:'event-planner-7944d.firebasestorage.app',
-  messagingSenderId:'455768566205',
-  appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
-});
-var _db=firebase.firestore();
-window._fbUser={email:'local'};
 window._loadTasks();
 </script>
 </head>
@@ -328,12 +317,12 @@ const T_TODAY=new Date('2026-07-13');
 let tasks=[], selectedId=null;
 
 async function fbSave(){
-  if(!window._fb||!window._fbUser)return;
-  try{await _db.collection('jobs').doc('fd7_kanban').set({tasks});}catch(e){console.warn('save failed',e);}
+  
+  FD.set('jobs','fd7_kanban',{tasks:tasks}).catch(function(e){console.warn('save failed',e);});
 }
 
 window._loadTasks=async function(){
-  if(!window._fb||!window._fbUser)return;
+  
   try{
     const snap=await _db.collection('jobs').doc('fd7_kanban').get();
     if(snap.exists){
@@ -595,7 +584,7 @@ async function saveBuildCell(key, value){
   
   // Save to Firestore
   try{
-    await _db.collection('buildweek').doc('fd7_2026').set({cells: window._buildCells});
+    await FD.set('buildweek','fd7_2026',{cells:window._buildCells});
   }catch(e){ console.warn('Build cell save failed', e); }
 }
 
