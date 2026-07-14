@@ -100,7 +100,21 @@ canvas{display:block}
 #loginBox button:hover{background:#1a70c0;}
 #loginErr{color:#e74c3c;font-size:13px;text-align:center;min-height:18px;}
 </style>
-<script src="fd-db.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
+  authDomain:'event-planner-7944d.firebaseapp.com',
+  projectId:'event-planner-7944d',
+  storageBucket:'event-planner-7944d.firebasestorage.app',
+  messagingSenderId:'455768566205',
+  appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
+});
+var _db=firebase.firestore();
+window._fbUser={email:'local'};
+window._fbLoadAndInit();
+</script>
 </head>
 <body>
 <div id="app">
@@ -407,22 +421,34 @@ function doUndo(){
 // ── firebase helpers ──────────────────────────────────────────────────────────
 async function fbSaveLayout(key,data){
   
-  try{ await FD.set('venues',key,data); }catch(e){console.warn('FB save failed',e);}
+  try{
+    const {db,doc,setDoc}=window._fb;
+    await setDoc(doc(db,'venues',key),data);
+  }catch(e){console.warn('FB save failed',e);}
 }
 async function fbLoadAll(){
+  
   try{
-    const result=await FD.getAll('venues');
-    return Object.keys(result).length>0?result:null;
+    const {db,collection,getDocs}=window._fb;
+    const snap=await getDocs(collection(db,'venues'));
+    const result={};
+    snap.forEach(d=>{result[d.id]=d.data();});
+    return result;
   }catch(e){console.warn('FB load failed',e);return null;}
 }
 async function fbSaveEquipment(eq){
   
-  try{ await FD.set('equipment','library',{items:eq}); }catch(e){console.warn('FB equipment save failed',e);}
+  try{
+    const {db,doc,setDoc}=window._fb;
+    await setDoc(doc(db,'equipment','library'),{items:eq});
+  }catch(e){console.warn('FB equipment save failed',e);}
 }
 async function fbLoadEquipment(){
+  
   try{
-    var data=await FD.get('equipment','library');
-    if(data&&data.items)return data.items;
+    const {db,doc,getDoc}=window._fb;
+    const snap=await getDoc(doc(db,'equipment','library'));
+    if(snap.exists())return snap.data().items;
     return null;
   }catch(e){console.warn('FB equipment load failed',e);return null;}
 }
@@ -1268,8 +1294,7 @@ document.getElementById('quoteOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('quoteOverlay')) closeQuoteSummary();
 });
 
-// Start app
-window._fbLoadAndInit();
+// init() is now called by window._fbLoadAndInit() after Firebase auth
 
 
 
@@ -1277,18 +1302,13 @@ window._fbLoadAndInit();
 
 
 
-// ── App initialisation ───────────────────────────────────────────────────────
+// Initialise app directly
 (function() {
-  // Call the appropriate load function directly — no auth needed
-  function init() {
-    if (window._fbLoadAndInit) window._fbLoadAndInit();
-    else if (window._loadTasks) window._loadTasks();
-    else if (window._fbLoad) window._fbLoad();
-  }
+  function start() { window._fbLoadAndInit(); }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', start);
   } else {
-    init();
+    start();
   }
 })();
 
