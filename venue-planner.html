@@ -766,6 +766,146 @@ function startPlaceShape(shape) {
   notify('Click canvas to place: ' + shape.name + ' — Esc to cancel');
 }
 
+
+// ── Bar planning ──────────────────────────────────────────────────────────────
+var _barPlacePos = null;
+
+function openBarPanel(x, y) {
+  _barPlacePos = {x: x, y: y};
+  // Pre-fill guests from config if available
+  var guestsEl = document.getElementById('bar-guests');
+  if (typeof CONFIG !== 'undefined' && CONFIG.guests) {
+    guestsEl.value = CONFIG.guests;
+  }
+  document.getElementById('barOverlay').style.display = 'flex';
+  calcBar();
+}
+
+function closeBarPanel() {
+  document.getElementById('barOverlay').style.display = 'none';
+  _barPlacePos = null;
+  cancelPendingPlace();
+}
+
+function calcBar() {
+  var width   = parseFloat(document.getElementById('bar-width').value)  || 18;
+  var shape   = document.getElementById('bar-shape').value;
+  var barCount= parseInt(document.getElementById('bar-count').value)    || 1;
+  var guests  = parseInt(document.getElementById('bar-guests').value)   || 2000;
+  var spend   = parseFloat(document.getElementById('bar-spend').value)  || 65;
+
+  // Serving front length depends on shape
+  var servingFront = width;
+  if (shape === 'L') servingFront = width * 1.5;
+  if (shape === 'U') servingFront = width * 2;
+
+  // Station width = 1.5m per station
+  var stationWidth = 1.5;
+  var stations = Math.floor(servingFront / stationWidth);
+  var staffNeeded = stations * 2;
+
+  // Guests per bar
+  var guestsPerBar = Math.round(guests / barCount);
+
+  // Recommended stations for this guest load (1 per 75-100 guests at peak)
+  var minStations = Math.ceil(guestsPerBar / 100);
+  var maxStations = Math.ceil(guestsPerBar / 75);
+
+  // Queue length per lane at peak
+  // Assume 3 people deep per station, 0.5m per person
+  var queueDepth = 3;
+  var queueLength = queueDepth * 0.5; // metres at comfortable level
+
+  // Revenue per peak hour
+  var revPerHour = guestsPerBar * (spend / 4); // assume 4 hour peak spread
+
+  // Lost revenue if under-specified
+  var giveUpRate = 0.15; // 15% give up if queues are long
+  var lostRevenue = 0;
+  var ragStatus = 'green';
+  var alertMsg = '';
+  var alertCol = '';
+
+  if (stations >= maxStations) {
+    ragStatus = 'green';
+    alertMsg = '✓ Well sized for ' + guestsPerBar + ' guests at this bar. Comfortable service expected.';
+    alertCol = '#dcfce7';
+    alertMsg = '<span style="color:#15803d">' + alertMsg + '</span>';
+  } else if (stations >= minStations) {
+    ragStatus = 'amber';
+    alertMsg = '⚠ Borderline — ' + stations + ' stations for ' + guestsPerBar + ' guests. Recommend ' + maxStations + ' stations minimum. Consider adding ' + (maxStations - stations) + ' more.';
+    alertCol = '#fef9c3';
+    alertMsg = '<span style="color:#854d0e">' + alertMsg + '</span>';
+  } else {
+    ragStatus = 'red';
+    lostRevenue = Math.round(guestsPerBar * giveUpRate * (spend / 4));
+    alertMsg = '🔴 Under-specified — ' + stations + ' stations for ' + guestsPerBar + ' guests. Need ' + minStations + '–' + maxStations + ' stations. Estimated lost revenue: <strong>£' + lostRevenue.toLocaleString() + ' per peak hour</strong> (' + (giveUpRate*100) + '% guest drop-off due to long queues).';
+    alertCol = '#fee2e2';
+    alertMsg = '<span style="color:#dc2626">' + alertMsg + '</span>';
+  }
+
+  // Render metrics
+  var metrics = [
+    {label:'Serving stations', value: stations},
+    {label:'Staff needed', value: staffNeeded},
+    {label:'Guests per bar', value: guestsPerBar.toLocaleString()},
+    {label:'Queue length', value: queueLength.toFixed(1) + 'm per lane'},
+    {label:'Revenue potential', value: '£' + Math.round(revPerHour).toLocaleString() + '/hr'},
+    {label:'Stations needed', value: minStations + '–' + maxStations},
+  ];
+
+  var ragDot = ragStatus === 'green' ? '🟢' : ragStatus === 'amber' ? '🟡' : '🔴';
+
+  var mHtml = metrics.map(function(m){
+    return '<div style="background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #e2e8f0">' +
+      '<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">' + m.label + '</div>' +
+      '<div style="font-size:16px;font-weight:700;color:#1e293b">' + m.value + '</div>' +
+      '</div>';
+  }).join('');
+
+  document.getElementById('bar-metrics').innerHTML = mHtml;
+
+  var alertEl = document.getElementById('bar-alert');
+  alertEl.style.display = 'block';
+  alertEl.style.background = alertCol;
+  alertEl.innerHTML = ragDot + ' ' + alertMsg;
+
+  // Store for placement
+  window._barCalc = {
+    width: width, shape: shape, stations: stations, staffNeeded: staffNeeded,
+    guestsPerBar: guestsPerBar, ragStatus: ragStatus, lostRevenue: lostRevenue,
+    showQueues: document.getElementById('bar-queues').value === 'yes',
+  };
+}
+
+function placeBar() {
+  if (!_barPlacePos || !window._barCalc) return;
+  var b = window._barCalc;
+  var x = _barPlacePos.x;
+  var y = _barPlacePos.y;
+  var w = b.width;
+  var ragCol = b.ragStatus === 'green' ? '#16a34a' : b.ragStatus === 'amber' ? '#ca8a04' : '#dc2626';
+
+  pushUndo();
+
+  // Back prep area (0.6m)
+  objects.push({type:'item',name:'Back prep',cat:'bar',w:w,d:0.6,x:x,y:y,rot:0,colour:'#475569',snap:'grid',supplier:'',confirmed:false,isBarZone:true});
+  // Staff working space (2m)
+  objects.push({type:'item',name:'Staff zone ('+b.staffNeeded+' staff)',cat:'bar',w:w,d:2,x:x,y:y+0.6,rot:0,colour:'#64748b',snap:'grid',supplier:'',confirmed:false,isBarZone:true});
+  // Bar counter (1m)
+  objects.push({type:'item',name:'Bar front ('+b.stations+' stations) '+( b.ragStatus==='red'?'⚠':'✓'),cat:'bar',w:w,d:1,x:x,y:y+2.6,rot:0,colour:ragCol,snap:'grid',supplier:'',confirmed:false,isBarZone:true});
+  // Queue lanes
+  if (b.showQueues) {
+    objects.push({type:'item',name:'Queue zone',cat:'bar',w:w,d:3,x:x,y:y+3.6,rot:0,colour:'#bfdbfe',snap:'grid',supplier:'',confirmed:false,isBarZone:true,opacity:0.5});
+  }
+
+  draw();
+  updateStatus();
+  saveLayout();
+  closeBarPanel();
+  notify('Bar placed — ' + b.stations + ' stations, ' + b.staffNeeded + ' staff needed');
+}
+
 function applyBoundary(){
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
@@ -1183,6 +1323,11 @@ canvas.addEventListener('mousedown',e=>{
   const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,mx=snp(toMX(sx)),my=snp(toMY(sy));
   // Click-to-place from library
   if(_pendingPlace && e.button===0 && !spaceDown){
+    // Bar items get the planning panel instead of direct placement
+    if(_pendingPlace.cat === 'bar' && !_pendingPlace._barDirect){
+      openBarPanel(mx, my);
+      return;
+    }
     pushUndo();
     var np=_pendingPlace;
     objects.push({type:'item',name:np.name,cat:np.cat,w:np.w,d:np.d,x:mx,y:my,rot:0,
@@ -1785,5 +1930,62 @@ document.getElementById('quoteOverlay').addEventListener('click', e => {
 // Start app
 window._fbLoadAndInit();
 </script>
+
+<!-- Bar Planning Panel -->
+<div id="barOverlay" style="position:fixed;inset:0;background:#0005;z-index:200;display:none;align-items:flex-end;justify-content:center">
+  <div style="background:#fff;border-radius:12px 12px 0 0;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 -4px 24px #0003">
+    <div style="padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <h3 style="font-size:15px;font-weight:700;color:#1e293b">🍺 Bar planning</h3>
+      <button onclick="closeBarPanel()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1">×</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Bar front width (m)</label>
+          <input id="bar-width" type="number" value="18" min="1" step="0.5" oninput="calcBar()" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:600;outline:none">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Shape</label>
+          <select id="bar-shape" onchange="calcBar()" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none;background:#fff">
+            <option value="straight">Straight</option>
+            <option value="L">L-shape</option>
+            <option value="U">U-shape (3-sided)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Bars on site</label>
+          <input id="bar-count" type="number" value="1" min="1" max="10" oninput="calcBar()" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:600;outline:none">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Expected guests</label>
+          <input id="bar-guests" type="number" value="2000" min="1" oninput="calcBar()" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:600;outline:none">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Avg spend per head £</label>
+          <input id="bar-spend" type="number" value="65" min="1" oninput="calcBar()" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:600;outline:none">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Queue lanes</label>
+          <select id="bar-queues" onchange="calcBar()" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none;background:#fff">
+            <option value="yes">Yes — show on plan</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="bar-results" style="background:#f8fafc;border-radius:8px;padding:14px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px">Calculations</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px" id="bar-metrics"></div>
+        <div id="bar-alert" style="border-radius:6px;padding:10px 14px;font-size:12px;font-weight:600;display:none"></div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid #e5e7eb;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0">
+      <button onclick="closeBarPanel()" style="padding:8px 16px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Cancel</button>
+      <button onclick="placeBar()" style="padding:8px 20px;background:#1e293b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Place on canvas</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
