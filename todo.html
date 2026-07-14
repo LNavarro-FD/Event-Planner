@@ -206,10 +206,9 @@ const FB_DOC='fd7_todo_2026';
 
 window._fbLoad=async function(){
   window._fbUser = window._fbUser || { email: "local" };
-  if(!window._fb||!window._fbUser)return;
   try{
     const snap=await _db.collection('todos').doc(FB_DOC).get();
-    if(snap.exists()){
+    if(snap.exists){
       const d=snap.data();
       done=d.done||{};
       custom=d.custom||[];
@@ -226,7 +225,6 @@ window._fbLoad=async function(){
 function fbSave(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
-    if(!window._fb||!window._fbUser)return;
     try{
       await _db.collection('todos').doc(FB_DOC).set({done,custom,itemLogs,subs,overrides,generalNotes});
       const s=document.getElementById('saveStatus');
