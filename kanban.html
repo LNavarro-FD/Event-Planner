@@ -551,6 +551,46 @@ function printBuildWeek() {
   window.print();
 }
 
+
+  // ── Build week drag & drop ──────────────────────────────────────────────────
+  var _dragSrcKey = null;
+  var _dragSrcVal = null;
+
+  function onChipDragStart(e, key, val) {
+    _dragSrcKey = key;
+    _dragSrcVal = val;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', val);
+    setTimeout(function(){ e.target.style.opacity='0.4'; }, 0);
+  }
+
+  function onChipDragEnd(e) {
+    e.target.style.opacity = '1';
+  }
+
+  function onCellDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.style.outline = '2px dashed #3b82f6';
+    e.currentTarget.style.background = '#eff6ff';
+  }
+
+  function onCellDragLeave(e) {
+    e.currentTarget.style.outline = '';
+    e.currentTarget.style.background = '';
+  }
+
+  function onCellDrop(e, targetKey) {
+    e.preventDefault();
+    e.currentTarget.style.outline = '';
+    e.currentTarget.style.background = '';
+    if (!_dragSrcKey || _dragSrcKey === targetKey) { _dragSrcKey=null; return; }
+    cells[targetKey] = _dragSrcVal;
+    cells[_dragSrcKey] = '';
+    _dragSrcKey = null;
+    _dragSrcVal = null;
+    saveBuildCells().then(function(){ renderBuildGrid(); });
+  }
+
 function renderBuildGrid(){
   const bw=BUILD_WEEK;
   const dayTypes=bw.days.map(d=>d.type);
