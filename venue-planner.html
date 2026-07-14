@@ -558,7 +558,7 @@ function loadLayout(){
 function applyBoundary(){
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
-  boundary={w,d};document.getElementById('setup').classList.add('done');saveLayout();setTimeout(()=>{resize();fitView();},50);
+  boundary={w,d};document.getElementById('setup').classList.add('done');try{saveLayout();}catch(e){console.warn('save failed',e);}setTimeout(()=>{resize();fitView();},50);
 }
 function editBoundary(){if(!boundary)return;document.getElementById('bndW').value=boundary.w;document.getElementById('bndD').value=boundary.d;openModal('boundaryModal');}
 function confirmBoundary(){
