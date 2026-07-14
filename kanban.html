@@ -218,13 +218,14 @@ function buildWeekDays(){
   const days = [];
   const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  
-  // Start: Monday 7 days before event
+
+  // Find Monday of the week containing (EVENT_DATE - 7 days)
+  // i.e. the Monday of the week BEFORE the event week
   const start = new Date(EVENT_DATE);
-  start.setDate(start.getDate() - 6);  // 6 days before = Mon if event is Sat
-  // Make sure we start on a Monday
-  while(start.getDay() !== 1) start.setDate(start.getDate() - 1);
-  
+  start.setDate(start.getDate() - 7); // go back 7 days
+  // Then find the Monday of THAT week (go forward if needed)
+  while(start.getDay() !== 1) start.setDate(start.getDate() + 1);
+
   // Setup days: Mon to day before event
   const d = new Date(start);
   while(d < EVENT_DATE) {
@@ -235,14 +236,14 @@ function buildWeekDays(){
     });
     d.setDate(d.getDate() + 1);
   }
-  
+
   // Event day
   days.push({
     label: DAY_NAMES[EVENT_DATE.getDay()] + ' ' + EVENT_DATE.getDate() + ' ' + MON_NAMES[EVENT_DATE.getMonth()] + ' ★',
     type: 'event',
     date: new Date(EVENT_DATE)
   });
-  
+
   // Derig: 2 days after event
   const derig = new Date(EVENT_DATE);
   for(let i = 1; i <= 2; i++){
@@ -253,7 +254,7 @@ function buildWeekDays(){
       date: new Date(derig)
     });
   }
-  
+
   return days;
 }
 
@@ -516,12 +517,19 @@ function renderBuildGrid(){
     'Holly':'#d97706','Jake':'#7c3aed','Steve West':'#15803d',
   };
 
-  function colorPerson(text){
+  function colorPerson(text, isDerig){
     if(!text||!text.trim())return '';
     const parts=text.split('/').map(p=>p.trim()).filter(Boolean);
     return parts.map(p=>{
       const key=Object.keys(personColors).find(k=>p.toLowerCase().includes(k.toLowerCase()));
       const color=key?personColors[key]:'#475569';
+      if(isDerig){
+        // Convert hex to pastel by mixing with white
+        const r=parseInt(color.slice(1,3),16),g=parseInt(color.slice(3,5),16),b=parseInt(color.slice(5,7),16);
+        const pr=Math.round(r+(255-r)*0.55),pg=Math.round(g+(255-g)*0.55),pb=Math.round(b+(255-b)*0.55);
+        const pastel='#'+[pr,pg,pb].map(v=>v.toString(16).padStart(2,'0')).join('');
+        return `<span class="bg-person" style="background:${pastel};color:${color};border:1px solid ${color}40">${p}</span>`;
+      }
       return `<span class="bg-person" style="background:${color}">${p}</span>`;
     }).join('');
   }
