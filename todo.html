@@ -105,6 +105,7 @@ FD_SEED.init().then(function() { window._fbLoad(); });
 </head>
 <body>
 <div id="mainContent">
+<div id="fd-debug" style="background:#1e293b;color:#10b981;font-family:monospace;font-size:11px;padding:10px;margin:8px;border-radius:6px;max-height:200px;overflow-y:auto"></div>
 <h1>Funky Dory Festival 7 — 2026</h1>
 <p class="sub">Master to-do list · Sat 15 Aug 2026 · Ashfields Carriage &amp; Polo Club, CM6 1JU <span id="saveStatus"></span></p>
 
@@ -193,33 +194,43 @@ let saveTimer=null;
 const FB_DOC='fd7_todo_2026';
 
 window._fbLoad=async function(){
+  var dbg=document.getElementById('fd-debug');
+  function log(msg){ if(dbg){ dbg.innerHTML+='<div>'+msg+'</div>'; } console.log('[FD]',msg); }
+  log('_fbLoad started');
+  log('FD_DB: '+(window.FD_DB?'OK':'MISSING'));
+  log('FD_CONFIG: '+(window.FD_CONFIG?'OK':'MISSING'));
+  log('FD_SEED: '+(window.FD_SEED?'OK (sections='+FD_SEED.todoSections.length+')':'MISSING'));
   try{
     var CFG = window.FD_CONFIG;
     var docPath = CFG ? CFG.db.todos.fd7 : 'fd7_todo_2026';
+    log('Loading: todos/'+docPath);
     var data = await FD.get('todos', docPath);
+    log('Data received: '+(data?'yes':'null'));
     if(data){
+      log('data.sections: '+(data.sections?data.sections.length+' items':'missing'));
       if(data.sections && data.sections.length){
         sections = data.sections;
+        log('sections loaded from Firestore: '+sections.length);
       } else {
-        // Sections missing from existing doc — seed them in now
         sections = window.FD_SEED ? window.FD_SEED.todoSections : [];
-        if(sections.length){
-          FD.set('todos', docPath, Object.assign({}, data, {sections: sections}));
-        }
+        log('sections from seed: '+sections.length);
+        if(sections.length){ FD.set('todos', docPath, Object.assign({}, data, {sections: sections})); }
       }
-      done         = data.done        || {};
-      custom       = data.custom      || [];
-      itemLogs     = data.itemLogs    || {};
-      subs         = data.subs        || {};
-      overrides    = data.overrides   || {};
-      generalNotes = data.generalNotes|| '';
+      done=data.done||{}; custom=data.custom||[]; itemLogs=data.itemLogs||{};
+      subs=data.subs||{}; overrides=data.overrides||{}; generalNotes=data.generalNotes||'';
     } else {
-      // No doc at all — use seed data
       sections = window.FD_SEED ? window.FD_SEED.todoSections : [];
+      log('No doc — using seed sections: '+sections.length);
     }
-  }catch(e){ console.warn('[FD Todo] Load failed',e); sections = window.FD_SEED ? window.FD_SEED.todoSections : []; }
-  document.getElementById('notes-area').value = generalNotes;
+  }catch(e){
+    log('ERROR: '+e.message);
+    sections = window.FD_SEED ? window.FD_SEED.todoSections : [];
+    log('Fallback seed sections: '+sections.length);
+  }
+  log('Final sections.length: '+sections.length);
+  document.getElementById('notes-area').value=generalNotes;
   stats(); render(); populateCatDropdown(); renderSwimlane();
+  log('render() complete');
 };
 
 function fbSave(){
