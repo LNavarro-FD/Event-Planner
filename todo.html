@@ -692,6 +692,15 @@ function printTodo() {
   window.print();
 }
 
+
+// Delegated click for sheet buttons
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.sheet-btn');
+  if (btn) {
+    openTaskSheet(btn.getAttribute('data-key'), btn.getAttribute('data-title'));
+  }
+});
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);
   } else {
