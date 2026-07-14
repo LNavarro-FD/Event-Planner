@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FD Print & Design</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:#1e293b;height:44px;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+#topbar h1{color:#fff;font-size:14px;font-weight:700}
+.view-btn{padding:5px 14px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer}
+.view-btn.active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+#toolbar{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #e2e8f0;flex-shrink:0;align-items:center;flex-wrap:wrap}
+#toolbar select,#toolbar input{padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;background:#fff;outline:none}
+.btn-primary{padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-primary:hover{background:#2563eb}
+#content{flex:1;overflow-y:auto;padding:16px}
+#statusbar{background:#0f172a;height:22px;display:flex;align-items:center;padding:0 12px;flex-shrink:0}
+#statusbar span{font-size:10px;color:#334155}
+
+/* Template view */
+.cat-header{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:12px 0 6px;border-bottom:1px solid #e2e8f0;margin-bottom:4px}
+.template-item{display:grid;grid-template-columns:1fr 160px 90px;gap:8px;align-items:center;padding:8px 10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:4px;transition:opacity .2s}
+.template-item.not-required{opacity:0.35}
+.template-item.not-required .ti-name{text-decoration:line-through;color:#94a3b8}
+.ti-name{font-weight:600;font-size:12px}
+.ti-desc{font-size:10px;color:#64748b;margin-top:1px}
+.ti-dims{font-size:10px;color:#94a3b8;font-family:monospace}
+.status-select{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;outline:none}
+.status-required{background:#dcfce7;color:#15803d}
+.status-maybe{background:#fef9c3;color:#854d0e}
+.status-not-required{background:#f1f5f9;color:#94a3b8}
+.add-to-todo{padding:4px 8px;font-size:10px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:5px;cursor:pointer;white-space:nowrap}
+.add-to-todo.added{background:#dcfce7;border-color:#86efac;color:#15803d;cursor:default}
+
+/* Procurement table view */
+.proc-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;font-size:11px}
+.proc-table th{background:#f8fafc;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748b;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.proc-table td{padding:6px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.proc-table tr:hover td{background:#fafafa}
+.proc-table input{width:100%;border:none;background:transparent;font-size:11px;font-family:inherit;outline:none;padding:2px 0}
+.proc-table input:focus{background:#eff6ff;border-radius:3px;padding:2px 4px}
+.status-chip{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700}
+.chip-yes{background:#dcfce7;color:#15803d}
+.chip-no{background:#fee2e2;color:#dc2626}
+.chip-tbc{background:#fef9c3;color:#854d0e}
+.check-cell{text-align:center;cursor:pointer;font-size:14px}
+.total-row td{font-weight:700;background:#f8fafc;border-top:2px solid #e2e8f0}
+
+/* Overlay for item detail */
+.overlay{position:fixed;inset:0;background:#0005;z-index:100;display:none;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.panel{background:#fff;border-radius:12px 12px 0 0;width:100%;max-width:700px;max-height:85vh;display:flex;flex-direction:column}
+.panel-header{padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.panel-header h3{font-size:14px;font-weight:700}
+.panel-body{flex:1;overflow-y:auto;padding:16px 20px}
+.panel-footer{padding:12px 20px;border-top:1px solid #e5e7eb;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field.full{grid-column:span 2}
+.field label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#3b82f6}
+.field textarea{min-height:60px;resize:vertical}
+.check-group{display:flex;gap:16px;margin-top:4px}
+.check-item{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer}
+.check-item input{accent-color:#3b82f6;width:14px;height:14px}
+.log-entry{font-size:11px;padding:6px 8px;background:#f8fafc;border-radius:4px;margin-bottom:4px;border-left:2px solid #3b82f6}
+.log-date{font-size:10px;color:#94a3b8;margin-bottom:1px}
+.add-log{display:flex;gap:6px;margin-top:8px}
+.add-log input{flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:11px;font-family:inherit;outline:none}
+.add-log button{padding:6px 12px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer}
+
+@media print {
+  @page{size:A3 landscape;margin:12mm}
+  #topbar,#toolbar,#statusbar,.add-to-todo,button{display:none!important}
+  body{background:#fff!important;height:auto!important;overflow:visible!important}
+  #content{overflow:visible!important;height:auto!important;padding:0!important}
+  #print-header{display:block!important}
+  .proc-table input{border:none!important;background:transparent!important}
+}
+#print-header{display:none;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #1e293b}
+#print-header h2{font-size:16px;font-weight:700}
+#print-header .ph-meta{font-size:10px;color:#64748b;margin-top:3px;display:flex;gap:16px}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8",
+  authDomain:"event-planner-7944d.firebaseapp.com",
+  projectId:"event-planner-7944d",
+  storageBucket:"event-planner-7944d.firebasestorage.app",
+  messagingSenderId:"455768566205",
+  appId:"1:455768566205:web:c5274d85158e6b2bf8cad4"
+});
+var _db = firebase.firestore();
+</script>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>🖨 Print &amp; Design</h1>
+  <button class="view-btn active" onclick="setView('template')">Template</button>
+  <button class="view-btn" onclick="setView('procurement')">Procurement</button>
+</div>
+
+<div id="toolbar">
+  <select id="eventFilter" onchange="render()">
+    <option value="FD7">FD7 2026</option>
+    <option value="HRR26">HRR 2026</option>
+    <option value="FD Shindig">FD Shindig</option>
+  </select>
+  <button class="btn-primary" onclick="printSheet()">🖨 Print</button>
+  <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
+</div>
+
+<div id="print-header">
+  <h2 id="ph-title">Print &amp; Design Tracker</h2>
+  <div class="ph-meta"><span id="ph-event"></span><span id="ph-printed"></span></div>
+</div>
+
+<div id="content"></div>
+
+<div id="statusbar"><span>FD Print &amp; Design · v1.0.0</span></div>
+
+<!-- Item detail panel -->
+<div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
+  <div class="panel">
+    <div class="panel-header">
+      <h3 id="panelTitle">Item detail</h3>
+      <button onclick="closePanel()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1">×</button>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+    <div class="panel-footer">
+      <button onclick="saveItem()" class="btn-primary">Save</button>
+      <button onclick="closePanel()" style="padding:7px 14px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+var TEMPLATE = [
+  {"cat":"Banners","item":"Stage front fascia banner","desc":"Front of stage, full width","dims":"8000x920mm","notes":"StageACE Stage 86 spec"},
+  {"cat":"Banners","item":"Stage back screen banner","desc":"Rear of stage","dims":"7800x2600mm","notes":"StageACE spec"},
+  {"cat":"Banners","item":"Stage side panel banner","desc":"Each side of stage","dims":"1600x3200mm","notes":"StageACE spec — qty 2"},
+  {"cat":"Banners","item":"Bar banner","desc":"Behind main bar","dims":"TBC","notes":""},
+  {"cat":"Banners","item":"Press board","desc":"Photo backdrop for press area","dims":"2000x2000mm","notes":""},
+  {"cat":"Banners","item":"Press board logos","desc":"Sponsor logos for press board","dims":"A5 foamex","notes":""},
+  {"cat":"Banners","item":"DJ box wrap","desc":"Front of DJ booth","dims":"TBC","notes":""},
+  {"cat":"Banners","item":"Heras fence cover","desc":"Printed covers for heras fencing","dims":"3500x2000mm per panel","notes":"Check qty of panels"},
+  {"cat":"Flags","item":"Entrance flags","desc":"Feather flags at main entrance","dims":"TBC","notes":"Includes 20L weight"},
+  {"cat":"Flags","item":"Bar flags","desc":"Flags at bar area","dims":"TBC","notes":"Includes 20L weight"},
+  {"cat":"Flags","item":"Village/zone flags","desc":"Directional flags around site","dims":"TBC","notes":"One per zone"},
+  {"cat":"Signs","item":"Directional signs — village zones","desc":"Wayfinding around site","dims":"TBC","notes":""},
+  {"cat":"Signs","item":"Bar menu signs","desc":"Drinks menu inside and outside","dims":"TBC","notes":""},
+  {"cat":"Signs","item":"Entry signs","desc":"General entry, seating, standing","dims":"TBC","notes":""},
+  {"cat":"Signs","item":"Table plan","desc":"Seating plan display","dims":"TBC","notes":""},
+  {"cat":"Signs","item":"Table numbers","desc":"Numbers for seated tables","dims":"TBC","notes":""},
+  {"cat":"Signs","item":"Mini chalk boards","desc":"Decorative chalkboards","dims":"TBC","notes":""},
+  {"cat":"Signs","item":"Wooden frames","desc":"Decorative frames","dims":"TBC","notes":"Includes nails, screws, paint"},
+  {"cat":"Wristbands","item":"General entry — standing wristband","desc":"","dims":"","notes":""},
+  {"cat":"Wristbands","item":"General entry — seating wristband","desc":"","dims":"","notes":""},
+  {"cat":"Wristbands","item":"Staff wristband","desc":"","dims":"","notes":""},
+  {"cat":"Wristbands","item":"Stage access wristband","desc":"","dims":"","notes":""},
+  {"cat":"Merchandise","item":"T-shirts — staff","desc":"Staff uniform","dims":"Various sizes","notes":"Check sizing from staff DB"},
+  {"cat":"Merchandise","item":"T-shirts — merch","desc":"For sale at event","dims":"Various sizes","notes":""},
+  {"cat":"Merchandise","item":"Hoodies — merch","desc":"For sale at event","dims":"Various sizes","notes":""},
+  {"cat":"Merchandise","item":"Merch display board","desc":"Display stand for merch","dims":"TBC","notes":""}
+];
+
+var currentView  = 'template';
+var currentEvent = 'FD7';
+var _editIdx     = null;
+
+// eventItems[event] = array of item data objects
+var eventItems = {};
+
+// ── Firebase ──────────────────────────────────────────────────────────────────
+async function load() {
+  try {
+    var snap = await _db.collection('print').doc('items').get();
+    if (snap.exists && snap.data().eventItems) {
+      eventItems = snap.data().eventItems;
+    }
+  } catch(e) { console.warn('Load failed', e); }
+  // Ensure current event has items
+  ensureEventItems(currentEvent);
+  render();
+}
+
+function save() {
+  _db.collection('print').doc('items').set({eventItems: eventItems})
+    .catch(function(e){ console.warn('Save failed', e); });
+}
+
+function ensureEventItems(event) {
+  if (!eventItems[event]) {
+    // Seed from template — all items default to "maybe"
+    eventItems[event] = TEMPLATE.map(function(t) {
+      return {
+        cat:           t.cat,
+        item:          t.item,
+        desc:          t.desc,
+        dims:          t.dims,
+        templateNotes: t.notes,
+        status:        'maybe',   // required | maybe | not-required
+        supplier:      '',
+        qty:           '',
+        unitPrice:     '',
+        total:         '',
+        exVat:         '',
+        incVat:        '',
+        discount:      '',
+        orderNo:       '',
+        deliveryDate:  '',
+        designApproved:false,
+        printVersion:  false,
+        orderPlaced:   false,
+        log:           [],
+        notes:         '',
+      };
+    });
+  }
+}
+
+// ── Views ─────────────────────────────────────────────────────────────────────
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.view-btn').forEach(function(b, i) {
+    b.classList.toggle('active', ['template','procurement'][i] === v);
+  });
+  render();
+}
+
+function render() {
+  currentEvent = document.getElementById('eventFilter').value;
+  ensureEventItems(currentEvent);
+  if (currentView === 'template') renderTemplate();
+  else renderProcurement();
+}
+
+function renderTemplate() {
+  var items = eventItems[currentEvent];
+  var required = items.filter(function(i){ return i.status === 'required'; }).length;
+  var maybe    = items.filter(function(i){ return i.status === 'maybe'; }).length;
+  document.getElementById('countLabel').textContent = required + ' required · ' + maybe + ' TBC';
+
+  // Group by category
+  var cats = {};
+  items.forEach(function(item, idx) {
+    if (!cats[item.cat]) cats[item.cat] = [];
+    cats[item.cat].push({item: item, idx: idx});
+  });
+
+  var html = '';
+  Object.keys(cats).forEach(function(cat) {
+    html += '<div class="cat-header">' + cat + '</div>';
+    cats[cat].forEach(function(row) {
+      var item = row.item;
+      var idx  = row.idx;
+      var cls  = item.status === 'not-required' ? ' not-required' : '';
+      html += '<div class="template-item' + cls + '">';
+      html += '<div>';
+      html += '<div class="ti-name">' + item.item + '</div>';
+      if (item.desc) html += '<div class="ti-desc">' + item.desc + '</div>';
+      if (item.dims && item.dims !== 'TBC') html += '<div class="ti-dims">' + item.dims + '</div>';
+      html += '</div>';
+      html += '<select class="status-select status-' + item.status.replace('-','') + '" onchange="setStatus(' + idx + ',this.value)">';
+      html += '<option value="required"' + (item.status==='required'?' selected':'') + '>✓ Required</option>';
+      html += '<option value="maybe"'   + (item.status==='maybe'   ?' selected':'') + '>? Maybe</option>';
+      html += '<option value="not-required"' + (item.status==='not-required'?' selected':'') + '>✗ Not required</option>';
+      html += '</select>';
+      html += '<button class="add-to-todo' + (item.addedToTodo?' added':'') + '" onclick="openItem(' + idx + ')">' + (item.addedToTodo ? '✓ In detail' : '+ Details') + '</button>';
+      html += '</div>';
+    });
+  });
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderProcurement() {
+  var items = eventItems[currentEvent].filter(function(i){ return i.status === 'required'; });
+  document.getElementById('countLabel').textContent = items.length + ' items';
+
+  if (!items.length) {
+    document.getElementById('content').innerHTML = '<div style="padding:24px;color:#94a3b8;font-size:13px">No items marked as Required yet. Go to Template view to set items as Required.</div>';
+    return;
+  }
+
+  var exTotal   = 0;
+  var incTotal  = 0;
+
+  var html = '<table class="proc-table">';
+  html += '<thead><tr>';
+  html += '<th style="min-width:160px">Item</th>';
+  html += '<th>Supplier</th>';
+  html += '<th style="text-align:center">Qty</th>';
+  html += '<th style="text-align:right">Unit £</th>';
+  html += '<th style="text-align:right">Ex VAT</th>';
+  html += '<th style="text-align:right">Inc VAT</th>';
+  html += '<th style="text-align:center">Design ✓</th>';
+  html += '<th style="text-align:center">Print ✓</th>';
+  html += '<th style="text-align:center">Ordered</th>';
+  html += '<th>Order No</th>';
+  html += '<th>Delivery</th>';
+  html += '<th style="min-width:80px">Actions</th>';
+  html += '</tr></thead><tbody>';
+
+  items.forEach(function(item) {
+    var ex  = parseFloat(item.exVat)  || 0;
+    var inc = parseFloat(item.incVat) || 0;
+    exTotal  += ex;
+    incTotal += inc;
+
+    html += '<tr>';
+    html += '<td style="font-weight:600">' + item.item + (item.dims&&item.dims!=="TBC"?'<div style="font-size:9px;color:#94a3b8">'+item.dims+'</div>':'') + '</td>';
+    html += '<td>' + (item.supplier||'<span style="color:#d1d5db">—</span>') + '</td>';
+    html += '<td style="text-align:center">' + (item.qty||'—') + '</td>';
+    html += '<td style="text-align:right">' + (item.unitPrice?'£'+parseFloat(item.unitPrice).toFixed(2):'—') + '</td>';
+    html += '<td style="text-align:right">' + (ex?'£'+ex.toFixed(2):'—') + '</td>';
+    html += '<td style="text-align:right;font-weight:600">' + (inc?'£'+inc.toFixed(2):'—') + '</td>';
+    html += '<td class="check-cell">' + (item.designApproved?'<span class="status-chip chip-yes">✓</span>':'<span class="status-chip chip-no">✗</span>') + '</td>';
+    html += '<td class="check-cell">' + (item.printVersion?'<span class="status-chip chip-yes">✓</span>':'<span class="status-chip chip-no">✗</span>') + '</td>';
+    html += '<td class="check-cell">' + (item.orderPlaced?'<span class="status-chip chip-yes">✓</span>':'<span class="status-chip chip-tbc">TBC</span>') + '</td>';
+    html += '<td style="font-size:10px;color:#64748b">' + (item.orderNo||'—') + '</td>';
+    html += '<td style="font-size:10px;color:#64748b">' + (item.deliveryDate||'—') + '</td>';
+    html += '<td><button onclick="openItem(' + eventItems[currentEvent].indexOf(item) + ')" style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;cursor:pointer">Edit</button></td>';
+    html += '</tr>';
+  });
+
+  html += '<tr class="total-row"><td colspan="4">TOTAL</td>';
+  html += '<td style="text-align:right">£' + exTotal.toFixed(2) + '</td>';
+  html += '<td style="text-align:right">£' + incTotal.toFixed(2) + '</td>';
+  html += '<td colspan="6"></td></tr>';
+  html += '</tbody></table>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
+// ── Status ────────────────────────────────────────────────────────────────────
+function setStatus(idx, val) {
+  eventItems[currentEvent][idx].status = val;
+  save();
+  render();
+}
+
+// ── Item detail panel ─────────────────────────────────────────────────────────
+function openItem(idx) {
+  _editIdx = idx;
+  var item = eventItems[currentEvent][idx];
+  document.getElementById('panelTitle').textContent = item.item;
+  document.getElementById('itemOverlay').classList.add('open');
+  renderPanel(item);
+}
+
+function renderPanel(item) {
+  var logHtml = (item.log||[]).map(function(l){
+    return '<div class="log-entry"><div class="log-date">'+l.date+'</div>'+l.text+'</div>';
+  }).join('') || '<div style="color:#94a3b8;font-size:11px">No updates yet</div>';
+
+  var html = '<div class="field-grid">';
+  html += '<div class="field"><label>Supplier</label><input id="pi-supplier" type="text" value="'+esc(item.supplier||'')+'"></div>';
+  html += '<div class="field"><label>Order number</label><input id="pi-orderno" type="text" value="'+esc(item.orderNo||'')+'"></div>';
+  html += '<div class="field"><label>Qty</label><input id="pi-qty" type="number" value="'+esc(item.qty||'')+'"></div>';
+  html += '<div class="field"><label>Unit price (ex VAT)</label><input id="pi-unit" type="number" step="0.01" value="'+esc(item.unitPrice||'')+'" oninput="calcTotals()"></div>';
+  html += '<div class="field"><label>Total ex VAT</label><input id="pi-ex" type="number" step="0.01" value="'+esc(item.exVat||'')+'" oninput="calcInc()"></div>';
+  html += '<div class="field"><label>Total inc VAT</label><input id="pi-inc" type="number" step="0.01" value="'+esc(item.incVat||'')+'"></div>';
+  html += '<div class="field"><label>Discount</label><input id="pi-disc" type="text" value="'+esc(item.discount||'')+'" placeholder="e.g. 12% trade"></div>';
+  html += '<div class="field"><label>Delivery date</label><input id="pi-deliv" type="date" value="'+esc(item.deliveryDate||'')+'"></div>';
+  html += '<div class="field"><label>Dimensions</label><input id="pi-dims" type="text" value="'+esc(item.dims||'')+'"></div>';
+  html += '</div>';
+
+  html += '<div style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Status</label>';
+  html += '<div class="check-group">';
+  html += '<label class="check-item"><input type="checkbox" id="pi-design"'+(item.designApproved?' checked':'')+'> Design approved</label>';
+  html += '<label class="check-item"><input type="checkbox" id="pi-print"'+(item.printVersion?' checked':'')+'> Print version</label>';
+  html += '<label class="check-item"><input type="checkbox" id="pi-ordered"'+(item.orderPlaced?' checked':'')+'> Order placed</label>';
+  html += '</div></div>';
+
+  html += '<div class="field full" style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Notes</label><textarea id="pi-notes">'+esc(item.notes||'')+'</textarea></div>';
+
+  html += '<div><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Update log</label>';
+  html += logHtml;
+  html += '<div class="add-log"><input id="pi-logtext" type="text" placeholder="Add update..."><button onclick="addLog()">Add</button></div>';
+  html += '</div>';
+
+  document.getElementById('panelBody').innerHTML = html;
+}
+
+function esc(s){ return String(s).replace(/"/g,"&quot;"); }
+
+function calcTotals() {
+  var qty  = parseFloat(document.getElementById('pi-qty').value) || 1;
+  var unit = parseFloat(document.getElementById('pi-unit').value) || 0;
+  var ex   = qty * unit;
+  document.getElementById('pi-ex').value  = ex ? ex.toFixed(2) : '';
+  document.getElementById('pi-inc').value = ex ? (ex*1.2).toFixed(2) : '';
+}
+
+function calcInc() {
+  var ex = parseFloat(document.getElementById('pi-ex').value) || 0;
+  document.getElementById('pi-inc').value = ex ? (ex*1.2).toFixed(2) : '';
+}
+
+function addLog() {
+  var txt = document.getElementById('pi-logtext').value.trim();
+  if (!txt || _editIdx === null) return;
+  var item = eventItems[currentEvent][_editIdx];
+  if (!item.log) item.log = [];
+  var now = new Date();
+  var dateStr = now.getDate()+'/'+(now.getMonth()+1)+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  item.log.unshift({date: dateStr, text: txt});
+  renderPanel(item);
+}
+
+function saveItem() {
+  if (_editIdx === null) return;
+  var item = eventItems[currentEvent][_editIdx];
+  item.supplier      = document.getElementById('pi-supplier').value;
+  item.orderNo       = document.getElementById('pi-orderno').value;
+  item.qty           = document.getElementById('pi-qty').value;
+  item.unitPrice     = document.getElementById('pi-unit').value;
+  item.exVat         = document.getElementById('pi-ex').value;
+  item.incVat        = document.getElementById('pi-inc').value;
+  item.discount      = document.getElementById('pi-disc').value;
+  item.deliveryDate  = document.getElementById('pi-deliv').value;
+  item.dims          = document.getElementById('pi-dims').value;
+  item.notes         = document.getElementById('pi-notes').value;
+  item.designApproved = document.getElementById('pi-design').checked;
+  item.printVersion   = document.getElementById('pi-print').checked;
+  item.orderPlaced    = document.getElementById('pi-ordered').checked;
+  save();
+  closePanel();
+  render();
+}
+
+function closePanel() {
+  document.getElementById('itemOverlay').classList.remove('open');
+  _editIdx = null;
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────────
+function printSheet() {
+  // Switch to procurement view first
+  if (currentView !== 'procurement') { setView('procurement'); }
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('ph-title').textContent  = currentEvent + ' — Print & Design Tracker';
+  document.getElementById('ph-event').textContent  = 'Event: ' + currentEvent;
+  document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
+  setTimeout(function(){ window.print(); }, 200);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', load);
+} else { load(); }
+</script>
+</body>
+</html>
