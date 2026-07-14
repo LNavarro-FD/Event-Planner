@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FD Event Planner — Home</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1e293b;min-height:100vh;padding:24px 20px}
+.title{font-size:20px;font-weight:700;margin-bottom:4px}
+.sub{font-size:13px;color:#64748b;margin-bottom:28px}
+.phase-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:8px}
+.col-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+.mod{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.mod:hover{border-color:#93c5fd;box-shadow:0 1px 6px #0001}
+.mod-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.mod-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.mod-name{font-size:13px;font-weight:700;color:#1e293b}
+.mod-desc{font-size:11px;color:#64748b;line-height:1.5;padding-left:36px}
+.mod-coming{opacity:.5;cursor:default}
+.mod-coming:hover{border-color:#e2e8f0;box-shadow:none}
+.qs-title{font-size:16px;font-weight:700;margin-bottom:12px}
+.qs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
+.qs-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px}
+.qs-num{width:22px;height:22px;border-radius:50%;background:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.qs-card-title{font-size:12px;font-weight:700;color:#1e293b;margin-bottom:4px}
+.qs-card-body{font-size:11px;color:#64748b;line-height:1.5}
+.tip{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#15803d;display:flex;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="title">FD Event Planner</div>
+<div class="sub">Funky Dory Events Management · FD7 2026 · Sat 15 Aug · Ashfields CM6 1JU</div>
+
+<div class="phase-label">Plan the event</div>
+<div class="col-grid">
+  <div class="mod" onclick="window.parent.go('planner')">
+    <div class="mod-top"><div class="mod-icon" style="background:#dcfce7">🗺</div><span class="mod-name">Site Planner</span></div>
+    <div class="mod-desc">Draw the venue layout. Place stages, tents, toilets, fencing and bars. Saves and syncs to all devices.</div>
+  </div>
+  <div class="mod" onclick="window.parent.go('todo')">
+    <div class="mod-top"><div class="mod-icon" style="background:#dbeafe">✅</div><span class="mod-name">To-Do</span></div>
+    <div class="mod-desc">Master task list. 155 tasks across 27 categories. Each task has a Procurement tab and Design Brief.</div>
+  </div>
+  <div class="mod" onclick="window.parent.go('print')">
+    <div class="mod-top"><div class="mod-icon" style="background:#fee2e2">🖨</div><span class="mod-name">Print & Design</span></div>
+    <div class="mod-desc">All print items — banners, flags, signs, wristbands, merch. Mark Required / Maybe / Not required per event.</div>
+  </div>
+</div>
+
+<div class="phase-label">Manage people & suppliers</div>
+<div class="col-grid">
+  <div class="mod" onclick="window.parent.go('staff')">
+    <div class="mod-top"><div class="mod-icon" style="background:#fef9c3">👥</div><span class="mod-name">Staff</span></div>
+    <div class="mod-desc">People database. Roles, shifts in 24hr, hours & pay auto-calculated. Seeded from HRR26. Print rotas.</div>
+  </div>
+  <div class="mod" onclick="window.parent.go('suppliers')">
+    <div class="mod-top"><div class="mod-icon" style="background:#ede9fe">🏢</div><span class="mod-name">Suppliers</span></div>
+    <div class="mod-desc">Install & Stay, Install & Go, Caterer/Retailer, Goods & Services. Compliance tracker. Email request with OneDrive link.</div>
+  </div>
+  <div class="mod mod-coming">
+    <div class="mod-top"><div class="mod-icon" style="background:#f1f5f9">💰</div><span class="mod-name" style="color:#94a3b8">Financials</span></div>
+    <div class="mod-desc">Budget vs actuals per event. Coming soon.</div>
+  </div>
+</div>
+
+<div class="phase-label">Run the build</div>
+<div class="col-grid" style="grid-template-columns:repeat(3,1fr)">
+  <div class="mod" onclick="window.parent.go('kanban')">
+    <div class="mod-top"><div class="mod-icon" style="background:#dcfce7">📅</div><span class="mod-name">Kanban</span></div>
+    <div class="mod-desc">Kanban board, Timeline, and Build Week grid. Dates auto-calculate. Click cells to assign suppliers.</div>
+  </div>
+  <div style="grid-column:span 2"></div>
+</div>
+
+<div class="qs-title" style="margin-top:8px">Quick start for a new event</div>
+<div class="qs-grid">
+  <div class="qs-card">
+    <div class="qs-num">1</div>
+    <div class="qs-card-title">Add suppliers</div>
+    <div class="qs-card-body">Suppliers → add each company, set type, paste OneDrive link. Click "Request docs" to send compliance emails.</div>
+  </div>
+  <div class="qs-card">
+    <div class="qs-num">2</div>
+    <div class="qs-card-title">Draw site plan</div>
+    <div class="qs-card-body">Site Planner → choose event → enter dimensions → place items from library. Saves and syncs automatically.</div>
+  </div>
+  <div class="qs-card">
+    <div class="qs-num">3</div>
+    <div class="qs-card-title">Work through To-Do</div>
+    <div class="qs-card-body">To-Do → lifecycle overview shows progress by category. Click 📋 on any task to add quotes or design brief.</div>
+  </div>
+  <div class="qs-card">
+    <div class="qs-num">4</div>
+    <div class="qs-card-title">Staff the event</div>
+    <div class="qs-card-body">Staff → add people, assign roles, set shifts. Default start = event time minus 1 hour. Print rotas from the app.</div>
+  </div>
+  <div class="qs-card">
+    <div class="qs-num">5</div>
+    <div class="qs-card-title">Plan print & design</div>
+    <div class="qs-card-body">Print → mark items Required / Maybe / Not required. Fill in quotes and specs. Print procurement sheet.</div>
+  </div>
+  <div class="qs-card">
+    <div class="qs-num">6</div>
+    <div class="qs-card-title">Run build week</div>
+    <div class="qs-card-body">Kanban → Build Week. Mon 10 → Sat 15 ★ → Mon 17 Aug. Click any cell to assign. Drag chips to move.</div>
+  </div>
+</div>
+
+<div class="tip">
+  <span>💡</span>
+  <span>All data saves to Firestore automatically — open on any device and it picks up where you left off. Every module has a Print button for physical copies.</span>
+</div>
+
+</body>
+</html>
