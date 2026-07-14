@@ -32,7 +32,6 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
 .nav-btn{font-size:11px;padding:4px 10px;border:1px solid #334155;border-radius:6px;background:transparent;color:#94a3b8;cursor:pointer}
 #content{flex:1;position:relative;overflow:hidden}
 .frame{position:absolute;inset:0;width:100%;height:100%;border:none;display:none;background:#fff}
-.frame.active{display:block}
 #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f1f5f9;flex-direction:column;gap:12px;z-index:10}
 #loading.hidden{display:none}
 .spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite}
@@ -179,30 +178,36 @@ function doSignOut() {
 window._activeTab = null;
 
 function switchTab(tab) {
-  if (window._activeTab === tab) return;
   window._activeTab = tab;
 
-  document.querySelectorAll('.nav-tab').forEach(function(t) {
-    t.classList.toggle('active', t.dataset.tab === tab);
-  });
-  document.querySelectorAll('.frame').forEach(function(f) {
-    f.classList.remove('active');
-  });
+  // Update nav tab styles
+  var tabs = document.querySelectorAll('.nav-tab');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.remove('active');
+    if (tabs[i].getAttribute('data-tab') === tab) tabs[i].classList.add('active');
+  }
 
+  // Hide all frames
+  var frames = document.querySelectorAll('.frame');
+  for (var j = 0; j < frames.length; j++) {
+    frames[j].style.display = 'none';
+  }
+
+  // Show target frame
   var frame = document.getElementById('frame-' + tab);
   if (!frame) return;
+  frame.style.display = 'block';
 
+  // Load src if not already loaded
   if (!frame.getAttribute('data-loaded')) {
+    frame.setAttribute('data-loaded', '1');
+    var labels = { todo:'To-Do', planner:'Site Planner', kanban:'Kanban' };
     var loading = document.getElementById('loading');
     loading.classList.remove('hidden');
-    document.getElementById('loading-msg').textContent =
-      'Loading ' + { todo:'To-Do', planner:'Site Planner', kanban:'Kanban' }[tab] + '...';
-    frame.setAttribute('data-loaded', '1');
+    document.getElementById('loading-msg').textContent = 'Loading ' + (labels[tab] || tab) + '...';
     frame.onload = function() { loading.classList.add('hidden'); };
     frame.src = frame.dataset.src;
   }
-
-  frame.classList.add('active');
 }
 
 document.getElementById('loginPwd').addEventListener('keydown',   function(e) { if (e.key==='Enter') doLogin(); });
