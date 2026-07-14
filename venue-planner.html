@@ -604,7 +604,7 @@ function vpSelectVenue(v){
   document.getElementById('venuePicker').style.display='none';
   buildVenueTabs();
   buildYearTabs();
-  loadLayout();
+  loadLayout();  // safe now — venue picker is hidden
   renderEquipList();
   renderLibrary();
   renderSafety();
@@ -738,6 +738,9 @@ function saveLayout(){
   notify('Saved ✓');
 }
 function loadLayout(){
+  // Don't show setup modal if venue picker is still open
+  var vp=document.getElementById('venuePicker');
+  if(vp&&vp.style.display!=='none')return;
   const s=layouts[lkey()];
   selected=null;
   const su=document.getElementById('setup');
