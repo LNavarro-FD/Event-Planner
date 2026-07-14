@@ -1110,7 +1110,7 @@ const QUOTE_ASSOC = [
     upsells: [
       { item: 'Power per pitch', note: 'Include in site power plan — confirm kW per trader' },
       { item: 'Pitch marker stakes / rope', note: 'Karl to mark out pitches' },
-      { item: 'Waste management per trader', note: 'Confirm traders' own waste arrangements' },
+      { item: 'Waste management per trader', note: 'Confirm traders own waste arrangements' },
     ]
   },
   {
@@ -1173,7 +1173,7 @@ function openQuoteSummary() {
 
   document.getElementById('qsVenueYear').textContent = currentVenue + ' ' + currentYear;
 
-  // Track which upsells we've shown (avoid duplicates across similar items)
+  // Track which upsells we have shown (avoid duplicates across similar items)
   const shownUpsells = new Set();
   const supplierMap = {}; // supplier → [{item, qty, dims, upsells}]
 
