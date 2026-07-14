@@ -28,10 +28,11 @@
   },
   "checkpoint": "v9-stable",
   "checkpoint_date": "2026-07-15",
-  "notes": "v9-stable checkpoint \u2014 late session build.\nAdded: Artist Liaison section injected on load in To-Do.\nAdded: Staff Allocation view (role % split, utilisation RAG).\nAdded: Design & Print By Supplier view (partial \u2014 syntax error in batch brief, needs fix).\nAdded: Bar smart tool, width dropdown 3m blocks, queue lanes 1.5m rope & pole.\nAdded: Shapes tab in site planner, collapsible sidebar, library search.\nAdded: Centre on canvas, measure tool H/V/diagonal.\nAdded: Copy task + subtasks.\nAdded: Xero contact import, payment terms.\nPending: Design & Print batch brief email (syntax fix needed).\nPending: Artist module (separate DB, email send, guest list, rider, hotel, accreditation rules).\nPending: Print.html By Supplier send brief fix.",
+  "notes": "v9-stable \u2014 full build session complete.\nNEW: artists.html \u2014 Artist/DJ DB, runsheet, guest list, personalised email generator.\nHub: Artists tab added.\nStaff: Allocation view added (role % split, utilisation RAG).\nTo-Do: Artist Liaison section auto-injected, copy task+subtasks, collapse all, free-text category.\nSuppliers: Xero import, payment terms.\nSite Planner: shapes tab, collapsible sidebar, library search, centre on canvas, measure H/V/diagonal, smart bar tool (3m dropdown, RAG, queue lanes), bar width dropdown.\nKanban: drag+drop, colour coding fixed.\nDesign & Print: By Supplier view partial (batch brief send in place).\nAccess tiers: AAA=artist/DJ, Green room=artist guests, FOH=general.\nStage rule: artists/DJs only \u2014 stated in artist pack and app.\nPurple Guide: commercial licence needed before redistribution (Event Safety Alliance).",
   "file_shas": {
-    "hub.html": "1fe26382b8a0",
+    "hub.html": "59d6713552e5",
     "home.html": "0f32d9a5f063",
+    "artists.html": "8306b6244ebe",
     "todo.html": "fd45cd719fa0",
     "kanban.html": "77bca4308edf",
     "venue-planner.html": "79a3f1fd7227",
@@ -42,6 +43,6 @@
     "fd-db.js": "f8a90314d8a5",
     "seed-data.js": "47184a042ea3",
     "seed-todo.html": "28c2a8cb853a",
-    "VERSION.json": "9555ce15f457"
+    "VERSION.json": "6f20da4e46d9"
   }
 }
