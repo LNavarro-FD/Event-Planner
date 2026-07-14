@@ -130,6 +130,7 @@ var _db = firebase.firestore();
             <option value="goods_services">Goods &amp; Services</option>
   </select>
   <button class="btn" onclick="openAddSupplier()">+ Add supplier</button>
+  <label style="padding:6px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:#475569">📥 Import from Xero<input type="file" accept=".csv" onchange="importXero(event)" style="display:none"></label>
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
 </div>
 
@@ -169,6 +170,22 @@ var _db = firebase.firestore();
             <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="HRR26"> HRR26</label>
             <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD Shindig"> FD Shindig</label>
           </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Payment terms</label>
+          <select id="s-payterms">
+            <option value="">— Select —</option>
+            <option value="100_upfront">100% upfront</option>
+            <option value="50_50">50% deposit / 50% final</option>
+            <option value="30_70">30% deposit / 70% final</option>
+            <option value="10_90">10% deposit / 90% final</option>
+            <option value="100_completion">100% on completion</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="field"><label>Payment days (final)</label>
+          <input id="s-paydays" type="number" placeholder="e.g. 7 days before event">
         </div>
       </div>
       <div class="field"><label>OneDrive upload link</label><input id="s-onedrive" type="url" placeholder="Paste OneDrive share link here..."><div style="font-size:10px;color:#94a3b8;margin-top:3px">Share a folder with &quot;Anyone with link can upload&quot; — this link goes into compliance request emails</div></div>
