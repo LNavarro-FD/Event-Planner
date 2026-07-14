@@ -284,6 +284,7 @@ function render() {
 }
 
 function renderPeople(q, sec, evt) {
+  people.sort(function(a,b){ return (a.firstName||"").localeCompare(b.firstName||""); });
   var filtered = people.filter(function(p) {
     if (q && !personName(p).toLowerCase().includes(q) && !p.email.toLowerCase().includes(q)) return false;
     if (sec && p.section !== sec) return false;
