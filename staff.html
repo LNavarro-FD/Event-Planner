@@ -318,6 +318,7 @@ function renderPeople(q, sec, evt) {
     }
     html += '<div style="margin-top:10px;display:flex;gap:8px">';
     html += '<button class="add-btn" onclick="openEditPerson(\'' + p.id + '\',event)" style="font-size:11px;padding:4px 10px">Edit</button>';
+    html += '<button onclick="copyPerson(\'' + p.id + '\',event)" style="font-size:11px;padding:4px 10px;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;color:#15803d;cursor:pointer">Copy as template</button>';
     html += '</div>';
     html += '</div>'; // pc-details
     html += '</div>'; // person-card
@@ -446,6 +447,37 @@ function openEditPerson(id, e) {
   document.getElementById('fSection').value  = p.section || 'Bar';
   document.getElementById('fLastEvent').value = p.lastEvent || '';
   document.getElementById('personForm').classList.add('open');
+}
+
+
+function copyPerson(id, e) {
+  e.stopPropagation();
+  var p = people.find(function(x){ return x.id === id; });
+  if (!p) return;
+
+  // Pre-fill form with copied values but clear personal info
+  editingId = null;
+  document.getElementById('formTitle').textContent = 'New person (copied from ' + personName(p) + ')';
+
+  // Clear personal info
+  document.getElementById('fFirst').value     = '';
+  document.getElementById('fLast').value      = '';
+  document.getElementById('fEmail').value     = '';
+  document.getElementById('fPhone').value     = '';
+  document.getElementById('fEmContact').value = '';
+  document.getElementById('fEmPhone').value   = '';
+  document.getElementById('fHealth').value    = '';
+  document.getElementById('fCar').value       = '';
+
+  // Copy role/logistics info
+  document.getElementById('fSection').value   = p.section   || 'Bar';
+  document.getElementById('fRate').value      = p.defaultRate|| '';
+  document.getElementById('fSize').value      = p.tshirtSize || '';
+  document.getElementById('fNeck').value      = p.neckShape  || '';
+  document.getElementById('fLastEvent').value = '';
+
+  document.getElementById('personForm').classList.add('open');
+  document.getElementById('fFirst').focus();
 }
 
 function closeForm() {
