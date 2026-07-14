@@ -447,10 +447,9 @@ async function fbSaveLayout(key,data){
 async function fbLoadAll(){
   
   try{
-    const {db,collection,getDocs}=window._fb;
-    const snap=await getDocs(collection(db,'venues'));
+    const snap=await _db.collection('venues').get();
     const result={};
-    snap.forEach(d=>{result[d.id]=d.data();});
+    snap.forEach(function(d){result[d.id]=d.data();});
     return result;
   }catch(e){console.warn('FB load failed',e);return null;}
 }
