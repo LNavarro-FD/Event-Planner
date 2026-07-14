@@ -554,6 +554,7 @@ function loadLayout(){
 
 // ── boundary ──────────────────────────────────────────────────────────────────
 function applyBoundary(){
+  alert('applyBoundary called, w='+document.getElementById('setupW').value);
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
   boundary={w,d};document.getElementById('setup').classList.add('done');try{saveLayout();}catch(e){console.warn('save failed',e);}setTimeout(()=>{resize();fitView();},50);
