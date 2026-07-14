@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Firebase Test</title></head>
+<body>
+<div id="status">Loading...</div>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+var s = document.getElementById('status');
+try {
+  firebase.initializeApp({
+    apiKey:'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
+    authDomain:'event-planner-7944d.firebaseapp.com',
+    projectId:'event-planner-7944d',
+    storageBucket:'event-planner-7944d.firebasestorage.app',
+    messagingSenderId:'455768566205',
+    appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
+  });
+  var db = firebase.firestore();
+  s.textContent = 'Firebase OK - reading Firestore...';
+  s.style.color = 'green';
+  db.collection('todos').doc('fd7_todo_2026').get().then(function(snap) {
+    s.textContent = snap.exists ? 'SUCCESS: Doc exists, sections=' + (snap.data().sections ? snap.data().sections.length : 'missing') : 'Doc does not exist';
+    s.style.color = 'green';
+  }).catch(function(e) {
+    s.textContent = 'Firestore error: ' + e.message;
+    s.style.color = 'orange';
+  });
+} catch(e) {
+  s.textContent = 'Firebase init error: ' + e.message;
+  s.style.color = 'red';
+}
+</script>
+</body>
+</html>
