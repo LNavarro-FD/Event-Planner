@@ -625,6 +625,13 @@ function vpAddVenue(){
 
 // ── Click-to-place from library ───────────────────────────────────────────────
 var _pendingPlace = null;
+var libCollapsed = {};
+function setAllLibCollapsed(val){
+  var cats = {};
+  equipment.forEach(function(e){ cats[e.cat]=true; });
+  Object.keys(cats).forEach(function(cat){ libCollapsed[cat]=val; });
+  renderLibrary();
+}
 
 function selectLibItem(eq, el) {
   _pendingPlace = eq;
@@ -782,19 +789,44 @@ function renderLibrary(){
   const el=document.getElementById('tab-library');el.innerHTML='';
   if(!equipment.length){el.innerHTML='<p style="color:#ccc;font-size:11px;padding:2px 0">Add items in the Equipment tab first.</p>';return;}
   const cats={};equipment.forEach((e,i)=>{(cats[e.cat]=cats[e.cat]||[]).push({...e,idx:i});});
+
   Object.entries(cats).forEach(([cat,items])=>{
-    const h=document.createElement('div');h.style.cssText='font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;padding:7px 0 3px';h.textContent=cat;el.appendChild(h);
+    const collapsed = libCollapsed[cat] || false;
+
+    // Category header — clickable to collapse
+    const h=document.createElement('div');
+    h.style.cssText='font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;padding:7px 0 3px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;border-bottom:1px solid #f0f0f0;margin-bottom:2px';
+    h.innerHTML='<span>'+cat+' <span style="color:#ccc;font-size:9px">('+items.length+')</span></span><span style="font-size:11px;color:#ccc;transition:transform .2s" id="cat-chev-'+cat.replace(/\s/g,'_')+'">'+(collapsed?'▸':'▾')+'</span>';
+    h.onclick=function(){
+      libCollapsed[cat]=!libCollapsed[cat];
+      const grp=document.getElementById('cat-grp-'+cat.replace(/\s/g,'_'));
+      const chev=document.getElementById('cat-chev-'+cat.replace(/\s/g,'_'));
+      if(grp) grp.style.display=libCollapsed[cat]?'none':'block';
+      if(chev) chev.textContent=libCollapsed[cat]?'▸':'▾';
+    };
+    el.appendChild(h);
+
+    // Item group — collapsible
+    const grp=document.createElement('div');
+    grp.id='cat-grp-'+cat.replace(/\s/g,'_');
+    grp.style.display=collapsed?'none':'block';
+
     items.forEach(e=>{
       const d=document.createElement('div');d.className='lib-item';d.draggable=true;
-      d.innerHTML=`<div class="swatch" style="background:${e.colour||CAT_COL[e.cat]||'#888'}"></div><div><div style="font-weight:500;color:#222">${e.name}</div><div style="color:#aaa;font-size:10px">${e.w}×${e.d}m${e.supplier?' · '+e.supplier:''}</div>${e.notes?'<div style="color:#94a3b8;font-size:9px;margin-top:1px;font-style:italic">'+e.notes+'</div>':''}</div>`;
+      d.innerHTML=`<div class="swatch" style="background:${e.colour||CAT_COL[e.cat]||'#888'}"></div><div style="flex:1;min-width:0"><div style="font-weight:500;color:#222">${e.name}</div><div style="color:#aaa;font-size:10px">${e.w}×${e.d}m${e.supplier?' · '+e.supplier:''}</div>${e.notes?'<div style="color:#94a3b8;font-size:9px;margin-top:1px;font-style:italic;white-space:normal">'+e.notes+'</div>':''}</div>`;
       d.ondragstart=ev=>{pendingDragEquip=e;ev.dataTransfer.effectAllowed='copy';ev.dataTransfer.setData('text','equip');};
       (function(item,el){el.onclick=function(ev){ev.stopPropagation();selectLibItem(item,el);};})(e,d);
-      el.appendChild(d);
+      grp.appendChild(d);
     });
+    el.appendChild(grp);
   });
+
   const ap=document.getElementById('apItem');ap.innerHTML='';
-  equipment.forEach((e,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${e.name} (${e.w}×${e.d}m)`;ap.appendChild(o);});
+  equipment.forEach((e,i)=>{const o=document.createElement('option');o.value=i;o.textContent=e.name+' ('+e.w+'x'+e.d+'m)';ap.appendChild(o);});
+  apItemChanged();
 }
+
+
 function openAddEquip(){editingEquipIdx=-1;clearEqForm();document.getElementById('eqTitle').textContent='Add equipment item';openModal('equipModal');}
 function editEquip(i){
   editingEquipIdx=i;const e=equipment[i];
