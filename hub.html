@@ -78,7 +78,7 @@ const _auth = firebase.auth();
 
 // Set persistence — LOCAL keeps session across browser restarts
 // SESSION clears when browser closes
-_auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+_auth.setPersistence('local').catch(function(e){ console.log('Persistence error:', e); });
 
 // Available immediately — no async module loading
 window._hubAuth = {
@@ -107,7 +107,7 @@ _auth.onAuthStateChanged(async user => {
     broadcastAuth(token, user.email);
     // Offer to register biometrics after password sign-in
     registerBiometric(user);
-    if (!window._activeTab) switchTab('todo');
+    if (!window._activeTab) { setTimeout(function(){ switchTab('todo'); }, 100); }
   } else {
     document.getElementById('loginOverlay').style.display = 'flex';
     document.getElementById('shell').style.display = 'none';
@@ -118,7 +118,7 @@ _auth.onAuthStateChanged(async user => {
 
 window.addEventListener('message', e => {
   if (e.data && e.data.type === 'FD_AUTH_REQUEST' && window._hubToken) {
-    try { e.source.postMessage({ type: 'FD_AUTH', token: window._hubToken, email: window._hubUser?.email }, '*'); } catch(err) {}
+    try { e.source.postMessage({ type: 'FD_AUTH', token: window._hubToken, email: (window._hubUser && window._hubUser.email) }, '*'); } catch(err) {}
   }
   if (e.data && e.data.type === 'FD_SYNC_STATUS') {
     document.getElementById('sb-sync').textContent = e.data.msg;
@@ -221,7 +221,7 @@ function switchTab(tab) {
       loading.classList.add('hidden');
       // Send auth token once loaded
       if (window._hubToken) {
-        frame.contentWindow.postMessage({ type:'FD_AUTH', token:window._hubToken, email:window._hubUser?.email }, '*');
+        frame.contentWindow.postMessage({ type:'FD_AUTH', token:window._hubToken, email:(window._hubUser && window._hubUser.email) }, '*');
       }
     };
     frame.src = frame.dataset.src;
@@ -238,8 +238,8 @@ function doLogin() {
   err.textContent = 'Signing in…';
   err.style.color = '#64748b';
   const remember = document.getElementById('rememberMe').checked;
-  const persistence = remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
-  _auth.setPersistence(persistence).then(() => {});
+  const persistence = remember ? 'local' : 'session';
+  _auth.setPersistence(persistence).catch(function(e){ console.log('Persistence error:', e); });
   const { auth, signInWithEmailAndPassword } = window._hubAuth;
   signInWithEmailAndPassword(auth, email, pwd)
     .then(() => { err.textContent = ''; })
@@ -297,16 +297,15 @@ async function initBiometric() {
 }
 
 async function registerBiometric(user) {
-  if (!window.PublicKeyCredential) return;
   try {
+    if (!window.PublicKeyCredential) return;
+    if (!window.crypto || !window.crypto.getRandomValues) return;
     const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
     if (!available) return;
-    // Only register if user ticked "Stay signed in"
     const remember = document.getElementById('rememberMe');
     if (remember && !remember.checked) return;
-    // Create credential
     const encoder = new TextEncoder();
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const challenge = window.crypto.getRandomValues(new Uint8Array(32));
     const userId = encoder.encode(user.uid.slice(0,8));
     const cred = await navigator.credentials.create({
       publicKey: {
@@ -318,27 +317,32 @@ async function registerBiometric(user) {
         timeout: 60000,
       }
     });
-    // Store credential ID for future use
-    const credId = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
-    localStorage.setItem(WEBAUTHN_KEY, JSON.stringify({ credId, email: user.email }));
+    const credBytes = new Uint8Array(cred.rawId);
+    let credStr = '';
+    for (let i = 0; i < credBytes.length; i++) { credStr += String.fromCharCode(credBytes[i]); }
+    const credId = btoa(credStr);
+    localStorage.setItem(WEBAUTHN_KEY, JSON.stringify({ credId: credId, email: user.email }));
     console.log('[FD Auth] Biometric registered');
     const btn = document.getElementById('faceIdBtn');
-    if (btn) { btn.style.opacity = '1'; }
+    if (btn) { btn.style.opacity = '1'; initBiometric(); }
   } catch(e) {
     console.log('[FD Auth] Biometric registration skipped:', e.message);
   }
 }
 
 async function doBiometric() {
-  const stored = localStorage.getItem(WEBAUTHN_KEY);
-  if (!stored) { alert('Please sign in with your password first, then biometrics will be available.'); return; }
-  const { credId, email } = JSON.parse(stored);
-  const err = document.getElementById('loginErr');
-  err.style.color = '#64748b';
-  err.textContent = 'Verifying…';
   try {
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
-    const rawId = Uint8Array.from(atob(credId), c => c.charCodeAt(0));
+    const stored = localStorage.getItem(WEBAUTHN_KEY);
+    if (!stored) { alert('Please sign in with your password first to set up biometrics.'); return; }
+    const storedData = JSON.parse(stored);
+    const credId = storedData.credId;
+    const err = document.getElementById('loginErr');
+    err.style.color = '#64748b';
+    err.textContent = 'Verifying…';
+    const challenge = window.crypto.getRandomValues(new Uint8Array(32));
+    const rawIdStr = atob(credId);
+    const rawId = new Uint8Array(rawIdStr.length);
+    for (let i = 0; i < rawIdStr.length; i++) { rawId[i] = rawIdStr.charCodeAt(i); }
     await navigator.credentials.get({
       publicKey: {
         challenge,
@@ -347,18 +351,16 @@ async function doBiometric() {
         timeout: 60000,
       }
     });
-    // Biometric verified — Firebase session should still be active (LOCAL persistence)
-    // Just trigger a re-check of auth state
     const currentUser = _auth.currentUser;
     if (currentUser) {
       err.textContent = '';
-      // Auth observer will fire automatically
     } else {
       err.style.color = '#f59e0b';
       err.textContent = 'Session expired — please sign in with password.';
       localStorage.removeItem(WEBAUTHN_KEY);
     }
   } catch(e) {
+    const err = document.getElementById('loginErr');
     err.style.color = '#ef4444';
     err.textContent = e.name === 'NotAllowedError' ? 'Biometric cancelled.' : 'Biometric failed: ' + e.message;
   }
