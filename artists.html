@@ -544,11 +544,19 @@ function openEmailModal(id) {
   var endTime = fmtEndTime(a.setTime, a.setLength);
 
   var to = a.agentEmail || a.email || '';
-  var subject = 'Funky Dory Festival 7 — Artist Information — '+a.perfName;
+  var evtCfg = (typeof EVENTS !== 'undefined' && EVENTS[evt]) ? EVENTS[evt] : null;
+  var evtName    = evtCfg ? evtCfg.name       : 'Funky Dory Festival 7';
+  var evtDisplay = evtCfg ? evtCfg.displayDate : 'Saturday 15 August 2026';
+  var evtTimes   = evtCfg ? evtCfg.eventTimes  : '12pm – 10pm';
+  var evtVenue   = evtCfg ? evtCfg.venue       : 'Ashfields Carriage & Polo Club';
+  var evtAddress = evtCfg ? (evtCfg.address||'') : '';
+  var evtPost    = evtCfg ? (evtCfg.postcode||'CM6 1JU') : 'CM6 1JU';
+  var evtFull    = evtVenue + (evtAddress ? ', '+evtAddress : '') + ', '+evtPost;
+  var subject = evtName+' — Artist Information — '+a.perfName;
 
   var body =
 'Dear '+(a.agentName||a.perfName)+',\n\n'+
-'We are delighted to have '+a.perfName+' joining us for Funky Dory Festival 7. Please find below all the information needed for the day.\n\n'+
+'We are delighted to have '+a.perfName+' joining us for '+evtName+'. Please find below all the information needed for the day.\n\n'+
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
 'SET TIME\n'+
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
@@ -557,9 +565,7 @@ a.perfName+' · '+fmtTime(a.setTime)+(endTime?' – '+endTime:'')+(a.setLength?'
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
 'EVENT DETAILS\n'+
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
-'Funky Dory Festival 7\n'+
-'Saturday 15 August 2026 · 12pm – 10pm\n'+
-'Ashfields Carriage & Polo Club, Dunmow Road, Great Easton, CM6 1JU\n\n'+
+evtName+'\n'+(evtDisplay?evtDisplay+' · ':'')+evtTimes+'\n'+evtFull+'\n\n'+
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
 'GETTING THERE\n'+
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'+
