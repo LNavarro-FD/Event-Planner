@@ -259,11 +259,18 @@ var _db=firebase.firestore();
 
     <div id="autoPanel">
       <h4>Auto-place items</h4>
-      <label>Item</label><select id="apItem"></select>
-      <label>Quantity</label><input id="apQty" type="number" value="10" min="1">
-      <label>Gap between items (m)</label><input id="apGap" type="number" value="1.5" step="0.5">
-      <label>Aisle every N items</label><input id="apEvery" type="number" value="4" min="1">
-      <label>Aisle width (m) — min 2m legal</label><input id="apAisleW" type="number" value="2.5" step="0.5">
+      <label>Item</label><select id="apItem" onchange="apItemChanged()"></select>
+      <div id="ap-single" style="display:none">
+        <p style="font-size:11px;color:#64748b;margin:6px 0">Single fixed-size item — click Place to add to canvas at Start X/Y.</p>
+      </div>
+      <div id="ap-multi">
+        <label>Quantity</label><input id="apQty" type="number" value="10" min="1">
+        <label>Gap between items (m)</label><input id="apGap" type="number" value="1.5" step="0.5">
+        <div id="ap-aisle-section">
+          <label>Aisle every N items</label><input id="apEvery" type="number" value="4" min="1">
+          <label>Aisle width (m) — min 2m legal</label><input id="apAisleW" type="number" value="2.5" step="0.5">
+        </div>
+      </div>
       <label>Start X (m)</label><input id="apX" type="number" value="5">
       <label>Start Y (m)</label><input id="apY" type="number" value="5">
       <div class="ap-btns">
@@ -611,6 +618,50 @@ function vpAddVenue(){
   vpSelectVenue(name);
 }
 
+
+// ── Click-to-place from library ───────────────────────────────────────────────
+var _pendingPlace = null;
+
+function selectLibItem(eq, el) {
+  _pendingPlace = eq;
+  document.querySelectorAll('.lib-item').forEach(function(d){ d.style.outline=''; d.style.background=''; });
+  if(el){ el.style.background='#eff6ff'; el.style.outline='2px solid #3b82f6'; }
+  canvas.style.cursor = 'crosshair';
+  notify('Click canvas to place: ' + eq.name + ' (' + eq.w + '×' + eq.d + 'm) — Esc to cancel');
+}
+
+
+function apItemChanged() {
+  var idx = parseInt(document.getElementById('apItem').value);
+  var eq  = equipment[idx];
+  if (!eq) return;
+  // Single-instance cats: stage, structure, tent, screen
+  var singleCats = ['stage','structures','infrastructure','production'];
+  var isSingle = singleCats.includes((eq.cat||'').toLowerCase()) || 
+                 (eq.name||'').toLowerCase().includes('stage') ||
+                 (eq.name||'').toLowerCase().includes('tent') ||
+                 (eq.name||'').toLowerCase().includes('tipi') ||
+                 (eq.name||'').toLowerCase().includes('screen');
+  // Fencing: no aisle needed
+  var isFencing = (eq.cat||'').toLowerCase().includes('fenc') || 
+                  (eq.name||'').toLowerCase().includes('heras') ||
+                  (eq.name||'').toLowerCase().includes('barrier');
+
+  document.getElementById('ap-single').style.display = isSingle ? 'block' : 'none';
+  document.getElementById('ap-multi').style.display  = isSingle ? 'none'  : 'block';
+  document.getElementById('ap-aisle-section').style.display = isFencing ? 'none' : 'block';
+
+  if (isSingle) {
+    document.getElementById('apQty').value = 1;
+  }
+}
+
+function cancelPendingPlace() {
+  _pendingPlace = null;
+  canvas.style.cursor = '';
+  document.querySelectorAll('.lib-item').forEach(function(d){ d.style.outline=''; d.style.background=''; });
+}
+
 function applyBoundary(){
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
@@ -733,6 +784,7 @@ function renderLibrary(){
       const d=document.createElement('div');d.className='lib-item';d.draggable=true;
       d.innerHTML=`<div class="swatch" style="background:${e.colour||CAT_COL[e.cat]||'#888'}"></div><div><div style="font-weight:500;color:#222">${e.name}</div><div style="color:#aaa;font-size:10px">${e.w}×${e.d}m</div></div>`;
       d.ondragstart=ev=>{pendingDragEquip=e;ev.dataTransfer.effectAllowed='copy';ev.dataTransfer.setData('text','equip');};
+      (function(item,el){el.onclick=function(ev){ev.stopPropagation();selectLibItem(item,el);};})(e,d);
       el.appendChild(d);
     });
   });
@@ -959,6 +1011,16 @@ canvas.addEventListener('drop',e=>{
 });
 canvas.addEventListener('mousedown',e=>{
   const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,mx=snp(toMX(sx)),my=snp(toMY(sy));
+  // Click-to-place from library
+  if(_pendingPlace && e.button===0 && !spaceDown){
+    pushUndo();
+    var np=_pendingPlace;
+    objects.push({type:'item',name:np.name,cat:np.cat,w:np.w,d:np.d,x:mx,y:my,rot:0,
+      colour:np.colour||CAT_COL[np.cat]||'#888',snap:np.snap||'grid',supplier:'',confirmed:false});
+    draw();updateStatus();saveLayout();
+    cancelPendingPlace();
+    return;
+  }
   if(e.button===1||spaceDown){panning=true;panSX=e.clientX;panSY=e.clientY;panOX=ox;panOY=oy;return;}
   if(mode==='select'){
     const rmx=toMX(sx),rmy=toMY(sy);
