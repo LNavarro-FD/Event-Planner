@@ -788,7 +788,8 @@ function closeBarPanel() {
 }
 
 function calcBar() {
-  var width   = parseFloat(document.getElementById('bar-width').value)  || 18;
+  var width   = parseFloat(document.getElementById('bar-width').value)  || 0;
+  if(!width){ document.getElementById('bar-metrics').innerHTML='<p style="color:#94a3b8;font-size:12px;grid-column:span 3">Select a bar width to see calculations</p>'; document.getElementById('bar-alert').style.display='none'; return; }
   var shape   = document.getElementById('bar-shape').value;
   var barCount= parseInt(document.getElementById('bar-count').value)    || 1;
   var guests  = parseInt(document.getElementById('bar-guests').value)   || 2000;
@@ -1942,7 +1943,7 @@ window._fbLoadAndInit();
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
         <div>
           <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Bar front width (m)</label>
-          <input id="bar-width" type="number" value="18" min="1" step="0.5" oninput="calcBar()" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:600;outline:none">
+          <select id="bar-width" onchange="calcBar()" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none;background:#fff"><option value="">— Select —</option><option value="3">3m (1 section)</option><option value="6">6m (2 sections)</option><option value="9">9m (3 sections)</option><option value="12">12m (4 sections)</option><option value="15">15m (5 sections)</option><option value="18">18m (6 sections)</option><option value="21">21m (7 sections)</option><option value="24">24m (8 sections)</option><option value="27">27m (9 sections)</option><option value="30">30m (10 sections)</option></select>
         </div>
         <div>
           <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Shape</label>
