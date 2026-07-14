@@ -457,16 +457,14 @@ async function fbLoadAll(){
 async function fbSaveEquipment(eq){
   
   try{
-    const {db,doc,setDoc}=window._fb;
-    await setDoc(doc(db,'equipment','library'),{items:eq});
+    await _db.collection('equipment').doc('library').set({items:eq});
   }catch(e){console.warn('FB equipment save failed',e);}
 }
 async function fbLoadEquipment(){
   
   try{
-    const {db,doc,getDoc}=window._fb;
-    const snap=await getDoc(doc(db,'equipment','library'));
-    if(snap.exists())return snap.data().items;
+    const snap=await _db.collection('equipment').doc('library').get();
+    if(snap.exists&&snap.data().items)return snap.data().items;
     return null;
   }catch(e){console.warn('FB equipment load failed',e);return null;}
 }
