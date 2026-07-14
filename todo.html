@@ -415,6 +415,7 @@ function makeRow(item,key,isCustom){
   row.style.cursor='default';
   const safeKey=key.replace(/'/g,"\'");
   const delBtn=isCustom?`<button onclick="deleteCustom('${item.id}')" title="Delete" style="border:none;background:none;cursor:pointer;color:#ddd;font-size:16px;padding:0 2px;flex-shrink:0" onmouseover="this.style.color='#a32d2d'" onmouseout="this.style.color='#ddd'">×</button>`:'';
+  const copyBtn=`<button onclick="copyTask('${safeKey}','${cat.replace(/'/g,"\'")}')" title="Copy task" style="border:none;background:none;cursor:pointer;color:#ddd;font-size:13px;padding:0 2px;flex-shrink:0" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#ddd'">⧉</button>`;
   row.innerHTML=`
     <input type="checkbox"${d?' checked':''} style="margin-top:3px">
     <div class="lbl">
@@ -425,7 +426,7 @@ function makeRow(item,key,isCustom){
     </div>
     ${d?'<span class="badge ok">Done</span>':(bm[es]||'')}
     <button class="notes-toggle" id="toggle_${safeKey}" onclick="togglePanel('${safeKey}')">▸ details</button>
-    ${delBtn}`;
+    ${copyBtn}${delBtn}`;
   row.querySelector('input').onchange=function(){done[key]=this.checked;fbSave();stats();render();};
   wrap.appendChild(row);
 
@@ -678,6 +679,61 @@ function toggleSwimlane() {
 (function() {
   function start() { window._fbLoad(); }
   
+
+
+function copyTask(key, cat) {
+  // Find the item from key
+  var item = null;
+  var isCustomItem = key.startsWith('_c_');
+
+  if (isCustomItem) {
+    var id = key.replace('_c_','');
+    item = custom.find(function(c){ return c.id === id; });
+  } else {
+    // Parse key: cat_section__taskname__dayIdx or cat_h_idx
+    var parts = key.split('_h_');
+    if (parts.length === 2) {
+      var sec = sections.find(function(s){ return s.cat === cat; });
+      if (sec) item = sec.items[parseInt(parts[1])];
+    }
+  }
+
+  if (!item) { alert('Could not find task to copy'); return; }
+
+  // Create new custom task
+  var newId = 'copy_' + Date.now();
+  var newTask = {
+    id:   newId,
+    t:    'Copy of ' + item.t,
+    n:    item.n || '',
+    cat:  cat,
+    stage: item.stage || 1,
+  };
+  custom.push(newTask);
+
+  // Copy subtasks if any
+  if (subs[key] && subs[key].length > 0) {
+    subs['_c_' + newId] = subs[key].map(function(s) {
+      return { id: Date.now() + '_' + Math.random(), t: s.t, done: false };
+    });
+  }
+
+  fbSave();
+  stats();
+  render();
+
+  // Scroll to and highlight the new task briefly
+  setTimeout(function(){
+    var el = document.getElementById('_c_' + newId);
+    if (el) {
+      el.scrollIntoView({behavior:'smooth', block:'center'});
+      el.style.background = '#eff6ff';
+      setTimeout(function(){ el.style.background = ''; }, 1500);
+    }
+  }, 200);
+
+  notify('Task copied — rename it in the list');
+}
 
 function collapseAll(collapse) {
   var cats = allCats();
