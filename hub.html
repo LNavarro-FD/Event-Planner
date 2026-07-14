@@ -61,38 +61,46 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
 #sb-versions{font-size:10px;color:#334155;margin-left:auto}
 </style>
 
-<!-- Firebase (module — auth only in hub) -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, getIdToken } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-
-// Config inline here only — modules load it from config.js
-const FB_CONFIG = {
+<!-- Firebase compat SDK — loads synchronously, no module timing issues -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+firebase.initializeApp({
   apiKey:            'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
   authDomain:        'event-planner-7944d.firebaseapp.com',
   projectId:         'event-planner-7944d',
   storageBucket:     'event-planner-7944d.firebasestorage.app',
   messagingSenderId: '455768566205',
   appId:             '1:455768566205:web:c5274d85158e6b2bf8cad4',
+});
+
+const _auth = firebase.auth();
+
+// Available immediately — no async module loading
+window._hubAuth = {
+  auth:                    _auth,
+  signInWithEmailAndPassword: (auth, email, pwd) => auth.signInWithEmailAndPassword(email, pwd),
+  signOut:                 (auth) => auth.signOut(),
+  sendPasswordResetEmail:  (auth, email) => auth.sendPasswordResetEmail(email),
+  getIdToken:              (user) => user.getIdToken(),
 };
 
-const app  = initializeApp(FB_CONFIG);
-const auth = getAuth(app);
+function broadcastAuth(token, email) {
+  document.querySelectorAll('.module-frame').forEach(iframe => {
+    try { iframe.contentWindow.postMessage({ type: 'FD_AUTH', token, email }, '*'); } catch(e) {}
+  });
+}
 
-window._hubAuth = { auth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, getIdToken };
-
-onAuthStateChanged(auth, async user => {
+_auth.onAuthStateChanged(async user => {
   if (user) {
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('shell').style.display = 'flex';
     document.getElementById('nav-user').textContent = user.email;
     document.getElementById('sb-auth').textContent = '● Connected — ' + user.email;
-    // Get token and broadcast to all loaded iframes
-    const token = await getIdToken(user);
+    const token = await user.getIdToken();
     window._hubToken = token;
     window._hubUser  = { email: user.email, uid: user.uid };
     broadcastAuth(token, user.email);
-    // Load default tab
     if (!window._activeTab) switchTab('todo');
   } else {
     document.getElementById('loginOverlay').style.display = 'flex';
@@ -102,19 +110,9 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// Broadcast auth token to all iframes via postMessage
-function broadcastAuth(token, email) {
-  document.querySelectorAll('.module-frame').forEach(iframe => {
-    if (iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'FD_AUTH', token, email }, '*');
-    }
-  });
-}
-
-// Re-broadcast when a new iframe loads
 window.addEventListener('message', e => {
   if (e.data && e.data.type === 'FD_AUTH_REQUEST' && window._hubToken) {
-    e.source.postMessage({ type: 'FD_AUTH', token: window._hubToken, email: window._hubUser?.email }, '*');
+    try { e.source.postMessage({ type: 'FD_AUTH', token: window._hubToken, email: window._hubUser?.email }, '*'); } catch(err) {}
   }
   if (e.data && e.data.type === 'FD_SYNC_STATUS') {
     document.getElementById('sb-sync').textContent = e.data.msg;
@@ -222,7 +220,6 @@ function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pwd   = document.getElementById('loginPwd').value;
   const err   = document.getElementById('loginErr');
-  if (!window._hubAuth) { err.style.color='#ef4444'; err.textContent='Still loading — please wait a moment.'; return; }
   err.textContent = 'Signing in…';
   err.style.color = '#64748b';
   const { auth, signInWithEmailAndPassword } = window._hubAuth;
@@ -237,7 +234,6 @@ function doLogin() {
 function doForgotPassword() {
   const email = document.getElementById('loginEmail').value.trim();
   const err   = document.getElementById('loginErr');
-  if (!window._hubAuth) { err.style.color='#f59e0b'; err.textContent='Still loading — please wait.'; return; }
   if (!email) { err.style.color='#f59e0b'; err.textContent='Enter your email above first.'; return; }
   const { auth, sendPasswordResetEmail } = window._hubAuth;
   sendPasswordResetEmail(auth, email)
@@ -246,7 +242,6 @@ function doForgotPassword() {
 }
 
 function doSignOut() {
-  if (!window._hubAuth) return;
   if (!confirm('Sign out?')) return;
   window._hubAuth.signOut(window._hubAuth.auth);
 }
