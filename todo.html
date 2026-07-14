@@ -236,6 +236,36 @@ let saveTimer=null;
 
 const FB_DOC='fd7_todo_2026';
 
+
+// ── Inject Artist Liaison section if missing ──────────────────────────────────
+function ensureArtistLiaison() {
+  var ARTIST_SECTION = {
+    cat: 'Artist Liaison',
+    items: [
+      {t:'Confirm artist / DJ lineup', n:'Full confirmed lineup with set times', stage:2},
+      {t:'Collect artist contact details', n:'Direct mobile and management/agent contact for each artist', stage:2},
+      {t:'Issue accreditation — Gordon Mac', n:'Name, photo ID, wristband type, plus +1s if applicable', stage:3},
+      {t:'Issue accreditation — DJ 2', n:'Name, photo ID, wristband type, plus +1s if applicable', stage:3},
+      {t:'Issue accreditation — DJ 3', n:'Name, photo ID, wristband type, plus +1s if applicable', stage:3},
+      {t:'Confirm stage times with each artist', n:'Set time, duration, changeover time', stage:3},
+      {t:'Collect technical riders', n:'Stage plot, input list, backline requirements per artist', stage:3},
+      {t:'Confirm hospitality requirements', n:'Rider items, dietary requirements, dressing room needs', stage:3},
+      {t:'Arrange artist transport / parking', n:'Arrival time, parking pass or collection arrangement', stage:3},
+      {t:'Brief Ronnie — artist liaison on the day', n:'Full runsheet, artist contacts, hospitality locations, emergency contacts', stage:4},
+      {t:'Confirm soundcheck schedule', n:'Times, order, duration per artist — share with Panache Audio', stage:4},
+      {t:'Prepare backstage passes', n:'Print or digital passes for artists, management, crew', stage:4},
+      {t:'Post-event — artist payments', n:'Confirm fee payments processed per contracts', stage:6},
+    ]
+  };
+
+  // Only add if not already in sections
+  var exists = sections.some(function(s){ return s.cat === 'Artist Liaison'; });
+  if (!exists) {
+    sections.push(ARTIST_SECTION);
+    fbSave();
+  }
+}
+
 window._fbLoad=async function(){
   window._fbUser = window._fbUser || { email: "local" };
   try{
@@ -251,6 +281,7 @@ window._fbLoad=async function(){
     }
   }catch(e){console.warn('Load failed',e);}
   document.getElementById('notes-area').value=generalNotes;
+  ensureArtistLiaison();
   stats();render();populateCatDropdown();renderSwimlane();
 };
 
