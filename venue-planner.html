@@ -2,17 +2,9 @@
 <html lang="en">
 <head>
 <script>
-var _errors = [];
 window.onerror = function(msg, src, line) {
-  _errors.push(line + ': ' + msg);
-  var el = document.getElementById('_errlog');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = '_errlog';
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;font-size:12px;padding:8px;z-index:99999;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto';
-    document.body.appendChild(el);
-  }
-  el.textContent = _errors.join('\n');
+  var el = document.getElementById('_errbar');
+  if (el) el.textContent = 'ERR line ' + line + ': ' + msg;
   return false;
 };
 </script>
@@ -130,6 +122,10 @@ var _db=firebase.firestore();
 </script>
 </head>
 <body>
+<div id="_vbar" style="position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#64748b;font-size:10px;padding:3px 8px;z-index:99999;font-family:monospace;display:flex;gap:12px">
+  <span>v4.1-debug</span>
+  <span id="_errbar" style="color:#ef4444"></span>
+</div>
 <div id="app">
 <div id="topbar">
   <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Venue</span>
