@@ -410,7 +410,7 @@ function renderBuildGrid(){
   };
 
   function colorPerson(text){
-    if(!text||!text.trim())return `<span class="bg-tbd">TBC</span>`;
+    if(!text||!text.trim())return '';
     const parts=text.split('/').map(p=>p.trim()).filter(Boolean);
     return parts.map(p=>{
       const key=Object.keys(personColors).find(k=>p.toLowerCase().includes(k.toLowerCase()));
@@ -419,28 +419,87 @@ function renderBuildGrid(){
     }).join('');
   }
 
+  // Load saved cell data from Firestore (stored in buildWeekCells)
+  var cells = window._buildCells || {};
+
+  function cellKey(secName, taskName, dayIdx){
+    return secName.replace(/\s/g,'_') + '__' + taskName.replace(/\s/g,'_') + '__' + dayIdx;
+  }
+
+  function makeCell(secName, taskName, dayIdx, defaultText, dayType){
+    const key = cellKey(secName, taskName, dayIdx);
+    const saved = cells[key];
+    const display = saved !== undefined ? saved : defaultText;
+    const colorHtml = colorPerson(display);
+    return `<td class="${dayType}-day" style="cursor:pointer;min-width:90px;position:relative" 
+      onclick="editBuildCell(this,'${key.replace(/'/g,"\'")}','${(defaultText||'').replace(/'/g,"\'")}')"
+      title="Click to edit">
+      <div id="bcell_${key}" style="min-height:20px">
+        ${colorHtml || (display ? `<span style="font-size:11px;color:#555">${display}</span>` : '<span style="color:#ddd;font-size:10px">+ add</span>')}
+      </div>
+    </td>`;
+  }
+
   let html=`<div class="bg-title">${bw.title}</div>
     <div class="bg-subtitle">${bw.subtitle}</div>
     <table class="bgt">
-      <tr>
+      <thead><tr>
         <th class="section-th">Section / Task</th>
         ${dayLabels.map((l,i)=>`<th class="${dayTypes[i]}-day">${l}</th>`).join('')}
-      </tr>`;
+      </tr></thead><tbody>`;
 
   bw.sections.forEach(sec=>{
     html+=`<tr><td class="section-td" colspan="${bw.days.length+1}">${sec.name}</td></tr>`;
     sec.tasks.forEach(t=>{
       html+=`<tr><td class="task-col">${t.task}</td>`;
       t.days.forEach((cell,i)=>{
-        html+=`<td class="${dayTypes[i]}-day">${colorPerson(cell)}</td>`;
+        html += makeCell(sec.name, t.task, i, cell, dayTypes[i]);
       });
       html+='</tr>';
     });
   });
 
-  html+='</table>';
+  html+='</tbody></table>';
   document.getElementById('buildGrid').innerHTML=html;
 }
+
+function editBuildCell(td, key, defaultVal){
+  const div = document.getElementById('bcell_' + key);
+  if (!div) return;
+  const current = (window._buildCells && window._buildCells[key] !== undefined) 
+    ? window._buildCells[key] : defaultVal;
+  
+  // Replace cell content with input
+  div.innerHTML = `<input type="text" value="${current.replace(/"/g,'&quot;')}" 
+    style="width:100%;font-size:11px;padding:2px 4px;border:1px solid #3b82f6;border-radius:3px;background:#fff;color:#111;outline:none"
+    onblur="saveBuildCell('${key.replace(/'/g,"\'")}', this.value)"
+    onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value='${current.replace(/'/g,"\'")}';this.blur();}"
+    autofocus>`;
+  div.querySelector('input').focus();
+  div.querySelector('input').select();
+}
+
+async function saveBuildCell(key, value){
+  if(!window._buildCells) window._buildCells = {};
+  window._buildCells[key] = value;
+  
+  // Re-render cell
+  renderBuildGrid();
+  
+  // Save to Firestore
+  try{
+    await _db.collection('buildweek').doc('fd7_2026').set({cells: window._buildCells});
+  }catch(e){ console.warn('Build cell save failed', e); }
+}
+
+async function loadBuildCells(){
+  try{
+    const snap = await _db.collection('buildweek').doc('fd7_2026').get();
+    if(snap.exists){ window._buildCells = snap.data().cells || {}; }
+    else { window._buildCells = {}; }
+  }catch(e){ window._buildCells = {}; }
+}
+
 
 // ── VIEW SWITCHER ──────────────────────────────────────────────────────────
 function showView(view,el){
@@ -449,7 +508,7 @@ function showView(view,el){
   document.getElementById('kanbanView').style.display=view==='kanban'?'flex':'none';
   document.getElementById('ganttView').style.display=view==='gantt'?'block':'none';
   document.getElementById('buildView').style.display=view==='build'?'block':'none';
-  if(view==='build')renderBuildGrid();
+  if(view==='build'){loadBuildCells().then(()=>renderBuildGrid());}
   if(view==='gantt')renderGantt();
 }
 
