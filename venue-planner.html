@@ -100,19 +100,8 @@ canvas{display:block}
 #loginBox button:hover{background:#1a70c0;}
 #loginErr{color:#e74c3c;font-size:13px;text-align:center;min-height:18px;}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-firestore.min.js"></script>
+<script src="fd-db.js"></script>
 <script>
-firebase.initializeApp({
-  apiKey:'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
-  authDomain:'event-planner-7944d.firebaseapp.com',
-  projectId:'event-planner-7944d',
-  storageBucket:'event-planner-7944d.firebasestorage.app',
-  messagingSenderId:'455768566205',
-  appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
-});
-var _db=firebase.firestore();
-window._fbUser={email:'local'};
 window._fbLoadAndInit();
 </script>
 </head>
