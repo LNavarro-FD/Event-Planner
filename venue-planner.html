@@ -86,6 +86,23 @@ canvas{display:block}
 .mrow{display:flex;gap:8px;margin-top:12px}
 .mrow button{flex:1;padding:7px;font-size:12px;border-radius:5px;border:1px solid #ccc;background:#f8f8f8;color:#222;cursor:pointer}
 .mrow button.ok{background:#185FA5;border-color:#185FA5;color:#fff}
+
+@media print {
+  @page { size: A3 landscape; margin: 12mm; }
+  #topbar, #toolbar, #sidebar, #statusbar, #venuePicker, #setup { display: none !important; }
+  body { background: #fff !important; }
+  #app { display: block !important; height: auto !important; }
+  #canvas-wrap { width: 100% !important; height: auto !important; position: relative !important; }
+  canvas { width: 100% !important; height: auto !important; max-width: 100% !important; }
+  #print-header { display: block !important; }
+  #print-footer { display: block !important; }
+}
+#print-header { display: none; font-family: system-ui, sans-serif; margin-bottom: 8px; }
+#print-header h2 { font-size: 16px; font-weight: 700; color: #1e293b; }
+#print-header .ph-meta { font-size: 11px; color: #64748b; margin-top: 2px; display: flex; gap: 16px; }
+#print-footer { display: none; font-family: system-ui, sans-serif; margin-top: 6px; border-top: 1px solid #e2e8f0; padding-top: 4px; }
+#print-footer .pf-meta { font-size: 9px; color: #94a3b8; display: flex; justify-content: space-between; }
+
 </style>
 <!-- Firebase -->
 
@@ -99,6 +116,23 @@ canvas{display:block}
 #loginBox button{padding:10px;border-radius:6px;background:#185FA5;color:#fff;font-size:14px;font-weight:600;border:none;cursor:pointer;}
 #loginBox button:hover{background:#1a70c0;}
 #loginErr{color:#e74c3c;font-size:13px;text-align:center;min-height:18px;}
+
+@media print {
+  @page { size: A3 landscape; margin: 12mm; }
+  #topbar, #toolbar, #sidebar, #statusbar, #venuePicker, #setup { display: none !important; }
+  body { background: #fff !important; }
+  #app { display: block !important; height: auto !important; }
+  #canvas-wrap { width: 100% !important; height: auto !important; position: relative !important; }
+  canvas { width: 100% !important; height: auto !important; max-width: 100% !important; }
+  #print-header { display: block !important; }
+  #print-footer { display: block !important; }
+}
+#print-header { display: none; font-family: system-ui, sans-serif; margin-bottom: 8px; }
+#print-header h2 { font-size: 16px; font-weight: 700; color: #1e293b; }
+#print-header .ph-meta { font-size: 11px; color: #64748b; margin-top: 2px; display: flex; gap: 16px; }
+#print-footer { display: none; font-family: system-ui, sans-serif; margin-top: 6px; border-top: 1px solid #e2e8f0; padding-top: 4px; }
+#print-footer .pf-meta { font-size: 9px; color: #94a3b8; display: flex; justify-content: space-between; }
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -128,7 +162,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.2.0</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.3.0</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -194,7 +228,17 @@ var _db=firebase.firestore();
       </div>
     </div>
   </div>
-  <div id="canvas-wrap">
+  
+<div id="print-header">
+  <h2 id="ph-title">FD Event Planner — Site Plan</h2>
+  <div class="ph-meta">
+    <span id="ph-venue"></span>
+    <span id="ph-date"></span>
+    <span id="ph-scale"></span>
+  </div>
+</div>
+
+<div id="canvas-wrap">
     <canvas id="canvas"></canvas>
     <div id="setup">
       <div class="setup-box">
@@ -205,6 +249,14 @@ var _db=firebase.firestore();
         <button class="setup-start" onclick="applyBoundary()" ontouchend="event.preventDefault();applyBoundary()">Start planning</button>
       </div>
     </div>
+
+<div id="print-footer">
+  <div class="pf-meta">
+    <span id="pf-left">FD Event Planner · Site Planner v4.3.0</span>
+    <span id="pf-right"></span>
+  </div>
+</div>
+
     <div id="autoPanel">
       <h4>Auto-place items</h4>
       <label>Item</label><select id="apItem"></select>
@@ -1087,6 +1139,25 @@ function updateStatus(){
     `${objects.length} object${objects.length!==1?'s':''} on canvas`;
 }
 function notify(msg){const n=document.getElementById('notify');n.textContent=msg;n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>{n.style.display='none';},2200);}
+
+function printPlan() {
+  // Populate print header
+  var venue = currentVenue + ' ' + currentYear;
+  var now   = new Date();
+  var dateStr = now.toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) 
+              + ' ' + now.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+  var scaleStr = 'Scale: 1 box = 1m (approx)';
+
+  document.getElementById('ph-title').textContent = venue + ' — Site Plan';
+  document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
+  document.getElementById('ph-date').textContent   = dateStr;
+  document.getElementById('ph-scale').textContent  = scaleStr;
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.3.0';
+  document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
+
+  window.print();
+}
+
 function exportPNG(){const a=document.createElement('a');a.download=`${currentVenue}-${currentYear}.png`;a.href=canvas.toDataURL('image/png');a.click();}
 
 // ── QUOTE SUMMARY ────────────────────────────────────────────────────────────
