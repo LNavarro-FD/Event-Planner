@@ -89,6 +89,17 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 
 #statusbar{background:#0f172a;height:22px;display:flex;align-items:center;padding:0 12px;flex-shrink:0}
 #statusbar span{font-size:10px;color:#334155}
+
+/* Shift editor */
+.shift-row{display:grid;grid-template-columns:110px 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:8px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0}
+.shift-row label{font-size:10px;font-weight:600;color:#64748b;display:block;margin-bottom:2px}
+.shift-input{padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:monospace;width:100%;outline:none}
+.shift-input:focus{border-color:#3b82f6}
+.shift-hrs{font-size:12px;font-weight:700;color:#1d4ed8;text-align:center;min-width:32px}
+.shift-del{background:none;border:none;cursor:pointer;color:#ef4444;font-size:16px;padding:4px}
+.confirmed-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b;margin-top:4px}
+.confirmed-toggle input{accent-color:#15803d}
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -327,8 +338,8 @@ function renderAssignments(q, sec, evt) {
 
   document.getElementById('countLabel').textContent = filtered.length + ' assignments';
 
-  var html = '<table class="assign-table"><thead><tr><th>Name</th><th>Event</th><th>Section</th><th>Role</th><th>Status</th><th>Shifts</th><th>Total Hrs</th><th>Rate</th></tr></thead><tbody>';
-  filtered.forEach(function(a) {
+  var html = '<table class="assign-table"><thead><tr><th>Name</th><th>Event</th><th>Section</th><th>Role</th><th>Status</th><th>Shifts</th><th>Total Hrs</th><th>Rate</th><th></th></tr></thead><tbody>';
+  filtered.forEach(function(a, idx) {
     var p = people.find(function(x) { return x.id === a.personId; });
     var name = p ? personName(p) : a.personId;
     var h = totalHours(a);
@@ -348,6 +359,7 @@ function renderAssignments(q, sec, evt) {
     html += '<td style="font-size:10px;font-family:monospace">' + (shiftSummary || '<span style="color:#94a3b8">Default: ' + defaultShiftStart(a.event) + '</span>') + '</td>';
     html += '<td>' + (h > 0 ? h + 'h' : '—') + '</td>';
     html += '<td>' + (a.rate ? '£' + a.rate + '/hr' : '—') + '</td>';
+    html += '<td><button onclick="openShiftEditor(\'' + a.personId + '\',' + idx + ')" style="font-size:11px;padding:3px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;cursor:pointer;color:#1d4ed8">Edit shifts</button></td>';
     html += '</tr>';
   });
   html += '</tbody></table>';
@@ -526,11 +538,190 @@ async function init() {
   render();
 }
 
+
+// ── Shift Editor ──────────────────────────────────────────────────────────────
+var _shiftPersonId   = null;
+var _shiftAssignIdx  = null;
+var _shiftEventKey   = null;
+
+function openShiftEditor(personId, assignIdx) {
+  var p = people.find(function(x){ return x.id === personId; });
+  var a = assignments[assignIdx];
+  if (!p || !a) return;
+
+  _shiftPersonId  = personId;
+  _shiftAssignIdx = assignIdx;
+  _shiftEventKey  = a.event;
+
+  document.getElementById('shiftFormTitle').textContent = personName(p) + ' — shifts';
+  document.getElementById('shiftFormSub').textContent   = a.role + ' · ' + a.event;
+  document.getElementById('shiftRate').value            = a.rate || p.defaultRate || '';
+
+  // Build shift rows
+  document.getElementById('shiftRows').innerHTML = '';
+  var shifts = a.shifts && a.shifts.length ? a.shifts : [makeDefaultShift(a.event)];
+  shifts.forEach(function(s, i){ appendShiftRow(s, i); });
+
+  updateShiftTotals();
+  document.getElementById('shiftForm').classList.add('open');
+}
+
+function makeDefaultShift(event) {
+  var et = EVENT_TIMES[event] || { start:'12:00', end:'22:00', date:'' };
+  var startH = parseInt(et.start.split(':')[0]) - 1;
+  if (startH < 0) startH = 23;
+  var defStart = String(startH).padStart(2,'0') + ':' + et.start.split(':')[1];
+  return { date: et.date || '', day: { start: defStart, end: et.end }, eve: null };
+}
+
+function appendShiftRow(shift, idx) {
+  var container = document.getElementById('shiftRows');
+  var div = document.createElement('div');
+  div.className = 'shift-row';
+  div.id = 'srow_' + idx;
+
+  var dayStart  = (shift.day && shift.day.start) || '';
+  var dayEnd    = (shift.day && shift.day.end)   || '';
+  var eveStart  = (shift.eve && shift.eve.start) || '';
+  var eveEnd    = (shift.eve && shift.eve.end)   || '';
+
+  div.innerHTML =
+    '<div>' +
+      '<label>Date</label>' +
+      '<input class="shift-input" type="date" id="sd_'+idx+'" value="'+shift.date+'" onchange="updateShiftTotals()">' +
+    '</div>' +
+    '<div>' +
+      '<label>Day shift</label>' +
+      '<div style="display:flex;gap:4px">' +
+        '<input class="shift-input" type="time" id="sds_'+idx+'" value="'+dayStart+'" placeholder="11:00" onchange="updateShiftTotals()" style="flex:1">' +
+        '<span style="align-self:center;color:#94a3b8;font-size:11px">–</span>' +
+        '<input class="shift-input" type="time" id="sde_'+idx+'" value="'+dayEnd+'" placeholder="22:00" onchange="updateShiftTotals()" style="flex:1">' +
+      '</div>' +
+    '</div>' +
+    '<div>' +
+      '<label>Eve shift</label>' +
+      '<div style="display:flex;gap:4px">' +
+        '<input class="shift-input" type="time" id="ses_'+idx+'" value="'+eveStart+'" placeholder="" onchange="updateShiftTotals()" style="flex:1">' +
+        '<span style="align-self:center;color:#94a3b8;font-size:11px">–</span>' +
+        '<input class="shift-input" type="time" id="see_'+idx+'" value="'+eveEnd+'" placeholder="" onchange="updateShiftTotals()" style="flex:1">' +
+      '</div>' +
+    '</div>' +
+    '<div class="shift-hrs" id="shrs_'+idx+'">—</div>' +
+    '<button class="shift-del" onclick="removeShiftRow('+idx+')" title="Remove">✕</button>';
+
+  container.appendChild(div);
+  updateRowHours(idx);
+}
+
+function addShiftRow() {
+  var existing = document.getElementById('shiftRows').querySelectorAll('.shift-row').length;
+  appendShiftRow(makeDefaultShift(_shiftEventKey), existing);
+  updateShiftTotals();
+}
+
+function removeShiftRow(idx) {
+  var row = document.getElementById('srow_' + idx);
+  if (row) row.remove();
+  updateShiftTotals();
+}
+
+function calcHoursFromTimes(start, end) {
+  if (!start || !end) return 0;
+  var s = start.split(':').map(Number);
+  var e = end.split(':').map(Number);
+  var sm = s[0]*60 + s[1];
+  var em = e[0]*60 + e[1];
+  if (em <= sm) em += 24*60; // overnight
+  return Math.round((em - sm) / 60 * 10) / 10;
+}
+
+function updateRowHours(idx) {
+  var ds = document.getElementById('sds_'+idx);
+  var de = document.getElementById('sde_'+idx);
+  var es = document.getElementById('ses_'+idx);
+  var ee = document.getElementById('see_'+idx);
+  if (!ds) return 0;
+  var h = calcHoursFromTimes(ds.value, de.value) + calcHoursFromTimes(es.value, ee.value);
+  var el = document.getElementById('shrs_'+idx);
+  if (el) el.textContent = h > 0 ? h + 'h' : '—';
+  return h;
+}
+
+function updateShiftTotals() {
+  var rows = document.getElementById('shiftRows').querySelectorAll('.shift-row');
+  var total = 0;
+  rows.forEach(function(row) {
+    var idx = row.id.replace('srow_','');
+    total += updateRowHours(parseInt(idx));
+  });
+  var rate = parseFloat(document.getElementById('shiftRate').value) || 0;
+  document.getElementById('shiftTotalHrs').textContent = total + 'h';
+  document.getElementById('shiftTotalPay').textContent = '£' + Math.round(total * rate * 100) / 100;
+}
+
+function closeShiftForm() {
+  document.getElementById('shiftForm').classList.remove('open');
+  _shiftPersonId = null;
+  _shiftAssignIdx = null;
+}
+
+async function saveShifts() {
+  var rows = document.getElementById('shiftRows').querySelectorAll('.shift-row');
+  var shifts = [];
+
+  rows.forEach(function(row) {
+    var idx  = row.id.replace('srow_','');
+    var date = document.getElementById('sd_'+idx).value;
+    var ds   = document.getElementById('sds_'+idx).value;
+    var de   = document.getElementById('sde_'+idx).value;
+    var es   = document.getElementById('ses_'+idx).value;
+    var ee   = document.getElementById('see_'+idx).value;
+
+    var shift = { date: date };
+    if (ds || de) shift.day = { start: ds, end: de };
+    if (es || ee) shift.eve = { start: es, end: ee };
+    if (date || ds || es) shifts.push(shift);
+  });
+
+  assignments[_shiftAssignIdx].shifts = shifts;
+  assignments[_shiftAssignIdx].rate   = parseFloat(document.getElementById('shiftRate').value) || 0;
+
+  try {
+    await _db.collection('staff').doc('assignments').set({ list: assignments });
+  } catch(e) { console.warn('Save failed', e); }
+
+  closeShiftForm();
+  render();
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
   init();
 }
 </script>
+
+<!-- Shift Editor -->
+<div class="form-overlay" id="shiftForm">
+  <div class="form-box" style="width:520px">
+    <h3 id="shiftFormTitle">Edit shifts</h3>
+    <p id="shiftFormSub" style="font-size:12px;color:#64748b;margin-bottom:16px"></p>
+    
+    <div id="shiftRows" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
+    
+    <button onclick="addShiftRow()" style="font-size:12px;color:#3b82f6;background:none;border:1px dashed #93c5fd;border-radius:6px;padding:6px 14px;cursor:pointer;width:100%">+ Add day</button>
+    
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;gap:8px;align-items:center">
+      <div style="flex:1;font-size:11px;color:#64748b">
+        Rate: £<input id="shiftRate" type="number" step="0.5" style="width:60px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:11px"> /hr
+        &nbsp;·&nbsp; <span id="shiftTotalHrs" style="font-weight:600;color:#1e293b">0h</span> total
+        &nbsp;·&nbsp; <span id="shiftTotalPay" style="font-weight:600;color:#15803d">£0</span>
+      </div>
+      <button class="btn-cancel" onclick="closeShiftForm()">Cancel</button>
+      <button class="btn-save" onclick="saveShifts()">Save shifts</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
