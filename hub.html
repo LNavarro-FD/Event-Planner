@@ -222,6 +222,7 @@ function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pwd   = document.getElementById('loginPwd').value;
   const err   = document.getElementById('loginErr');
+  if (!window._hubAuth) { err.style.color='#ef4444'; err.textContent='Still loading — please wait a moment.'; return; }
   err.textContent = 'Signing in…';
   err.style.color = '#64748b';
   const { auth, signInWithEmailAndPassword } = window._hubAuth;
@@ -236,6 +237,7 @@ function doLogin() {
 function doForgotPassword() {
   const email = document.getElementById('loginEmail').value.trim();
   const err   = document.getElementById('loginErr');
+  if (!window._hubAuth) { err.style.color='#f59e0b'; err.textContent='Still loading — please wait.'; return; }
   if (!email) { err.style.color='#f59e0b'; err.textContent='Enter your email above first.'; return; }
   const { auth, sendPasswordResetEmail } = window._hubAuth;
   sendPasswordResetEmail(auth, email)
@@ -244,6 +246,7 @@ function doForgotPassword() {
 }
 
 function doSignOut() {
+  if (!window._hubAuth) return;
   if (!confirm('Sign out?')) return;
   window._hubAuth.signOut(window._hubAuth.auth);
 }
