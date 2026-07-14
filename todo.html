@@ -119,8 +119,8 @@ window._fbLoad();
 <div class="stats" id="stats"></div>
 <div id="swimlane">
   <div id="swimlane-title" onclick="toggleSwimlane()">
-    <span>📊 Lifecycle Overview — click a cell to filter</span>
-    <span id="sl-chevron" style="color:#ccc;font-size:14px">▾</span>
+    <span>📊 Lifecycle by category — <span style="color:#aaa;font-weight:400;font-size:10px">tap a number to filter tasks below · tap again to clear</span></span>
+    <span style="font-size:10px;color:#bbb;margin-right:4px" id="sl-toggle-label">hide</span><span id="sl-chevron" style="color:#ccc;font-size:14px">▾</span>
   </div>
   <div id="swimlane-body">
     <table class="sl-table" id="sl-table">
@@ -633,6 +633,7 @@ function toggleSwimlane() {
   swimlaneCollapsed = !swimlaneCollapsed;
   document.getElementById('swimlane-body').style.display = swimlaneCollapsed ? 'none' : 'block';
   document.getElementById('sl-chevron').style.transform = swimlaneCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+  document.getElementById('sl-toggle-label').textContent = swimlaneCollapsed ? 'show' : 'hide';
 }
 
 // ── Auth ─────────────────────────────────────────────────
