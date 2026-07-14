@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FD Staff Database</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:#1e293b;height:44px;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+#topbar h1{color:#fff;font-size:14px;font-weight:700;margin-right:8px}
+.view-btn{padding:5px 14px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+.view-btn.active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+#searchbar{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #e2e8f0;flex-shrink:0;align-items:center;flex-wrap:wrap}
+#searchbar input{padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;width:200px;outline:none}
+#searchbar input:focus{border-color:#3b82f6}
+#searchbar select{padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;background:#fff;outline:none;cursor:pointer}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+#content{flex:1;overflow-y:auto;padding:16px}
+
+/* People cards */
+.people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.person-card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:14px;cursor:pointer;transition:box-shadow .15s}
+.person-card:hover{box-shadow:0 2px 8px #0001}
+.person-card.expanded{grid-column:span 2}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.pc-name{font-weight:700;font-size:14px;color:#1e293b}
+.pc-section{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.pc-role{font-size:11px;color:#64748b;margin-bottom:6px}
+.pc-contact{font-size:11px;color:#475569;display:flex;flex-direction:column;gap:2px}
+.pc-contact a{color:#3b82f6;text-decoration:none}
+.pc-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.pc-badge{font-size:10px;padding:2px 6px;background:#f1f5f9;border-radius:4px;color:#64748b}
+.pc-health{font-size:10px;padding:2px 6px;background:#fef2f2;border-radius:4px;color:#dc2626}
+.pc-expand{background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;padding:0 4px}
+.pc-details{margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;display:none}
+.pc-details.open{display:block}
+.detail-row{display:flex;gap:8px;margin-bottom:6px;font-size:11px}
+.detail-label{color:#94a3b8;min-width:90px}
+.detail-val{color:#1e293b}
+
+/* Shifts */
+.shifts-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}
+.shifts-table th{background:#f8fafc;padding:4px 8px;text-align:left;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0}
+.shifts-table td{padding:4px 8px;border-bottom:1px solid #f1f5f9}
+.shift-chip{background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap}
+
+/* Add person form */
+.add-btn{padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.add-btn:hover{background:#2563eb}
+.form-overlay{position:fixed;inset:0;background:#0007;z-index:100;display:flex;align-items:center;justify-content:center;display:none}
+.form-overlay.open{display:flex}
+.form-box{background:#fff;border-radius:12px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.form-box h3{font-size:16px;font-weight:700;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.form-field{display:flex;flex-direction:column;gap:4px}
+.form-field.full{grid-column:span 2}
+.form-field label{font-size:11px;font-weight:600;color:#64748b}
+.form-field input,.form-field select,.form-field textarea{padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none}
+.form-field input:focus,.form-field select:focus{border-color:#3b82f6}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.btn-cancel{padding:7px 14px;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;font-size:12px}
+.btn-save{padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
+
+/* Assignments view */
+.assign-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}
+.assign-table th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#64748b;border-bottom:1px solid #e2e8f0}
+.assign-table td{padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:12px}
+.assign-table tr:hover td{background:#f8fafc}
+.confirmed{color:#15803d;font-weight:600}
+.pending{color:#d97706;font-weight:600}
+
+/* Section colours */
+.s-Bar{background:#dbeafe;color:#1e40af}
+.s-Crew{background:#ede9fe;color:#5b21b6}
+.s-Artist{background:#fce7f3;color:#9d174d}
+.s-Supplier{background:#dcfce7;color:#14532d}
+.s-Entertainment{background:#ffedd5;color:#9a3412}
+.s-Flyers{background:#f1f5f9;color:#475569}
+.s-Visuals{background:#fef9c3;color:#713f12}
+
+/* Roles view */
+.roles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.role-card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:14px}
+.role-card h4{font-size:13px;font-weight:700;margin-bottom:4px}
+.role-count{font-size:11px;color:#64748b;margin-bottom:8px}
+.role-people{display:flex;flex-direction:column;gap:4px}
+.role-person{font-size:11px;padding:4px 8px;background:#f8fafc;border-radius:4px;display:flex;justify-content:space-between}
+
+#statusbar{background:#0f172a;height:22px;display:flex;align-items:center;padding:0 12px;flex-shrink:0}
+#statusbar span{font-size:10px;color:#334155}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
+  authDomain:'event-planner-7944d.firebaseapp.com',
+  projectId:'event-planner-7944d',
+  storageBucket:'event-planner-7944d.firebasestorage.app',
+  messagingSenderId:'455768566205',
+  appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
+});
+var _db = firebase.firestore();
+</script>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>👥 Staff &amp; Resources</h1>
+  <button class="view-btn active" onclick="setView('people')">People</button>
+  <button class="view-btn" onclick="setView('assignments')">Assignments</button>
+  <button class="view-btn" onclick="setView('roles')">Roles</button>
+</div>
+
+<div id="searchbar">
+  <input id="searchInput" type="text" placeholder="Search name..." oninput="render()">
+  <select id="sectionFilter" onchange="render()">
+    <option value="">All sections</option>
+    <option>Bar</option>
+    <option>Crew</option>
+    <option>Artist</option>
+    <option>Supplier</option>
+    <option>Entertainment</option>
+    <option>Visuals</option>
+  </select>
+  <select id="eventFilter" onchange="render()">
+    <option value="">All events</option>
+    <option value="HRR26">HRR 2026</option>
+    <option value="FD7">FD7 2026</option>
+  </select>
+  <button class="add-btn" onclick="openAddPerson()">+ Add person</button>
+  <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
+</div>
+
+<div id="content"></div>
+
+<div id="statusbar"><span>FD Staff Database · v1.0.0</span></div>
+
+<!-- Add/Edit Person Form -->
+<div class="form-overlay" id="personForm">
+  <div class="form-box">
+    <h3 id="formTitle">Add person</h3>
+    <div class="form-grid">
+      <div class="form-field"><label>First name *</label><input id="fFirst" type="text"></div>
+      <div class="form-field"><label>Last name</label><input id="fLast" type="text"></div>
+      <div class="form-field"><label>Email</label><input id="fEmail" type="email"></div>
+      <div class="form-field"><label>Phone</label><input id="fPhone" type="tel"></div>
+      <div class="form-field"><label>Emergency contact</label><input id="fEmContact" type="text"></div>
+      <div class="form-field"><label>Emergency phone</label><input id="fEmPhone" type="tel"></div>
+      <div class="form-field"><label>Section</label>
+        <select id="fSection">
+          <option>Bar</option><option>Crew</option><option>Artist</option>
+          <option>Supplier</option><option>Entertainment</option><option>Visuals</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Default rate £/hr</label><input id="fRate" type="number" step="0.5"></div>
+      <div class="form-field"><label>T-shirt size</label>
+        <select id="fSize"><option></option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select>
+      </div>
+      <div class="form-field"><label>Neck shape</label>
+        <select id="fNeck"><option></option><option>Round</option><option>V Neck</option></select>
+      </div>
+      <div class="form-field"><label>Car reg</label><input id="fCar" type="text"></div>
+      <div class="form-field"><label>Last event</label><input id="fLastEvent" type="text" placeholder="e.g. HRR26"></div>
+      <div class="form-field full"><label>Health notes</label><input id="fHealth" type="text" placeholder="Allergies, conditions etc."></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeForm()">Cancel</button>
+      <button class="btn-save" onclick="savePerson()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+var SEED_PEOPLE      = [{"id": "josh_ayres", "firstName": "Josh", "lastName": "Ayres", "email": "joshayres@me.com", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "XL", "neckShape": "Round", "carReg": "", "defaultRate": 0, "section": "Artist", "lastEvent": "HRR26", "status": "active"}, {"id": "ronnie_herel", "firstName": "Ronnie", "lastName": "Herel", "email": "ronnieherel@yahoo.co.uk", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "XL", "neckShape": "Round", "carReg": "", "defaultRate": 0, "section": "Artist", "lastEvent": "HRR26", "status": "active"}, {"id": "alexa_morgan", "firstName": "Alexa", "lastName": "Morgan", "email": "alexacmorgan1234@gmail.com", "phone": "7801361703", "emergencyContact": "Chloe Chesterton (Mother)", "emergencyPhone": "7747618383", "health": "", "tshirtSize": "S", "neckShape": "Round", "carReg": "RO61 XBK", "defaultRate": 12.5, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "amy_simons", "firstName": "Amy", "lastName": "Simons", "email": "amycsimons@hotmail.com", "phone": "7753334136", "emergencyContact": "Neil Grainger (Partner)", "emergencyPhone": "7486388431", "health": "", "tshirtSize": "XL", "neckShape": "Round", "carReg": "Drop off", "defaultRate": 15.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "clare_milbank", "firstName": "Clare", "lastName": "Milbank", "email": "claremilbank23@gmail.com", "phone": "", "emergencyContact": "Andy Benjamin (partner)", "emergencyPhone": "7842331059", "health": "", "tshirtSize": "L", "neckShape": "Round", "carReg": "BV21 WNW.", "defaultRate": 15.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "daniel_higham", "firstName": "Daniel", "lastName": "Higham", "email": "dhigham211@gmail.com", "phone": "7555 423285", "emergencyContact": "Frances Higham (Mother)", "emergencyPhone": "07857 618457", "health": "", "tshirtSize": "M", "neckShape": "Round", "carReg": "Drop Off", "defaultRate": 12.5, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "finlay_william_west", "firstName": "Finlay William", "lastName": "West", "email": "finlaywest8@icloud.com", "phone": "7368392338", "emergencyContact": "Stephanie Rawle (Mother)", "emergencyPhone": "7873258378", "health": "", "tshirtSize": "L", "neckShape": "Round", "carReg": "VX14NKH", "defaultRate": 12.5, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "finley_edwin_bell_hannigan", "firstName": "Finley Edwin Bell", "lastName": "Hannigan", "email": "finley.hannigan@outlook.com", "phone": "7395 534743", "emergencyContact": "Alison Hannigan (mum)", "emergencyPhone": "7715 884900", "health": "", "tshirtSize": "M", "neckShape": "Round", "carReg": "Drop Off", "defaultRate": 12.5, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "harry_james_jordan", "firstName": "Harry James", "lastName": "Jordan", "email": "jordanharry2120@gmail.com", "phone": "7557410310", "emergencyContact": "Lisa Currie\u00a0(Mum)", "emergencyPhone": "7980706620", "health": "", "tshirtSize": "L", "neckShape": "Round", "carReg": "SB17MKF", "defaultRate": 14.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "henry_henry_john_elliot_may", "firstName": "Henry Henry John Elliot", "lastName": "May", "email": "Henryjemay@gmail.com", "phone": "", "emergencyContact": "Millie May (Mother)", "emergencyPhone": "07810 811552", "health": "", "tshirtSize": "M", "neckShape": "Round", "carReg": "", "defaultRate": 12.5, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "james_christian_senna_braun", "firstName": "James Christian Senna", "lastName": "Braun", "email": "jbraun1203@outlook.com", "phone": "07950 254199", "emergencyContact": "(mother)", "emergencyPhone": "07817 379806", "health": "Milk & Dairy Allergy", "tshirtSize": "M", "neckShape": "Round", "carReg": "OV69 HGD", "defaultRate": 14.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "jimbo_james_beau_walter_davies_davies", "firstName": "Jimbo (James Beau Walter Davies)", "lastName": "Davies", "email": "jimbodavies02@gmail.com", "phone": "7376594040", "emergencyContact": "Olivia (mother)", "emergencyPhone": "7855811065", "health": "", "tshirtSize": "M", "neckShape": "", "carReg": "Drop off", "defaultRate": 13.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "kelly_bamsey", "firstName": "Kelly", "lastName": "Bamsey", "email": "kellybambi4u@yahoo.com", "phone": "", "emergencyContact": "Chased 4/6 with added shift", "emergencyPhone": "", "health": "", "tshirtSize": "M", "neckShape": "Round", "carReg": "", "defaultRate": 14.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "libby_swan", "firstName": "Libby", "lastName": "Swan", "email": "lib_swan@hotmail.com", "phone": "7986477664", "emergencyContact": "Nicola Swan (Mother)", "emergencyPhone": "7947402300", "health": "", "tshirtSize": "XS", "neckShape": "Round", "carReg": "ET22 LCL", "defaultRate": 0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "louise_simons", "firstName": "Louise", "lastName": "Simons", "email": "louisesimons@yahoo.co.uk", "phone": "7967995495", "emergencyContact": "Adam Smith (Husband)", "emergencyPhone": "7815784440", "health": "Asthma", "tshirtSize": "M", "neckShape": "V", "carReg": "EO64 YKC", "defaultRate": 15.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "miguel_taylor", "firstName": "Miguel", "lastName": "Taylor", "email": "miguel.v.taylor@outlook.com", "phone": "7425223714", "emergencyContact": "Kerry-Leigh Taylor (Wife)", "emergencyPhone": "7425223648", "health": "", "tshirtSize": "XL", "neckShape": "Round", "carReg": "YS10DBU", "defaultRate": 14.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "minola_slavenschi", "firstName": "Minola", "lastName": "Slavenschi", "email": "minola0805@gmail.com", "phone": "7727992292", "emergencyContact": "Margareta Slavenschi (Mother)", "emergencyPhone": "07454164280", "health": "", "tshirtSize": "XS", "neckShape": "V", "carReg": "SB17MKF", "defaultRate": 14.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "nicola_sladden", "firstName": "Nicola", "lastName": "Sladden", "email": "nicolasladden@yahoo.co.uk", "phone": "7729210382", "emergencyContact": "Darren Sladden (spouse)", "emergencyPhone": "7738937230", "health": "none", "tshirtSize": "M", "neckShape": "Round", "carReg": "", "defaultRate": 15.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "paul_lachman", "firstName": "Paul", "lastName": "Lachman", "email": "paullachman@hotmail.com", "phone": "7956875397", "emergencyContact": "Stevie Ansell (partner)", "emergencyPhone": "7950314091", "health": "", "tshirtSize": "Large", "neckShape": "", "carReg": "", "defaultRate": 14.5, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "sonny_vandepeer", "firstName": "Sonny", "lastName": "Vandepeer", "email": "sonnyvandepeer@gmail.com", "phone": "7976031587", "emergencyContact": "Jason Vandepeer (Father)", "emergencyPhone": "7973627992", "health": "", "tshirtSize": "Large", "neckShape": "Round", "carReg": "Drop off", "defaultRate": 14.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "steve_west", "firstName": "Steve", "lastName": "West", "email": "stephen.west@outlook.com", "phone": "7393 823117\u202c\u202c", "emergencyContact": "Zdenka Brooker (Girlfriend)", "emergencyPhone": "7428 717000", "health": "", "tshirtSize": "Large", "neckShape": "Round", "carReg": "KM22 XWV", "defaultRate": 15.0, "section": "Bar", "lastEvent": "HRR26", "status": "active"}, {"id": "anna_rawling", "firstName": "Anna", "lastName": "Rawling", "email": "", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "M", "neckShape": "Round", "carReg": "", "defaultRate": 0, "section": "Crew", "lastEvent": "HRR26", "status": "active"}, {"id": "caroline_daniels", "firstName": "Caroline", "lastName": "Daniels", "email": "caroline.daniels22@gmail.com", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Crew", "lastEvent": "HRR26", "status": "active"}, {"id": "haley_hunt", "firstName": "Haley", "lastName": "Hunt", "email": "Hayleyhunt01@gmail.com", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Crew", "lastEvent": "HRR26", "status": "active"}, {"id": "karl", "firstName": "Karl", "lastName": "", "email": "", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Crew", "lastEvent": "HRR26", "status": "active"}, {"id": "layla_mcallister", "firstName": "Layla", "lastName": "Mcallister", "email": "layla@funkydorylove.co.uk", "phone": "07590 511 493", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "XS", "neckShape": "Round", "carReg": "", "defaultRate": 0, "section": "Crew", "lastEvent": "HRR26", "status": "active"}, {"id": "louise_navarro", "firstName": "Louise", "lastName": "Navarro", "email": "", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "M", "neckShape": "V", "carReg": "", "defaultRate": 0, "section": "Crew", "lastEvent": "HRR26", "status": "active"}, {"id": "ray_johnson", "firstName": "Ray", "lastName": "Johnson", "email": "", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "L", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Crew", "lastEvent": "HRR26", "status": "active"}, {"id": "rosie_coxshaw", "firstName": "Rosie", "lastName": "Coxshaw", "email": "", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "XS", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Crew", "lastEvent": "HRR26", "status": "active"}, {"id": "charlotte", "firstName": "Charlotte", "lastName": "", "email": "holly@beentertained.co.uk", "phone": "07494481528", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "EJ71XOR", "defaultRate": 0, "section": "Entertainment", "lastEvent": "HRR26", "status": "active"}, {"id": "georgie", "firstName": "Georgie", "lastName": "", "email": "holly@beentertained.co.uk", "phone": "07494481528", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "NV64 ZKY", "defaultRate": 0, "section": "Entertainment", "lastEvent": "HRR26", "status": "active"}, {"id": "holly_mcdougal", "firstName": "Holly", "lastName": "McDougal", "email": "holly@beentertained.co.uk", "phone": "07494481528", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "KE69 PXO", "defaultRate": 0, "section": "Entertainment", "lastEvent": "HRR26", "status": "active"}, {"id": "imogen", "firstName": "Imogen", "lastName": "", "email": "holly@beentertained.co.uk", "phone": "07494481528", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "GL18 FWX", "defaultRate": 0, "section": "Entertainment", "lastEvent": "HRR26", "status": "active"}, {"id": "tyler", "firstName": "Tyler", "lastName": "", "email": "holly@beentertained.co.uk", "phone": "07494481528", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "VE24 AWH", "defaultRate": 0, "section": "Entertainment", "lastEvent": "HRR26", "status": "active"}, {"id": "adam_boothco", "firstName": "Adam", "lastName": "Boothco", "email": "adam@boothco.uk", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "Delivery and Go", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "andy_c", "firstName": "Andy", "lastName": "C", "email": "andy@house-group.uk", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "Build and Stay", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "chris_gleed", "firstName": "Chris", "lastName": "Gleed", "email": "chris@livewireproductions.co.uk", "phone": "07588 906544", "emergencyContact": "AO16 ZSE", "emergencyPhone": "Transporter", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "james_daly", "firstName": "James", "lastName": "Daly", "email": "james.daly@livewireproductions.co.uk", "phone": "07949 733808", "emergencyContact": "LS68 ZLV", "emergencyPhone": "Car", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "karen_davison", "firstName": "Karen", "lastName": "Davison", "email": "karen@livewireproductions.com", "phone": "07946 283370", "emergencyContact": "BG21 LGK", "emergencyPhone": "Cupra", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "live_wire_event_solutions", "firstName": "Live Wire", "lastName": "Event Solutions", "email": "karen@livewireproductions.com", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "Build and Stay", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "mammoth_site_storage", "firstName": "Mammoth", "lastName": "Site Storage", "email": "hire@mammothhire.co.uk", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "Delivery and Go", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "mark_silent_disco_company", "firstName": "Mark", "lastName": "Silent Disco Company", "email": "info@thesilentdiscocompany.co.uk", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "Delivery and Go", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "marvellous_glow", "firstName": "Marvellous", "lastName": "Glow", "email": "", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "Build and Go", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "matthew_robertson", "firstName": "Matthew", "lastName": "Robertson", "email": "sales@rowgar.co.uk", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "Delivery and Go", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "toby_manning", "firstName": "Toby", "lastName": "Manning", "email": "toby.manning@livewireproductions.co.uk", "phone": "07788 267173", "emergencyContact": "KS68 FNK", "emergencyPhone": "Van/Crafter", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "zachary_hazell", "firstName": "Zachary", "lastName": "Hazell", "email": "zachary.hazell@livewireproductions.co.uk", "phone": "07485 197118", "emergencyContact": "RF74 XKD", "emergencyPhone": "Mini", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Supplier", "lastEvent": "HRR26", "status": "active"}, {"id": "alex_hogan", "firstName": "Alex", "lastName": "Hogan", "email": "alexajhogan@icloud.com", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Visuals", "lastEvent": "HRR26", "status": "active"}, {"id": "jake_pursey", "firstName": "Jake", "lastName": "Pursey", "email": "pursey95@gmail.com", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Visuals", "lastEvent": "HRR26", "status": "active"}, {"id": "jo_fredricks", "firstName": "Jo", "lastName": "Fredricks", "email": "Dottyjojo19@gmail.com", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Visuals", "lastEvent": "HRR26", "status": "active"}, {"id": "lisa_nash", "firstName": "Lisa", "lastName": "Nash", "email": "", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Visuals", "lastEvent": "HRR26", "status": "active"}, {"id": "neens", "firstName": "Neens", "lastName": "", "email": "", "phone": "", "emergencyContact": "", "emergencyPhone": "", "health": "", "tshirtSize": "", "neckShape": "", "carReg": "", "defaultRate": 0, "section": "Visuals", "lastEvent": "HRR26", "status": "active"}];
+var SEED_ASSIGNMENTS = [{"personId": "josh_ayres", "event": "HRR26", "section": "Artist", "role": "DJ", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "17:00"}, "eve": null}, {"date": "2026-07-03", "day": {"start": "14:00", "end": "17:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "14:00", "end": "17:00"}, "eve": null}], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "ronnie_herel", "event": "HRR26", "section": "Artist", "role": "DJ", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "17:00"}, "eve": null}, {"date": "2026-07-03", "day": {"start": "17:00", "end": "22:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "", "end": ""}, "eve": null}], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "alexa_morgan", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-03", "day": null, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": null, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "alexa_morgan", "event": "HRR26", "section": "Bar", "role": "Waiting Staff", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "13:00", "end": "18:30"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "amy_simons", "event": "HRR26", "section": "Bar", "role": "Brunch Bar Staff", "rate": 15.0, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": {"start": "10:00", "end": "14:00"}, "eve": {"start": "14:00", "end": "00:00"}}], "accommodation": "Yes Booked", "accommodationRef": "184243674", "accommodationName": "Travel Lodge"}, {"personId": "clare_milbank", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 15.0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "12:30", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "Yes Booked", "accommodationRef": "184243674", "accommodationName": "Travel Lodge"}, {"personId": "daniel_higham", "event": "HRR26", "section": "Bar", "role": "Back Bar - Stocking", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "20:00"}}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "14:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "daniel_higham", "event": "HRR26", "section": "Bar", "role": "Flyers", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "20:00"}}, {"date": "2026-07-04", "day": {"start": "12:00", "end": "14:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "finlay_william_west", "event": "HRR26", "section": "Bar", "role": "Back Bar - Stocking", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "10:00", "end": "14:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "finlay_william_west", "event": "HRR26", "section": "Bar", "role": "Flyers", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": null, "eve": {"start": "14:00", "end": "20:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "finley_edwin_bell_hannigan", "event": "HRR26", "section": "Bar", "role": "Back Bar - Stocking", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "20:00"}}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "14:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "finley_edwin_bell_hannigan", "event": "HRR26", "section": "Bar", "role": "Flyers", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "20:00"}}, {"date": "2026-07-04", "day": {"start": "12:00", "end": "14:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "harry_james_jordan", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 14.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": null, "eve": {"start": "18:00", "end": "00:00"}}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": null, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "henry_henry_john_elliot_may", "event": "HRR26", "section": "Bar", "role": "Back Bar - Stocking", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": null, "eve": {"start": "18:00", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "10:00", "end": "14:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "henry_henry_john_elliot_may", "event": "HRR26", "section": "Bar", "role": "Flyer", "rate": 12.5, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": null, "eve": {"start": "14:00", "end": "20:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "james_christian_senna_braun", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 14.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "22:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "jimbo_james_beau_walter_davies_davies", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 13.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": null, "eve": {"start": "18:00", "end": "00:00"}}, {"date": "2026-07-03", "day": null, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": null, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "jimbo_james_beau_walter_davies_davies", "event": "HRR26", "section": "Bar", "role": "Back Bar - Stocking", "rate": 13.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "jimbo_james_beau_walter_davies_davies", "event": "HRR26", "section": "Bar", "role": "Waiting Staff", "rate": 13.0, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": {"start": "13:00", "end": "18:30"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "jimbo_james_beau_walter_davies_davies", "event": "HRR26", "section": "Bar", "role": "Flyers", "rate": 13.0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "kelly_bamsey", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 14.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": null}, {"date": "2026-07-03", "day": null, "eve": {"start": "18:30", "end": "22:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "libby_swan", "event": "HRR26", "section": "Bar", "role": "Waiting Staff", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "13:00", "end": "22:00"}, "eve": null}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "13:00", "end": "18:00"}, "eve": {"start": "18:00", "end": "21:00"}}], "accommodation": "Yes Booked", "accommodationRef": "BFB8497859", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "louise_simons", "event": "HRR26", "section": "Bar", "role": "Brunch Bar Staff", "rate": 15.0, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": {"start": "10:00", "end": "14:00"}, "eve": {"start": "14:00", "end": "00:00"}}], "accommodation": "Yes Booked", "accommodationRef": "184243674", "accommodationName": "Travel Lodge"}, {"personId": "miguel_taylor", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 14.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": null, "eve": {"start": "18:00", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "miguel_taylor", "event": "HRR26", "section": "Bar", "role": "Waiting Staff", "rate": 14.0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "minola_slavenschi", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 14.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": null, "eve": {"start": "18:00", "end": "00:00"}}, {"date": "2026-07-03", "day": {"start": "18:00", "end": "00:00"}, "eve": {"start": "18:00", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "18:30", "end": "00:00"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "nicola_sladden", "event": "HRR26", "section": "Bar", "role": "Brunch Bar Staff", "rate": 15.0, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": {"start": "10:00", "end": "14:00"}, "eve": {"start": "14:00", "end": "00:00"}}], "accommodation": "Yes Booked", "accommodationRef": "184243674", "accommodationName": "Travel Lodge"}, {"personId": "paul_lachman", "event": "HRR26", "section": "Bar", "role": "Bar Staff", "rate": 14.5, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": {"start": "11:00", "end": "14:00"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "Yes Pending", "accommodationRef": "BFB0865760", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "paul_lachman", "event": "HRR26", "section": "Bar", "role": "Back Bar Manager", "rate": 14.5, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "10:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "Yes Pending", "accommodationRef": "", "accommodationName": ""}, {"personId": "sonny_vandepeer", "event": "HRR26", "section": "Bar", "role": "Back Bar - Stocking", "rate": 14.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": null, "eve": {"start": "13:00", "end": "00:00"}}], "accommodation": "Yes Pending", "accommodationRef": "BFB8497859", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "steve_west", "event": "HRR26", "section": "Bar", "role": "Bar Manager", "rate": 15.0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "10:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "13:00", "end": "18:30"}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "anna_rawling", "event": "HRR26", "section": "Crew", "role": "Social Media", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "18:30"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "BFB8497859", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "caroline_daniels", "event": "HRR26", "section": "Crew", "role": "D\u00e9cor", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "10:00", "end": "13:30"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "10:00", "end": "13:30"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": "Steve West\u00b4s House, Benson on Thames"}, {"personId": "caroline_daniels", "event": "HRR26", "section": "Crew", "role": "VIP Entrance", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "21:00"}, "eve": null}, {"date": "2026-07-03", "day": {"start": "14:00", "end": "21:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "11:00", "end": "21:00"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "Steve West", "accommodationName": "9 Fifield Barns, Benson, OX10 6EZ"}, {"personId": "haley_hunt", "event": "HRR26", "section": "Crew", "role": "GE Entrance", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "14:00", "end": "18:30"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "14:00", "end": "18:30"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "BFB4115656", "accommodationName": "Premier Inn Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, Berkshire, SL6 8AQ"}, {"personId": "karl", "event": "HRR26", "section": "Crew", "role": "Set Up / take down", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "29:00", "end": ""}, "eve": null}, {"date": "2026-07-03", "day": {"start": "04:00", "end": "10:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "04:00", "end": "10:00"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "", "accommodationName": ""}, {"personId": "layla_mcallister", "event": "HRR26", "section": "Crew", "role": "Customer Service", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "22:00"}, "eve": null}, {"date": "2026-07-03", "day": {"start": "14:00", "end": "22:00"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "BFB8497859", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "libby_swan", "event": "HRR26", "section": "Crew", "role": "Ticket Sales", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "21:00"}, "eve": null}, {"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "14:00", "end": "18:30"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "", "accommodationName": ""}, {"personId": "libby_swan", "event": "HRR26", "section": "Crew", "role": "FD Merchandise", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "22:00"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "", "accommodationName": ""}, {"personId": "louise_navarro", "event": "HRR26", "section": "Crew", "role": "Event Manager", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "00:00"}, "eve": null}, {"date": "2026-07-03", "day": {"start": "12:00", "end": "00:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "12:00", "end": "00:00"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "", "accommodationName": ""}, {"personId": "ray_johnson", "event": "HRR26", "section": "Crew", "role": "Set Up / take down", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "Yes Booked", "accommodationRef": "BFB1104720", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "ray_johnson", "event": "HRR26", "section": "Crew", "role": "Artist Liaison", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "Yes Booked", "accommodationRef": "BFB0865760", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "rosie_coxshaw", "event": "HRR26", "section": "Crew", "role": "Event Director", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "12:00", "end": "00:00"}, "eve": null}, {"date": "2026-07-03", "day": {"start": "12:00", "end": "00:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "12:00", "end": "00:00"}, "eve": null}], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "sonny_vandepeer", "event": "HRR26", "section": "Crew", "role": "Entrance Scanning", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "13:00", "end": "18:30"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "14:00", "end": "18:30"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "", "accommodationName": ""}, {"personId": "charlotte", "event": "HRR26", "section": "Entertainment", "role": "Entertainment / Dancers", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "16:00", "end": "20:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "16:00", "end": "20:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "georgie", "event": "HRR26", "section": "Entertainment", "role": "Entertainment / Dancers", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": {"start": "16:00", "end": "20:00"}, "eve": null}], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "holly_mcdougal", "event": "HRR26", "section": "Entertainment", "role": "Entertainment / Dancers", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "16:00", "end": "20:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "16:00", "end": "20:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "imogen", "event": "HRR26", "section": "Entertainment", "role": "Entertainment / Dancers", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "16:00", "end": "20:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "16:00", "end": "20:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "tyler", "event": "HRR26", "section": "Entertainment", "role": "Entertainment / Dancers", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-04", "day": {"start": "16:00", "end": "20:00"}, "eve": null}], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "ray_johnson", "event": "HRR26", "section": "Flyers", "role": "Flyers", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "28:00", "end": "06:00"}, "eve": {"start": "28:00", "end": ""}}, {"date": "2026-07-03", "day": {"start": "", "end": ""}, "eve": {"start": "18:30", "end": "00:00"}}, {"date": "2026-07-04", "day": {"start": "", "end": ""}, "eve": {"start": "18:30", "end": "00:00"}}], "accommodation": "Yes Pending", "accommodationRef": "", "accommodationName": ""}, {"personId": "adam_boothco", "event": "HRR26", "section": "Supplier", "role": "Photobooth", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "andy_c", "event": "HRR26", "section": "Supplier", "role": "Bar Installation / Fridge Trucks", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "chris_gleed", "event": "HRR26", "section": "Supplier", "role": "Sound Engineer", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "james_daly", "event": "HRR26", "section": "Supplier", "role": "Sound Engineer", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "karen_davison", "event": "HRR26", "section": "Supplier", "role": "Sound Engineer", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "live_wire_event_solutions", "event": "HRR26", "section": "Supplier", "role": "AV / Production", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "mammoth_site_storage", "event": "HRR26", "section": "Supplier", "role": "Welfare Unit", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "mark_silent_disco_company", "event": "HRR26", "section": "Supplier", "role": "Silent Disco", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "marvellous_glow", "event": "HRR26", "section": "Supplier", "role": "Lighting", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "matthew_robertson", "event": "HRR26", "section": "Supplier", "role": "Garden Furniture / Poseur Tables", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "toby_manning", "event": "HRR26", "section": "Supplier", "role": "Sound Engineer", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "zachary_hazell", "event": "HRR26", "section": "Supplier", "role": "Sound Engineer", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "", "accommodationRef": "", "accommodationName": ""}, {"personId": "alex_hogan", "event": "HRR26", "section": "Visuals", "role": "Videographer /Drone Operator", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "18:00"}, "eve": {"start": "18:00", "end": "23:00"}}, {"date": "2026-07-03", "day": {"start": "14:00", "end": "18:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "11:00", "end": "18:00"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "BFB8497859", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "jake_pursey", "event": "HRR26", "section": "Visuals", "role": "Videographer /stills", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "22:00"}, "eve": null}, {"date": "2026-07-04", "day": {"start": "12:00", "end": "23:00"}, "eve": null}], "accommodation": "Yes Booked", "accommodationRef": "BFB8497859", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "jo_fredricks", "event": "HRR26", "section": "Visuals", "role": "Photographer", "rate": 0, "confirmed": true, "shifts": [], "accommodation": "Yes Booked", "accommodationRef": "BFB7857427", "accommodationName": "Premier Inn, Maidenhead Town Centre, Kidwells Park Drive, Maidenhead, SL6 8AQ"}, {"personId": "lisa_nash", "event": "HRR26", "section": "Visuals", "role": "Interviewer", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-03", "day": {"start": "14:00", "end": "22:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}, {"personId": "neens", "event": "HRR26", "section": "Visuals", "role": "Interviewer", "rate": 0, "confirmed": true, "shifts": [{"date": "2026-07-02", "day": {"start": "14:00", "end": "22:00"}, "eve": null}], "accommodation": "No", "accommodationRef": "", "accommodationName": ""}];
+
+var people      = [];
+var assignments = [];
+var currentView = 'people';
+var editingId   = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function calcHours(shift) {
+  if (!shift || !shift.start || !shift.end) return 0;
+  var s = shift.start.split(':').map(Number);
+  var e = shift.end.split(':').map(Number);
+  var sh = s[0]*60 + s[1];
+  var eh = e[0]*60 + e[1];
+  if (eh <= sh) eh += 24*60; // overnight
+  return Math.round((eh - sh) / 60 * 10) / 10;
+}
+
+function totalHours(assignment) {
+  var h = 0;
+  (assignment.shifts || []).forEach(function(s) {
+    h += calcHours(s.day) + calcHours(s.eve);
+  });
+  return Math.round(h * 10) / 10;
+}
+
+function sectionClass(sec) {
+  return 's-' + (sec || '').replace(/\s/g,'');
+}
+
+function fmt24(t) {
+  return t || '';
+}
+
+function shiftLabel(shift) {
+  if (!shift || !shift.start) return '';
+  return fmt24(shift.start) + (shift.end ? '–' + fmt24(shift.end) : '');
+}
+
+function personName(p) {
+  return (p.firstName + ' ' + (p.lastName || '')).trim();
+}
+
+// ── Views ─────────────────────────────────────────────────────────────────────
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.view-btn').forEach(function(b, i) {
+    b.classList.toggle('active', ['people','assignments','roles'][i] === v);
+  });
+  render();
+}
+
+function render() {
+  var q   = document.getElementById('searchInput').value.toLowerCase();
+  var sec = document.getElementById('sectionFilter').value;
+  var evt = document.getElementById('eventFilter').value;
+
+  if (currentView === 'people') renderPeople(q, sec, evt);
+  else if (currentView === 'assignments') renderAssignments(q, sec, evt);
+  else renderRoles(q, sec, evt);
+}
+
+function renderPeople(q, sec, evt) {
+  var filtered = people.filter(function(p) {
+    if (q && !personName(p).toLowerCase().includes(q) && !p.email.toLowerCase().includes(q)) return false;
+    if (sec && p.section !== sec) return false;
+    if (evt) {
+      var hasEvent = assignments.some(function(a) { return a.personId === p.id && a.event === evt; });
+      if (!hasEvent) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('countLabel').textContent = filtered.length + ' people';
+
+  var html = '<div class="people-grid">';
+  filtered.forEach(function(p) {
+    var myAssigns = assignments.filter(function(a) { return a.personId === p.id; });
+    var roles = myAssigns.map(function(a) { return a.role; }).filter(function(r,i,arr) { return arr.indexOf(r) === i; }).join(', ');
+    var events = myAssigns.map(function(a) { return a.event; }).filter(function(e,i,arr) { return arr.indexOf(e) === i; }).join(', ');
+    var totalH = 0;
+    myAssigns.forEach(function(a) { totalH += totalHours(a); });
+
+    html += '<div class="person-card" id="pc_' + p.id + '">';
+    html += '<div class="pc-top">';
+    html += '<div>';
+    html += '<div class="pc-name">' + personName(p) + '</div>';
+    html += '<div class="pc-role">' + (roles || 'No role assigned') + '</div>';
+    html += '</div>';
+    html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
+    html += '<span class="pc-section pill ' + sectionClass(p.section) + '">' + p.section + '</span>';
+    html += '<button class="pc-expand" onclick="toggleExpand(\'' + p.id + '\',event)">⋯</button>';
+    html += '</div></div>';
+    html += '<div class="pc-contact">';
+    if (p.email) html += '<a href="mailto:' + p.email + '">' + p.email + '</a>';
+    if (p.phone) html += '<span>📞 ' + p.phone + '</span>';
+    html += '</div>';
+    html += '<div class="pc-meta">';
+    if (p.lastEvent) html += '<span class="pc-badge">Last: ' + p.lastEvent + '</span>';
+    if (events) html += '<span class="pc-badge">' + events + '</span>';
+    if (totalH > 0) html += '<span class="pc-badge">' + totalH + 'h total</span>';
+    if (p.tshirtSize) html += '<span class="pc-badge">T: ' + p.tshirtSize + (p.neckShape ? ' ' + p.neckShape : '') + '</span>';
+    if (p.health) html += '<span class="pc-health">⚠ ' + p.health + '</span>';
+    html += '</div>';
+
+    // Expandable detail
+    html += '<div class="pc-details" id="pcd_' + p.id + '">';
+    if (p.emergencyContact) html += '<div class="detail-row"><span class="detail-label">Emergency</span><span class="detail-val">' + p.emergencyContact + (p.emergencyPhone ? ' · ' + p.emergencyPhone : '') + '</span></div>';
+    if (p.carReg) html += '<div class="detail-row"><span class="detail-label">Car reg</span><span class="detail-val">' + p.carReg + '</span></div>';
+    if (p.defaultRate) html += '<div class="detail-row"><span class="detail-label">Rate</span><span class="detail-val">£' + p.defaultRate + '/hr</span></div>';
+
+    // Shifts table
+    var allShifts = [];
+    myAssigns.forEach(function(a) {
+      (a.shifts || []).forEach(function(s) {
+        if (s.day || s.eve) allShifts.push({event: a.event, role: a.role, date: s.date, day: s.day, eve: s.eve});
+      });
+    });
+    if (allShifts.length > 0) {
+      html += '<table class="shifts-table"><thead><tr><th>Event</th><th>Date</th><th>Role</th><th>Day</th><th>Eve</th><th>Hrs</th></tr></thead><tbody>';
+      allShifts.forEach(function(s) {
+        var h = calcHours(s.day) + calcHours(s.eve);
+        html += '<tr><td>' + s.event + '</td><td>' + s.date + '</td><td>' + s.role + '</td>';
+        html += '<td>' + (s.day ? '<span class="shift-chip">' + shiftLabel(s.day) + '</span>' : '–') + '</td>';
+        html += '<td>' + (s.eve ? '<span class="shift-chip">' + shiftLabel(s.eve) + '</span>' : '–') + '</td>';
+        html += '<td>' + (h > 0 ? h : '–') + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '<div style="margin-top:10px;display:flex;gap:8px">';
+    html += '<button class="add-btn" onclick="openEditPerson(\'' + p.id + '\',event)" style="font-size:11px;padding:4px 10px">Edit</button>';
+    html += '</div>';
+    html += '</div>'; // pc-details
+    html += '</div>'; // person-card
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderAssignments(q, sec, evt) {
+  var filtered = assignments.filter(function(a) {
+    var p = people.find(function(x) { return x.id === a.personId; });
+    if (!p) return false;
+    if (q && !personName(p).toLowerCase().includes(q)) return false;
+    if (sec && a.section !== sec) return false;
+    if (evt && a.event !== evt) return false;
+    return true;
+  });
+
+  document.getElementById('countLabel').textContent = filtered.length + ' assignments';
+
+  var html = '<table class="assign-table"><thead><tr><th>Name</th><th>Event</th><th>Section</th><th>Role</th><th>Status</th><th>Shifts</th><th>Total Hrs</th><th>Rate</th></tr></thead><tbody>';
+  filtered.forEach(function(a) {
+    var p = people.find(function(x) { return x.id === a.personId; });
+    var name = p ? personName(p) : a.personId;
+    var h = totalHours(a);
+    var shiftSummary = (a.shifts || []).map(function(s) {
+      var parts = [];
+      if (s.day && s.day.start) parts.push(s.date.slice(5) + ' ' + shiftLabel(s.day));
+      if (s.eve && s.eve.start) parts.push(s.date.slice(5) + ' eve ' + shiftLabel(s.eve));
+      return parts.join(', ');
+    }).filter(Boolean).join('<br>');
+
+    html += '<tr>';
+    html += '<td style="font-weight:600">' + name + '</td>';
+    html += '<td>' + a.event + '</td>';
+    html += '<td><span class="pill ' + sectionClass(a.section) + '">' + a.section + '</span></td>';
+    html += '<td>' + (a.role || '—') + '</td>';
+    html += '<td class="' + (a.confirmed ? 'confirmed' : 'pending') + '">' + (a.confirmed ? '✓ Confirmed' : '⏳ Pending') + '</td>';
+    html += '<td style="font-size:10px">' + (shiftSummary || '—') + '</td>';
+    html += '<td>' + (h > 0 ? h + 'h' : '—') + '</td>';
+    html += '<td>' + (a.rate ? '£' + a.rate + '/hr' : '—') + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderRoles(q, sec, evt) {
+  // Group assignments by role
+  var roles = {};
+  assignments.forEach(function(a) {
+    if (evt && a.event !== evt) return;
+    if (sec && a.section !== sec) return;
+    var key = (a.event || '') + '::' + (a.role || 'Unassigned');
+    if (!roles[key]) roles[key] = { event: a.event, role: a.role, section: a.section, people: [] };
+    var p = people.find(function(x) { return x.id === a.personId; });
+    if (p) {
+      var name = personName(p);
+      if (q && !name.toLowerCase().includes(q)) return;
+      roles[key].people.push({ name: name, confirmed: a.confirmed, hours: totalHours(a) });
+    }
+  });
+
+  document.getElementById('countLabel').textContent = Object.keys(roles).length + ' roles';
+
+  var html = '<div class="roles-grid">';
+  Object.values(roles).forEach(function(r) {
+    html += '<div class="role-card">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+    html += '<h4>' + (r.role || 'Unassigned') + '</h4>';
+    html += '<span class="pill ' + sectionClass(r.section) + '">' + r.section + '</span>';
+    html += '</div>';
+    html += '<div class="role-count">' + r.event + ' · ' + r.people.length + ' ' + (r.people.length === 1 ? 'person' : 'people') + '</div>';
+    html += '<div class="role-people">';
+    r.people.forEach(function(rp) {
+      html += '<div class="role-person">';
+      html += '<span>' + (rp.confirmed ? '✓' : '⏳') + ' ' + rp.name + '</span>';
+      html += '<span style="color:#94a3b8">' + (rp.hours > 0 ? rp.hours + 'h' : '') + '</span>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+// ── Expand/collapse person card ───────────────────────────────────────────────
+function toggleExpand(id, e) {
+  e.stopPropagation();
+  var d = document.getElementById('pcd_' + id);
+  if (d) d.classList.toggle('open');
+}
+
+// ── Add/Edit person ───────────────────────────────────────────────────────────
+function openAddPerson() {
+  editingId = null;
+  document.getElementById('formTitle').textContent = 'Add person';
+  ['fFirst','fLast','fEmail','fPhone','fEmContact','fEmPhone','fHealth','fCar','fLastEvent'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('fRate').value = '';
+  document.getElementById('fSize').value = '';
+  document.getElementById('fNeck').value = '';
+  document.getElementById('fSection').value = 'Bar';
+  document.getElementById('personForm').classList.add('open');
+}
+
+function openEditPerson(id, e) {
+  e.stopPropagation();
+  var p = people.find(function(x) { return x.id === id; });
+  if (!p) return;
+  editingId = id;
+  document.getElementById('formTitle').textContent = 'Edit ' + personName(p);
+  document.getElementById('fFirst').value    = p.firstName || '';
+  document.getElementById('fLast').value     = p.lastName || '';
+  document.getElementById('fEmail').value    = p.email || '';
+  document.getElementById('fPhone').value    = p.phone || '';
+  document.getElementById('fEmContact').value = p.emergencyContact || '';
+  document.getElementById('fEmPhone').value  = p.emergencyPhone || '';
+  document.getElementById('fHealth').value   = p.health || '';
+  document.getElementById('fCar').value      = p.carReg || '';
+  document.getElementById('fRate').value     = p.defaultRate || '';
+  document.getElementById('fSize').value     = p.tshirtSize || '';
+  document.getElementById('fNeck').value     = p.neckShape || '';
+  document.getElementById('fSection').value  = p.section || 'Bar';
+  document.getElementById('fLastEvent').value = p.lastEvent || '';
+  document.getElementById('personForm').classList.add('open');
+}
+
+function closeForm() {
+  document.getElementById('personForm').classList.remove('open');
+}
+
+async function savePerson() {
+  var fn = document.getElementById('fFirst').value.trim();
+  if (!fn) { alert('First name required'); return; }
+  var ln = document.getElementById('fLast').value.trim();
+  var id = editingId || (fn + '_' + ln).toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+
+  var p = {
+    id: id,
+    firstName: fn,
+    lastName: ln,
+    email:            document.getElementById('fEmail').value.trim(),
+    phone:            document.getElementById('fPhone').value.trim(),
+    emergencyContact: document.getElementById('fEmContact').value.trim(),
+    emergencyPhone:   document.getElementById('fEmPhone').value.trim(),
+    health:           document.getElementById('fHealth').value.trim(),
+    carReg:           document.getElementById('fCar').value.trim(),
+    defaultRate:      parseFloat(document.getElementById('fRate').value) || 0,
+    tshirtSize:       document.getElementById('fSize').value,
+    neckShape:        document.getElementById('fNeck').value,
+    section:          document.getElementById('fSection').value,
+    lastEvent:        document.getElementById('fLastEvent').value.trim(),
+    status: 'active',
+  };
+
+  // Update local
+  var idx = people.findIndex(function(x) { return x.id === id; });
+  if (idx >= 0) people[idx] = p;
+  else people.push(p);
+
+  // Save to Firestore
+  try {
+    await _db.collection('staff').doc('people').set({ list: people });
+  } catch(e) { console.warn('Save failed', e); }
+
+  closeForm();
+  render();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    var snap = await _db.collection('staff').doc('people').get();
+    if (snap.exists && snap.data().list && snap.data().list.length > 0) {
+      people = snap.data().list;
+    } else {
+      // Seed from HRR26 data
+      people = SEED_PEOPLE;
+      await _db.collection('staff').doc('people').set({ list: people });
+    }
+
+    var snap2 = await _db.collection('staff').doc('assignments').get();
+    if (snap2.exists && snap2.data().list && snap2.data().list.length > 0) {
+      assignments = snap2.data().list;
+    } else {
+      assignments = SEED_ASSIGNMENTS;
+      await _db.collection('staff').doc('assignments').set({ list: assignments });
+    }
+  } catch(e) {
+    console.warn('Firestore failed, using seed data', e);
+    people = SEED_PEOPLE;
+    assignments = SEED_ASSIGNMENTS;
+  }
+  render();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
