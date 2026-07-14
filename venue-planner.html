@@ -547,10 +547,7 @@ function loadLayout(){
   selected=null;
   const su=document.getElementById('setup');
   if(s&&s.boundary){
-    const choice=confirm(currentVenue+' '+currentYear+' has a saved layout.
-
-OK = Load existing
-Cancel = Start fresh');
+    const choice=confirm(currentVenue+' '+currentYear+' has a saved layout. OK = Load existing, Cancel = Start fresh');
     if(choice){
       objects=JSON.parse(JSON.stringify(s.objects||[]));boundary={...s.boundary};
       su.classList.add('done');su.style.pointerEvents='none';
