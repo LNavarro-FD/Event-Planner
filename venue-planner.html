@@ -416,13 +416,9 @@ async function fbSaveLayout(key,data){
   }catch(e){console.warn('FB save failed',e);}
 }
 async function fbLoadAll(){
-  
   try{
-    const {db,collection,getDocs}=window._fb;
-    const snap=await getDocs(collection(db,'venues'));
-    const result={};
-    snap.forEach(d=>{result[d.id]=d.data();});
-    return result;
+    const result=await FD.getAll('venues');
+    return Object.keys(result).length>0?result:null;
   }catch(e){console.warn('FB load failed',e);return null;}
 }
 async function fbSaveEquipment(eq){
@@ -433,11 +429,9 @@ async function fbSaveEquipment(eq){
   }catch(e){console.warn('FB equipment save failed',e);}
 }
 async function fbLoadEquipment(){
-  
   try{
-    const {db,doc,getDoc}=window._fb;
-    const snap=await getDoc(doc(db,'equipment','library'));
-    if(snap.exists())return snap.data().items;
+    var data=await FD.get('equipment','library');
+    if(data&&data.items)return data.items;
     return null;
   }catch(e){console.warn('FB equipment load failed',e);return null;}
 }
