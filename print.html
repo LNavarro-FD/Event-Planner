@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FD Print & Design</title>
+<title>FD Design & Print</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -102,7 +102,7 @@ var _db = firebase.firestore();
 <body>
 
 <div id="topbar">
-  <h1>🖨 Print &amp; Design</h1>
+  <h1>🎨 Design &amp; Print</h1>
   <button class="view-btn active" onclick="setView('template')">Template</button>
   <button class="view-btn" onclick="setView('procurement')">Procurement</button>
 </div>
@@ -124,7 +124,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Print &amp; Design · v1.0.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.0.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
