@@ -884,7 +884,12 @@ function renderEquipList(){
 function renderLibrary(){
   const el=document.getElementById('tab-library');el.innerHTML='';
   if(!equipment.length){el.innerHTML='<p style="color:#ccc;font-size:11px;padding:2px 0">Add items in the Equipment tab first.</p>';return;}
-  const cats={};equipment.forEach((e,i)=>{(cats[e.cat]=cats[e.cat]||[]).push({...e,idx:i});});
+  var searchEl=document.getElementById('lib-search');
+  var q=(searchEl?searchEl.value:''). toLowerCase().trim();
+  const cats={};equipment.forEach((e,i)=>{
+    if(q&&!e.name.toLowerCase().includes(q)&&!(e.cat||"").toLowerCase().includes(q))return;
+    (cats[e.cat]=cats[e.cat]||[]).push({...e,idx:i});
+  });
 
   Object.entries(cats).forEach(([cat,items])=>{
     const collapsed = libCollapsed[cat] || false;
