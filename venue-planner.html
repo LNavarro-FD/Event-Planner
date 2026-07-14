@@ -112,8 +112,6 @@ firebase.initializeApp({
   appId:'1:455768566205:web:c5274d85158e6b2bf8cad4'
 });
 var _db=firebase.firestore();
-window._fbUser={email:'local'};
-window._fbLoadAndInit();
 </script>
 </head>
 <body>
@@ -1312,6 +1310,8 @@ document.getElementById('quoteOverlay').addEventListener('click', e => {
   }
 })();
 
+// Start app
+window._fbLoadAndInit();
 </script>
 </body>
 </html>
