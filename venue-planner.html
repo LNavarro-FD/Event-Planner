@@ -543,20 +543,29 @@ function saveLayout(){
 }
 function loadLayout(){
   const s=layouts[lkey()];
-  if(s){objects=JSON.parse(JSON.stringify(s.objects||[]));boundary=s.boundary?{...s.boundary}:null;}
-  else{objects=[];boundary=null;}
   selected=null;
   const su=document.getElementById('setup');
-  if(!boundary){document.getElementById('setupTitle').textContent='Set up '+currentVenue+' '+currentYear;su.classList.remove('done');document.getElementById('setupW').value='';document.getElementById('setupD').value='';}
-  else{su.classList.add('done');setTimeout(fitView,50);}
-  draw();updateStatus();
-}
+  if(s&&s.boundary){
+    const choice=confirm(currentVenue+' '+currentYear+' has a saved layout.
 
-// ── boundary ──────────────────────────────────────────────────────────────────
-function applyBoundary(){
-  const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
-  if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
-  boundary={w,d};document.getElementById('setup').classList.add('done');try{saveLayout();}catch(e){console.warn('save failed',e);}setTimeout(()=>{resize();fitView();},50);
+OK = Load existing
+Cancel = Start fresh');
+    if(choice){
+      objects=JSON.parse(JSON.stringify(s.objects||[]));boundary={...s.boundary};
+      su.classList.add('done');su.style.pointerEvents='none';
+      draw();updateStatus();notify('Loaded '+currentVenue+' '+currentYear);
+    } else {
+      objects=[];boundary=null;
+      document.getElementById('setupTitle').textContent='New layout — '+currentVenue+' '+currentYear;
+      document.getElementById('setupW').value='';document.getElementById('setupD').value='';
+      su.classList.remove('done');su.style.pointerEvents='auto';
+    }
+  } else {
+    objects=[];boundary=null;
+    document.getElementById('setupTitle').textContent='Set up '+currentVenue+' '+currentYear;
+    document.getElementById('setupW').value='';document.getElementById('setupD').value='';
+    su.classList.remove('done');su.style.pointerEvents='auto';
+  }
 }
 function newLayout(){
   if(!confirm('Start a new empty layout? Current layout will be cleared.'))return;
