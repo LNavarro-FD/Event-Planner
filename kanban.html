@@ -8,16 +8,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-/* Login */
-#loginOverlay{position:fixed;inset:0;background:#1a1a18;display:flex;align-items:center;justify-content:center;z-index:9999}
-#loginBox{background:#2c2c2a;border-radius:10px;padding:36px 40px;display:flex;flex-direction:column;gap:14px;min-width:300px}
-#loginBox h2{color:#fff;font-size:18px;text-align:center}
-#loginBox input{padding:9px 12px;border-radius:6px;border:1px solid #444;background:#1a1a18;color:#fff;font-size:14px;outline:none}
-#loginBox input:focus{border-color:#3b82f6}
-#loginBox .signin{padding:10px;border-radius:6px;background:#3b82f6;color:#fff;font-size:14px;font-weight:600;border:none;cursor:pointer}
-#loginBox .signin:hover{background:#2563eb}
-#loginErr{color:#ef4444;font-size:13px;text-align:center;min-height:18px}
-.forgotlink{text-align:center;font-size:12px;color:#888;cursor:pointer;text-decoration:underline}
 
 /* Top bar */
 #topbar{background:#0f172a;color:#fff;padding:0 16px;height:44px;display:flex;align-items:center;gap:10px;flex-shrink:0}
@@ -549,32 +539,8 @@ function fmtDate(d){
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
-function doLogin(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const pwd=document.getElementById('loginPwd').value;
-  const err=document.getElementById('loginErr');
-  err.textContent='Signing in…';
-  const{auth,signInWithEmailAndPassword}=window._fb;
-  signInWithEmailAndPassword(auth,email,pwd)
-    .then(()=>{err.textContent='';} )
-    .catch(e=>{err.textContent=e.code==='auth/invalid-credential'?'Incorrect email or password.':'Error: '+e.message;});
-}
 
-function doForgotPassword(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const err=document.getElementById('loginErr');
-  if(!email){err.style.color='#e67e22';err.textContent='Enter your email above first.';return;}
-  const{auth,sendPasswordResetEmail}=window._fb;
-  sendPasswordResetEmail(auth,email)
-    .then(()=>{err.style.color='#27ae60';err.textContent='Reset email sent.';} )
-    .catch(e=>{err.style.color='#ef4444';err.textContent='Error: '+e.message;});
-}
 
-function doSignOut(){
-  if(!confirm('Sign out?'))return;
-  const{auth,signOut}=window._fb;
-  signOut(auth);
-}
 
 function notify(msg){
   const n=document.getElementById('notify');
@@ -582,8 +548,8 @@ function notify(msg){
   clearTimeout(n._t);n._t=setTimeout(()=>{n.style.display='none';},2000);
 }
 
-document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+
 
 // ── Hub auth receiver (postMessage from hub.html) ─────────────────────────
 (function() {
