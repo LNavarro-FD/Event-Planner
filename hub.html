@@ -16,13 +16,13 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
 .nav-tab{height:100%;padding:0 16px;display:flex;align-items:center;font-size:12px;font-weight:600;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;text-transform:uppercase;user-select:none}
 .nav-tab.active{color:#fff;border-bottom-color:#3b82f6}
 #content{flex:1;position:relative;overflow:hidden}
-.frame{position:absolute;inset:0;width:100%;height:100%;border:none;display:none;background:#fff}
-#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f1f5f9;flex-direction:column;gap:12px;z-index:10}
+iframe{position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f1f5f9;flex-direction:column;gap:12px;z-index:10;pointer-events:none}
 #loading.hidden{display:none}
 .spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #statusbar{background:#0f172a;height:22px;display:flex;align-items:center;padding:0 12px;flex-shrink:0}
-#sb-status{font-size:10px;color:#334155}
+#sb{font-size:10px;color:#334155}
 </style>
 </head>
 <body>
@@ -30,47 +30,39 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
   <div id="nav">
     <div id="nav-logo">FD<span>.</span>PLAN</div>
     <div id="nav-tabs">
-      <div class="nav-tab" onclick="switchTab('todo')"    data-tab="todo">To-Do</div>
-      <div class="nav-tab" onclick="switchTab('planner')" data-tab="planner">Site Planner</div>
-      <div class="nav-tab" onclick="switchTab('kanban')"  data-tab="kanban">Kanban</div>
+      <div class="nav-tab active" onclick="go('todo')"    data-tab="todo">To-Do</div>
+      <div class="nav-tab"        onclick="go('planner')" data-tab="planner">Site Planner</div>
+      <div class="nav-tab"        onclick="go('kanban')"  data-tab="kanban">Kanban</div>
     </div>
   </div>
   <div id="content">
-    <div id="loading">
-      <div class="spinner"></div>
-      <p id="loading-msg">Loading...</p>
-    </div>
-    <iframe class="frame" id="frame-todo"    data-src="todo.html"          title="To-Do"></iframe>
-    <iframe class="frame" id="frame-planner" data-src="venue-planner.html" title="Site Planner"></iframe>
-    <iframe class="frame" id="frame-kanban"  data-src="kanban.html"        title="Kanban"></iframe>
+    <div id="loading"><div class="spinner"></div><p>Loading...</p></div>
+    <iframe id="f" src="todo.html" onload="loaded()"></iframe>
   </div>
-  <div id="statusbar">
-    <span id="sb-status">FD.PLAN · hub v2.0.0 · todo v3.0.0 · planner v4.0.0 · kanban v3.0.0</span>
-  </div>
+  <div id="statusbar"><span id="sb">FD Event Planner</span></div>
 </div>
 <script>
-var _loaded = {};
-function switchTab(tab) {
+var SRCS = {todo:'todo.html', planner:'venue-planner.html', kanban:'kanban.html'};
+var cur = 'todo';
+
+function loaded() {
+  document.getElementById('loading').classList.add('hidden');
+}
+
+function go(tab) {
+  if (tab === cur) return;
+  cur = tab;
+
+  // Update nav
   var tabs = document.querySelectorAll('.nav-tab');
   for (var i = 0; i < tabs.length; i++) {
-    tabs[i].classList.remove('active');
-    if (tabs[i].getAttribute('data-tab') === tab) tabs[i].classList.add('active');
+    tabs[i].classList.toggle('active', tabs[i].getAttribute('data-tab') === tab);
   }
-  var frames = document.querySelectorAll('.frame');
-  for (var j = 0; j < frames.length; j++) { frames[j].style.display = 'none'; }
-  var frame = document.getElementById('frame-' + tab);
-  if (!frame) return;
-  frame.style.display = 'block';
-  if (!_loaded[tab]) {
-    _loaded[tab] = true;
-    var labels = { todo:'To-Do List', planner:'Site Planner', kanban:'Kanban' };
-    document.getElementById('loading').classList.remove('hidden');
-    document.getElementById('loading-msg').textContent = 'Loading ' + labels[tab] + '...';
-    frame.onload = function() { document.getElementById('loading').classList.add('hidden'); };
-    frame.src = frame.getAttribute('data-src');
-  }
+
+  // Show loading, swap src
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('f').src = SRCS[tab];
 }
-switchTab('todo');
 </script>
 </body>
 </html>
