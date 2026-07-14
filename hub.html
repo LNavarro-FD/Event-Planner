@@ -76,6 +76,10 @@ firebase.initializeApp({
 
 const _auth = firebase.auth();
 
+// Set persistence — LOCAL keeps session across browser restarts
+// SESSION clears when browser closes
+_auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
 // Available immediately — no async module loading
 window._hubAuth = {
   auth:                    _auth,
@@ -101,6 +105,8 @@ _auth.onAuthStateChanged(async user => {
     window._hubToken = token;
     window._hubUser  = { email: user.email, uid: user.uid };
     broadcastAuth(token, user.email);
+    // Offer to register biometrics after password sign-in
+    registerBiometric(user);
     if (!window._activeTab) switchTab('todo');
   } else {
     document.getElementById('loginOverlay').style.display = 'flex';
@@ -129,8 +135,17 @@ window.addEventListener('message', e => {
     <p>Funky Dory Events Management</p>
     <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"/>
     <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"/>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:-4px">
+      <input type="checkbox" id="rememberMe" style="accent-color:#3b82f6;width:14px;height:14px;cursor:pointer" checked>
+      <label for="rememberMe" style="font-size:12px;color:#94a3b8;cursor:pointer">Stay signed in</label>
+    </div>
     <button class="signin" onclick="doLogin()">Sign in</button>
     <div id="loginErr"></div>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:center" id="biometric-row" style="display:none">
+      <button id="faceIdBtn" onclick="doBiometric()" style="display:none;padding:8px 16px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:12px;cursor:pointer;flex:1">
+        <span id="biometric-icon">🔐</span> <span id="biometric-label">Use Face ID / Touch ID</span>
+      </button>
+    </div>
     <div class="forgotlink" onclick="doForgotPassword()">Forgot password?</div>
   </div>
   <div id="loginVersion">FD Event Planner · hub v1.0.0</div>
@@ -222,6 +237,9 @@ function doLogin() {
   const err   = document.getElementById('loginErr');
   err.textContent = 'Signing in…';
   err.style.color = '#64748b';
+  const remember = document.getElementById('rememberMe').checked;
+  const persistence = remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+  _auth.setPersistence(persistence).then(() => {});
   const { auth, signInWithEmailAndPassword } = window._hubAuth;
   signInWithEmailAndPassword(auth, email, pwd)
     .then(() => { err.textContent = ''; })
@@ -245,6 +263,109 @@ function doSignOut() {
   if (!confirm('Sign out?')) return;
   window._hubAuth.signOut(window._hubAuth.auth);
 }
+
+// ── Biometric / Face ID (WebAuthn) ───────────────────────────────────────────
+const WEBAUTHN_KEY = 'fd_webauthn_cred';
+
+async function checkBiometricAvailable() {
+  if (!window.PublicKeyCredential) return false;
+  try {
+    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    return available;
+  } catch(e) { return false; }
+}
+
+async function initBiometric() {
+  const available = await checkBiometricAvailable();
+  const hasStored = localStorage.getItem(WEBAUTHN_KEY);
+  const btn = document.getElementById('faceIdBtn');
+  if (!btn) return;
+  if (available) {
+    btn.style.display = 'flex';
+    // Detect platform for label
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isMac = /Mac/.test(ua) && !isIOS;
+    const isAndroid = /Android/.test(ua);
+    const icon = document.getElementById('biometric-icon');
+    const label = document.getElementById('biometric-label');
+    if (isIOS || isMac) { icon.textContent = ''; label.textContent = 'Sign in with Face ID / Touch ID'; }
+    else if (isAndroid) { icon.textContent = '🔏'; label.textContent = 'Sign in with fingerprint'; }
+    else { icon.textContent = '🔐'; label.textContent = 'Sign in with biometrics'; }
+    if (!hasStored) { label.textContent += ' (set up after first sign in)'; btn.style.opacity = '0.5'; }
+  }
+}
+
+async function registerBiometric(user) {
+  if (!window.PublicKeyCredential) return;
+  try {
+    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if (!available) return;
+    // Only register if user ticked "Stay signed in"
+    const remember = document.getElementById('rememberMe');
+    if (remember && !remember.checked) return;
+    // Create credential
+    const encoder = new TextEncoder();
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId = encoder.encode(user.uid.slice(0,8));
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: 'FD Event Planner', id: window.location.hostname },
+        user: { id: userId, name: user.email, displayName: 'FD Planner' },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000,
+      }
+    });
+    // Store credential ID for future use
+    const credId = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+    localStorage.setItem(WEBAUTHN_KEY, JSON.stringify({ credId, email: user.email }));
+    console.log('[FD Auth] Biometric registered');
+    const btn = document.getElementById('faceIdBtn');
+    if (btn) { btn.style.opacity = '1'; }
+  } catch(e) {
+    console.log('[FD Auth] Biometric registration skipped:', e.message);
+  }
+}
+
+async function doBiometric() {
+  const stored = localStorage.getItem(WEBAUTHN_KEY);
+  if (!stored) { alert('Please sign in with your password first, then biometrics will be available.'); return; }
+  const { credId, email } = JSON.parse(stored);
+  const err = document.getElementById('loginErr');
+  err.style.color = '#64748b';
+  err.textContent = 'Verifying…';
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const rawId = Uint8Array.from(atob(credId), c => c.charCodeAt(0));
+    await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{ id: rawId, type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000,
+      }
+    });
+    // Biometric verified — Firebase session should still be active (LOCAL persistence)
+    // Just trigger a re-check of auth state
+    const currentUser = _auth.currentUser;
+    if (currentUser) {
+      err.textContent = '';
+      // Auth observer will fire automatically
+    } else {
+      err.style.color = '#f59e0b';
+      err.textContent = 'Session expired — please sign in with password.';
+      localStorage.removeItem(WEBAUTHN_KEY);
+    }
+  } catch(e) {
+    err.style.color = '#ef4444';
+    err.textContent = e.name === 'NotAllowedError' ? 'Biometric cancelled.' : 'Biometric failed: ' + e.message;
+  }
+}
+
+// Init biometric button on page load
+initBiometric();
 
 // Keyboard shortcut: Enter on password field
 document.getElementById('loginPwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
