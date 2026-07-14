@@ -14,10 +14,8 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
 #loginBox input[type=email],#loginBox input[type=password]{padding:10px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:14px;outline:none;width:100%}
 #loginBox input:focus{border-color:#3b82f6}
 .signin-btn{padding:11px;border-radius:8px;background:#3b82f6;color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;width:100%}
-.signin-btn:hover{background:#2563eb}
 #loginErr{color:#ef4444;font-size:12px;text-align:center;min-height:16px}
 .remember-row{display:flex;align-items:center;gap:8px}
-.remember-row input{width:14px;height:14px;accent-color:#3b82f6;cursor:pointer;flex-shrink:0}
 .remember-row label{font-size:12px;color:#94a3b8;cursor:pointer}
 .forgotlink{text-align:center;font-size:12px;color:#64748b;cursor:pointer;text-decoration:underline}
 #loginVersion{font-size:10px;color:#334155;text-align:center}
@@ -40,8 +38,96 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
 .spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #statusbar{background:#0f172a;height:22px;display:flex;align-items:center;padding:0 12px;gap:16px;flex-shrink:0}
-#sb-auth{font-size:10px;color:#10b981}
+#sb-auth{font-size:10px;color:#64748b}
 </style>
+
+<!-- Firebase v8 — widest browser compatibility, no modules needed -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-auth.min.js"></script>
+
+<script>
+firebase.initializeApp({
+  apiKey:            'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
+  authDomain:        'event-planner-7944d.firebaseapp.com',
+  projectId:         'event-planner-7944d',
+  storageBucket:     'event-planner-7944d.firebasestorage.app',
+  messagingSenderId: '455768566205',
+  appId:             '1:455768566205:web:c5274d85158e6b2bf8cad4'
+});
+
+var auth = firebase.auth();
+
+// Default to local persistence — stay logged in
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('shell').style.display       = 'flex';
+    document.getElementById('nav-user').textContent      = user.email;
+    document.getElementById('sb-auth').textContent       = '● ' + user.email;
+    document.getElementById('sb-auth').style.color       = '#10b981';
+    window._currentUser = user;
+    if (!window._activeTab) switchTab('todo');
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('shell').style.display        = 'none';
+    window._currentUser = null;
+  }
+});
+
+function doLogin() {
+  var email   = document.getElementById('loginEmail').value.trim();
+  var pwd     = document.getElementById('loginPwd').value;
+  var err     = document.getElementById('loginErr');
+  var btn     = document.getElementById('signinBtn');
+  var remember = document.getElementById('rememberMe').checked;
+
+  err.style.color = '#64748b';
+  err.textContent = 'Signing in...';
+  btn.disabled    = true;
+
+  var persistence = remember
+    ? firebase.auth.Auth.Persistence.LOCAL
+    : firebase.auth.Auth.Persistence.SESSION;
+
+  auth.setPersistence(persistence)
+    .then(function() {
+      return auth.signInWithEmailAndPassword(email, pwd);
+    })
+    .then(function() {
+      err.textContent = '';
+    })
+    .catch(function(e) {
+      err.style.color = '#ef4444';
+      err.textContent =
+        e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential'
+          ? 'Incorrect email or password.'
+          : e.code === 'auth/user-not-found'
+          ? 'No account found with that email.'
+          : e.code === 'auth/too-many-requests'
+          ? 'Too many attempts — try again later.'
+          : e.code === 'auth/network-request-failed'
+          ? 'Network error — check your connection.'
+          : 'Error: ' + e.message;
+      btn.disabled = false;
+    });
+}
+
+function doForgotPassword() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var err   = document.getElementById('loginErr');
+  if (!email) { err.style.color = '#f59e0b'; err.textContent = 'Enter your email above first.'; return; }
+  auth.sendPasswordResetEmail(email)
+    .then(function() { err.style.color = '#10b981'; err.textContent = 'Reset email sent — check your inbox.'; })
+    .catch(function(e) { err.style.color = '#ef4444'; err.textContent = 'Error: ' + e.message; });
+}
+
+function doSignOut() {
+  if (!confirm('Sign out?')) return;
+  auth.signOut();
+}
+</script>
 </head>
 <body>
 
@@ -49,26 +135,26 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
   <div id="loginBox">
     <h2>FD Event Planner</h2>
     <p>Funky Dory Events Management</p>
-    <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"/>
-    <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"/>
+    <input type="email"    id="loginEmail" placeholder="Email"    autocomplete="username"/>
+    <input type="password" id="loginPwd"   placeholder="Password" autocomplete="current-password"/>
     <div class="remember-row">
-      <input type="checkbox" id="rememberMe" checked>
+      <input type="checkbox" id="rememberMe" style="width:14px;height:14px;accent-color:#3b82f6;cursor:pointer" checked>
       <label for="rememberMe">Stay signed in</label>
     </div>
     <button class="signin-btn" id="signinBtn" onclick="doLogin()">Sign in</button>
     <div id="loginErr"></div>
     <div class="forgotlink" onclick="doForgotPassword()">Forgot password?</div>
   </div>
-  <div id="loginVersion">FD Event Planner · hub v1.1.0</div>
+  <div id="loginVersion">FD Event Planner · hub v1.2.0</div>
 </div>
 
 <div id="shell">
   <div id="nav">
     <div id="nav-logo">FD<span>.</span>PLAN</div>
     <div id="nav-tabs">
-      <div class="nav-tab" onclick="switchTab('todo')" data-tab="todo">To-Do</div>
+      <div class="nav-tab" onclick="switchTab('todo')"    data-tab="todo">To-Do</div>
       <div class="nav-tab" onclick="switchTab('planner')" data-tab="planner">Site Planner</div>
-      <div class="nav-tab" onclick="switchTab('kanban')" data-tab="kanban">Kanban</div>
+      <div class="nav-tab" onclick="switchTab('kanban')"  data-tab="kanban">Kanban</div>
     </div>
     <div id="nav-right">
       <span id="nav-user"></span>
@@ -89,57 +175,6 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
   </div>
 </div>
 
-<!-- Firebase modular SDK -->
-<script type="module">
-import { initializeApp }           from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth,
-         signInWithEmailAndPassword,
-         signOut,
-         sendPasswordResetEmail,
-         onAuthStateChanged,
-         browserLocalPersistence,
-         browserSessionPersistence,
-         setPersistence }          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-
-const app  = initializeApp({
-  apiKey:            'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
-  authDomain:        'event-planner-7944d.firebaseapp.com',
-  projectId:         'event-planner-7944d',
-  storageBucket:     'event-planner-7944d.firebasestorage.app',
-  messagingSenderId: '455768566205',
-  appId:             '1:455768566205:web:c5274d85158e6b2bf8cad4'
-});
-
-const auth = getAuth(app);
-
-// Expose functions for the non-module script
-window._auth = {
-  signIn:    (email, pwd)  => signInWithEmailAndPassword(auth, email, pwd),
-  signOut:   ()            => signOut(auth),
-  resetPwd:  (email)       => sendPasswordResetEmail(auth, email),
-  persist:   (local)       => setPersistence(auth, local ? browserLocalPersistence : browserSessionPersistence),
-  ready:     true
-};
-
-// Auth state observer
-onAuthStateChanged(auth, function(user) {
-  if (user) {
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('shell').style.display       = 'flex';
-    document.getElementById('nav-user').textContent      = user.email;
-    document.getElementById('sb-auth').textContent       = '● ' + user.email;
-    document.getElementById('sb-auth').style.color       = '#10b981';
-    window._currentUser = user;
-    if (!window._activeTab) switchTab('todo');
-  } else {
-    document.getElementById('loginOverlay').style.display = 'flex';
-    document.getElementById('shell').style.display        = 'none';
-    window._currentUser = null;
-  }
-});
-</script>
-
-<!-- Main app logic (non-module so it can be called from onclick) -->
 <script>
 window._activeTab = null;
 
@@ -159,80 +194,18 @@ function switchTab(tab) {
 
   if (!frame.src) {
     var loading = document.getElementById('loading');
-    var msg = document.getElementById('loading-msg');
-    var labels = { todo: 'To-Do List', planner: 'Site Planner', kanban: 'Kanban' };
     loading.classList.remove('hidden');
-    msg.textContent = 'Loading ' + (labels[tab] || tab) + '...';
-    frame.onload = function() {
-      loading.classList.add('hidden');
-    };
+    document.getElementById('loading-msg').textContent =
+      'Loading ' + { todo:'To-Do', planner:'Site Planner', kanban:'Kanban' }[tab] + '...';
+    frame.onload = function() { loading.classList.add('hidden'); };
     frame.src = frame.dataset.src;
   }
 
   frame.classList.add('active');
 }
 
-function doLogin() {
-  var email = document.getElementById('loginEmail').value.trim();
-  var pwd   = document.getElementById('loginPwd').value;
-  var err   = document.getElementById('loginErr');
-  var remember = document.getElementById('rememberMe').checked;
-
-  if (!window._auth || !window._auth.ready) {
-    err.style.color = '#f59e0b';
-    err.textContent = 'Still loading, please try again in a moment.';
-    return;
-  }
-
-  err.style.color   = '#64748b';
-  err.textContent   = 'Signing in...';
-  document.getElementById('signinBtn').disabled = true;
-
-  // Timeout after 10s
-  var loginTimeout = setTimeout(function() {
-    err.style.color = '#ef4444';
-    err.textContent = 'Sign in timed out — check your connection and try again.';
-    document.getElementById('signinBtn').disabled = false;
-  }, 10000);
-
-  // Skip persistence call — just sign in directly
-  window._auth.signIn(email, pwd)
-    .then(function() {
-      clearTimeout(loginTimeout);
-      err.textContent = '';
-    })
-    .catch(function(e) {
-      clearTimeout(loginTimeout);
-      err.style.color = '#ef4444';
-      var msg = e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password'
-        ? 'Incorrect email or password.'
-        : e.code === 'auth/user-not-found'
-        ? 'No account found with that email.'
-        : e.code === 'auth/too-many-requests'
-        ? 'Too many attempts — try again later.'
-        : 'Error (' + e.code + '): ' + e.message;
-      err.textContent = msg;
-      document.getElementById('signinBtn').disabled = false;
-    });
-}
-
-function doForgotPassword() {
-  var email = document.getElementById('loginEmail').value.trim();
-  var err   = document.getElementById('loginErr');
-  if (!email) { err.style.color = '#f59e0b'; err.textContent = 'Enter your email above first.'; return; }
-  if (!window._auth || !window._auth.ready) { err.textContent = 'Still loading, please try again.'; return; }
-  window._auth.resetPwd(email)
-    .then(function() { err.style.color = '#10b981'; err.textContent = 'Reset email sent — check your inbox.'; })
-    .catch(function(e) { err.style.color = '#ef4444'; err.textContent = 'Error: ' + e.message; });
-}
-
-function doSignOut() {
-  if (!confirm('Sign out?')) return;
-  if (window._auth) window._auth.signOut();
-}
-
-document.getElementById('loginPwd').addEventListener('keydown',   function(e) { if (e.key === 'Enter') doLogin(); });
-document.getElementById('loginEmail').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
+document.getElementById('loginPwd').addEventListener('keydown',   function(e) { if (e.key==='Enter') doLogin(); });
+document.getElementById('loginEmail').addEventListener('keydown', function(e) { if (e.key==='Enter') doLogin(); });
 </script>
 
 </body>
