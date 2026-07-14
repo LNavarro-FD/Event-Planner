@@ -1287,8 +1287,7 @@ function buildPlainText(bySupplier) {
   } else {
     groups.forEach(g => lines.push(`${g.count}× ${g.name} (${g.w}m × ${g.d}m)`));
   }
-  return lines.join('
-');
+  return lines.join('\n');
 }
 
 function copyQuoteText() {
