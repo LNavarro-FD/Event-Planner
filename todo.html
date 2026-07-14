@@ -102,48 +102,31 @@ input[type=checkbox]{margin-top:2px;flex-shrink:0;accent-color:#FF4B7B;width:15p
 .sl-filter-active{outline:2px solid #FF4B7B;outline-offset:2px}
 </style>
 
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-const app = initializeApp({
-  apiKey:"AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8",
-  authDomain:"event-planner-7944d.firebaseapp.com",
-  projectId:"event-planner-7944d",
-  storageBucket:"event-planner-7944d.firebasestorage.app",
-  messagingSenderId:"455768566205",
-  appId:"1:455768566205:web:c5274d85158e6b2bf8cad4"
+
+<!-- Firebase (no auth) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-firestore.min.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:            'AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8',
+  authDomain:        'event-planner-7944d.firebaseapp.com',
+  projectId:         'event-planner-7944d',
+  storageBucket:     'event-planner-7944d.firebasestorage.app',
+  messagingSenderId: '455768566205',
+  appId:             '1:455768566205:web:c5274d85158e6b2bf8cad4'
 });
-const auth=getAuth(app), db=getFirestore(app);
-window._fb={auth,db,doc,getDoc,setDoc,signInWithEmailAndPassword,signOut,sendPasswordResetEmail};
-onAuthStateChanged(auth,user=>{
-  if(user){
-    document.getElementById('loginOverlay').style.display='none';
-    document.getElementById('mainContent').style.display='block';
-    window._fbUser=user;
-    window._fbLoad();
-  } else {
-    document.getElementById('loginOverlay').style.display='flex';
-    document.getElementById('mainContent').style.display='none';
-  }
-});
+var _db = firebase.firestore();
+window._fbUser = { email: 'local' };  // dummy user so existing code works
+window._fbLoad();
 </script>
 </head>
 <body>
 
-<div id="loginOverlay">
-  <div id="loginBox">
-    <h2>FD7 To-Do List</h2>
-    <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"/>
-    <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"/>
-    <button class="signin" onclick="doLogin()">Sign in</button>
-    <div id="loginErr"></div>
     <div class="forgotlink" onclick="doForgotPassword()">Forgot password?</div>
   </div>
 </div>
 
-<div id="mainContent" style="display:none">
+<div id="mainContent">
 <h1>Funky Dory Festival 7 — 2026</h1>
 <p class="sub">Master to-do list · Sat 15 Aug 2026 · Ashfields Carriage &amp; Polo Club, CM6 1JU <span id="saveStatus"></span></p>
 
@@ -233,10 +216,10 @@ let saveTimer=null;
 const FB_DOC='fd7_todo_2026';
 
 window._fbLoad=async function(){
+  window._fbUser = window._fbUser || { email: "local" };
   if(!window._fb||!window._fbUser)return;
-  const{db,doc,getDoc}=window._fb;
   try{
-    const snap=await getDoc(doc(db,'todos',FB_DOC));
+    const snap=await _db.collection('todos').doc(FB_DOC).get();
     if(snap.exists()){
       const d=snap.data();
       done=d.done||{};
@@ -255,9 +238,8 @@ function fbSave(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     if(!window._fb||!window._fbUser)return;
-    const{db,doc,setDoc}=window._fb;
     try{
-      await setDoc(doc(db,'todos',FB_DOC),{done,custom,itemLogs,subs,overrides,generalNotes});
+      await _db.collection('todos').doc(FB_DOC).set({done,custom,itemLogs,subs,overrides,generalNotes});
       const s=document.getElementById('saveStatus');
       s.textContent='✓ Saved';
       setTimeout(()=>s.textContent='',2000);
@@ -672,32 +654,7 @@ function toggleSwimlane() {
 }
 
 // ── Auth ─────────────────────────────────────────────────
-function doLogin(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const pwd=document.getElementById('loginPwd').value;
-  const err=document.getElementById('loginErr');
-  err.textContent='Signing in…';
-  const{auth,signInWithEmailAndPassword}=window._fb;
-  signInWithEmailAndPassword(auth,email,pwd)
-    .then(()=>{err.textContent='';})
-    .catch(e=>{err.textContent=e.code==='auth/invalid-credential'?'Incorrect email or password.':'Error: '+e.message;});
-}
-function doForgotPassword(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const err=document.getElementById('loginErr');
-  if(!email){err.style.color='#e67e22';err.textContent='Enter your email above first.';return;}
-  const{auth,sendPasswordResetEmail}=window._fb;
-  sendPasswordResetEmail(auth,email)
-    .then(()=>{err.style.color='#27ae60';err.textContent='Reset email sent.';})
-    .catch(e=>{err.style.color='#ef4444';err.textContent='Error: '+e.message;});
-}
-document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-
-// ── Hub auth receiver (postMessage from hub.html) ─────────────────────────
-(function() {
-  // If loaded inside hub, receive auth token via postMessage
-  function isInHub() { try { return window.parent !== window; } catch(e) { return false; } }
+function isInHub() { try { return window.parent !== window; } catch(e) { return false; } }
 
   if (isInHub()) {
     // Hide login, show app — hub handles auth
