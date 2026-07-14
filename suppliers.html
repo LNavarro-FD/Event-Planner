@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FD Suppliers</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:#1e293b;height:44px;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+#topbar h1{color:#fff;font-size:14px;font-weight:700;margin-right:4px}
+.view-btn{padding:4px 12px;border-radius:20px;border:1px solid #475569;background:transparent;color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.view-btn.active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+#toolbar{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #e2e8f0;flex-shrink:0;align-items:center;flex-wrap:wrap}
+#toolbar select,#toolbar input{padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none;background:#fff}
+.btn{padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn:hover{background:#2563eb}
+.btn-sm{padding:4px 10px;font-size:11px;border:none;border-radius:5px;cursor:pointer;font-weight:600}
+#content{flex:1;overflow-y:auto;padding:16px}
+#statusbar{background:#0f172a;height:22px;display:flex;align-items:center;padding:0 12px;flex-shrink:0}
+#statusbar span{font-size:10px;color:#334155}
+
+/* Supplier cards */
+.supplier-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.s-card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:14px;cursor:pointer;transition:box-shadow .15s;position:relative}
+.s-card:hover{box-shadow:0 2px 8px #0001}
+.s-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.s-name{font-weight:700;font-size:13px}
+.s-role{font-size:11px;color:#64748b;margin-bottom:6px}
+.s-contact{font-size:11px;color:#475569}
+.s-badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.type-install_stay{background:#dbeafe;color:#1e40af}
+.type-install_go{background:#ede9fe;color:#5b21b6}
+.type-caterer{background:#ffedd5;color:#9a3412}
+.rag-green{background:#dcfce7;color:#15803d}
+.rag-amber{background:#fef9c3;color:#854d0e}
+.rag-red{background:#fee2e2;color:#dc2626}
+.rag-grey{background:#f1f5f9;color:#64748b}
+
+/* Compliance view */
+.comp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.comp-supplier-select{padding:7px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:600;outline:none;background:#fff;min-width:240px}
+.comp-section{margin-bottom:20px}
+.comp-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:8px 0 6px;border-bottom:1px solid #e2e8f0;margin-bottom:8px}
+.comp-item{display:grid;grid-template-columns:1fr 120px 90px;gap:8px;align-items:center;padding:8px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:4px}
+.comp-doc{font-weight:600;font-size:12px}
+.comp-note{font-size:10px;color:#94a3b8;margin-top:1px}
+.comp-status select{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid #e5e7eb;cursor:pointer;outline:none;width:100%}
+.status-required{background:#f1f5f9;color:#64748b}
+.status-requested{background:#fef9c3;color:#854d0e}
+.status-received{background:#dbeafe;color:#1e40af}
+.status-checked{background:#dcfce7;color:#15803d}
+.status-na{background:#f1f5f9;color:#94a3b8;text-decoration:line-through}
+.comp-actions{display:flex;gap:6px}
+.upload-btn{font-size:10px;padding:3px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;cursor:pointer;color:#64748b}
+.upload-btn.has-doc{background:#dcfce7;border-color:#86efac;color:#15803d}
+
+/* Kit list view */
+.kit-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;font-size:11px}
+.kit-table th{background:#f8fafc;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748b;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.kit-table td{padding:6px 10px;border-bottom:1px solid #f1f5f9}
+.kit-table input,.kit-table select{width:100%;border:none;background:transparent;font-size:11px;font-family:inherit;outline:none}
+.kit-table input:focus,.kit-table select:focus{background:#eff6ff;border-radius:3px}
+.kit-table tr:hover td{background:#fafafa}
+.power-total{font-weight:700;background:#f8fafc;border-top:2px solid #e2e8f0}
+
+/* Add/Edit overlay */
+.overlay{position:fixed;inset:0;background:#0005;z-index:100;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:500px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px #0003}
+.modal-header{padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:700}
+.modal-body{flex:1;overflow-y:auto;padding:16px 20px}
+.modal-footer{padding:12px 20px;border-top:1px solid #e5e7eb;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#3b82f6}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.type-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;margin-top:4px}
+
+/* Email modal */
+.email-preview{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:11px;line-height:1.6;white-space:pre-wrap;font-family:monospace;max-height:300px;overflow-y:auto}
+
+@media print {
+  @page{size:A4 portrait;margin:14mm}
+  #topbar,#toolbar,#statusbar,.comp-actions,button,.s-card:hover{display:none!important}
+  body{background:#fff!important;height:auto!important;overflow:visible!important}
+  #content{overflow:visible!important;height:auto!important;padding:0!important}
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyCt-MVurfEOcvj_4Q9ndD6dqJrf8hfm4x8",
+  authDomain:"event-planner-7944d.firebaseapp.com",
+  projectId:"event-planner-7944d",
+  storageBucket:"event-planner-7944d.firebasestorage.app",
+  messagingSenderId:"455768566205",
+  appId:"1:455768566205:web:c5274d85158e6b2bf8cad4"
+});
+var _db = firebase.firestore();
+</script>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>🏢 Suppliers</h1>
+  <button class="view-btn active" onclick="setView('suppliers')">Suppliers</button>
+  <button class="view-btn" onclick="setView('compliance')">Compliance</button>
+  <button class="view-btn" onclick="setView('kit')">Kit &amp; Power</button>
+</div>
+
+<div id="toolbar">
+  <select id="eventFilter" onchange="render()">
+    <option value="FD7">FD7 2026</option>
+    <option value="HRR26">HRR 2026</option>
+    <option value="FD Shindig">FD Shindig</option>
+    <option value="">All events</option>
+  </select>
+  <select id="typeFilter" onchange="render()">
+    <option value="">All types</option>
+    <option value="install_stay">Install &amp; Stay</option>
+    <option value="install_go">Install &amp; Go</option>
+    <option value="caterer">Caterer / Retailer</option>
+  </select>
+  <button class="btn" onclick="openAddSupplier()">+ Add supplier</button>
+  <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
+</div>
+
+<div id="content"></div>
+<div id="statusbar"><span>FD Suppliers · v1.0.0</span></div>
+
+<!-- Add/Edit Supplier -->
+<div class="overlay" id="supplierModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add supplier</h3>
+      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Company name *</label><input id="s-name" type="text"></div>
+        <div class="field"><label>Type *</label>
+          <select id="s-type" onchange="updateTypeDesc()">
+            <option value="install_stay">Install &amp; Stay</option>
+            <option value="install_go">Install &amp; Go</option>
+            <option value="caterer">Caterer / Retailer</option>
+          </select>
+          <div id="s-type-desc" class="type-badge type-install_stay">On site for build, event &amp; derig</div>
+        </div>
+      </div>
+      <div class="field"><label>Role / what they provide</label><input id="s-role" type="text" placeholder="e.g. Stage, PA, sound &amp; lighting"></div>
+      <div class="field-row">
+        <div class="field"><label>Contact name</label><input id="s-contact" type="text"></div>
+        <div class="field"><label>Phone</label><input id="s-phone" type="tel"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Email</label><input id="s-email" type="email"></div>
+        <div class="field"><label>Events</label>
+          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap" id="s-events">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD7" checked> FD7</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="HRR26"> HRR26</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD Shindig"> FD Shindig</label>
+          </div>
+        </div>
+      </div>
+      <div class="field"><label>Notes</label><textarea id="s-notes" style="min-height:50px"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal()" style="padding:7px 14px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Cancel</button>
+      <button onclick="saveSupplier()" class="btn">Save supplier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Email preview modal -->
+<div class="overlay" id="emailModal" onclick="if(event.target===this)closeEmailModal()">
+  <div class="modal" style="width:580px">
+    <div class="modal-header">
+      <h3>Compliance request email</h3>
+      <button onclick="closeEmailModal()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>To</label><input id="email-to" type="email"></div>
+      <div class="field"><label>Subject</label><input id="email-subject" type="text"></div>
+      <div class="field"><label>Message</label><div class="email-preview" id="email-body"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="copyEmail()" style="padding:7px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;cursor:pointer">📋 Copy</button>
+      <button onclick="sendEmail()" class="btn">Open in Mail</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+var SEED_SUPPLIERS = [{"id": "panache_audio", "name": "Panache Audio Systems", "contact": "Dave Ong", "phone": "01634 720700", "email": "sales@panacheaudio.co.uk", "type": "install_stay", "role": "Stage, PA, sound, lighting & generator", "events": ["FD7"]}, {"id": "under_the_canvas", "name": "Under The Canvas", "contact": "Ben", "phone": "07711 072 438", "email": "ben@underthecanvas.co.uk", "type": "install_go", "role": "Stretch tents", "events": ["FD7"]}, {"id": "house_group", "name": "House Group", "contact": "Andy Coleman", "phone": "", "email": "andy@house-group.uk", "type": "install_go", "role": "Bar structure & fridge trucks", "events": ["FD7"]}, {"id": "local_toilet_hire", "name": "Local Toilet Hire", "contact": "James Parkin", "phone": "0800 907 0086", "email": "james@localtoilethire.co.uk", "type": "install_go", "role": "Heras fencing & crowd barriers", "events": ["FD7"]}, {"id": "luxury_toilet", "name": "Luxury Toilet Hire UK Ltd", "contact": "Sharon", "phone": "01371 873003", "email": "", "type": "install_go", "role": "Luxury toilet trailers", "events": ["FD7"]}, {"id": "marvellous_glow", "name": "Marvellous Glow", "contact": "Paul", "phone": "", "email": "paul@marvellousglow.com", "type": "install_stay", "role": "Site lighting & powered signs", "events": ["FD7"]}, {"id": "swifty_security", "name": "Swifty Security", "contact": "", "phone": "", "email": "", "type": "install_stay", "role": "Security", "events": ["FD7"]}, {"id": "kacy_sounds", "name": "Kacy Sounds & Lighting", "contact": "", "phone": "", "email": "", "type": "install_go", "role": "DJ equipment hire", "events": ["FD7"]}, {"id": "fleur_de_lys", "name": "Fleur De Lys", "contact": "Louise Stirland", "phone": "", "email": "", "type": "install_go", "role": "Flowers & floral decoration", "events": ["FD7"]}, {"id": "be_entertained", "name": "Be Entertained", "contact": "Holly McDougall", "phone": "", "email": "holly@beentertained.co.uk", "type": "install_stay", "role": "Dancers & entertainment", "events": ["FD7"]}, {"id": "wts", "name": "Wireless Terminal Solutions", "contact": "Matt Griffiths", "phone": "", "email": "", "type": "install_go", "role": "Tills, POS & card machines", "events": ["FD7"]}, {"id": "rdl", "name": "RDL (Roadway Distribution)", "contact": "Sean", "phone": "07845 999247", "email": "transport@rdl.delivery", "type": "install_go", "role": "Transport & furniture delivery", "events": ["FD7"]}, {"id": "dunmow", "name": "Dunmow Group", "contact": "", "phone": "01245 466646", "email": "", "type": "install_go", "role": "Skip & RoRo hire", "events": ["FD7"]}, {"id": "tipis_4_hire", "name": "Tipis 4 Hire", "contact": "", "phone": "", "email": "", "type": "install_go", "role": "VIP & sponsor tipis", "events": ["FD7"]}, {"id": "furnihire", "name": "FurniHire", "contact": "John Moore", "phone": "01455 634125", "email": "info@furnihire.co.uk", "type": "install_go", "role": "Tables, chairs & benches", "events": ["FD7"]}];
+var COMPLIANCE_DEFS = {"all": [{"id": "pli", "doc": "Public Liability Insurance", "note": "Valid for full event period, min \u00a35m, business name and activity must match"}, {"id": "rams", "doc": "Risk Assessment & Method Statement (RAMS)", "note": "Must cover build, operation, breakdown and public interaction"}, {"id": "kit_list", "doc": "Equipment / Kit List", "note": "Full list of all items on site \u2014 complete Kit & Power spreadsheet"}, {"id": "staff_list", "doc": "Named Staff List", "note": "All personnel attending site by name \u2014 complete Staff & Vehicles form"}, {"id": "vehicles", "doc": "Vehicle Details", "note": "All vehicle registrations and types for access control"}, {"id": "pat", "doc": "PAT Testing Records", "note": "Valid for all portable electrical equipment"}], "install_stay": [{"id": "power_req", "doc": "Power Requirements / Load Schedule", "note": "Wattage, amps, phase, connection type per item"}, {"id": "safety_brief", "doc": "Safety Briefing Confirmation", "note": "Signed confirmation all staff have been briefed"}, {"id": "onsite_contact", "doc": "On-site Contact Details", "note": "Named contact reachable during entire event period"}, {"id": "emergency", "doc": "Emergency Call-out Contact", "note": "For adverse weather or equipment concerns outside hours"}], "install_go": [{"id": "power_req", "doc": "Power Requirements / Load Schedule", "note": "If electrical equipment on site"}, {"id": "handover", "doc": "Handover / Completion Sign-off", "note": "Confirmation installation complete and safe before leaving"}, {"id": "onsite_contact", "doc": "On-site Contact Details", "note": "Reachable during installation window"}], "caterer": [{"id": "food_hygiene_reg", "doc": "Food Hygiene Registration", "note": "Registered with relevant local authority"}, {"id": "food_hygiene_cert", "doc": "Food Hygiene Training Evidence", "note": "Level 2 minimum for all food handlers"}, {"id": "gas_safety", "doc": "Gas Safety Certificate", "note": "Required if using LPG or any gas \u2014 must be current"}, {"id": "allergen", "doc": "Allergen Information", "note": "Written allergen information for all menu items"}, {"id": "waste", "doc": "Waste / Grey Water Arrangements", "note": "How they will manage waste and grey water on site"}, {"id": "food_risk", "doc": "Food Safety Risk Assessment", "note": "Specific to their unit and menu"}]};
+var TYPE_LABELS = {install_stay:'Install & Stay', install_go:'Install & Go', caterer:'Caterer / Retailer'};
+var TYPE_DESC   = {install_stay:'On site for build, event & derig', install_go:'Installs and leaves before event', caterer:'Trading on site during event'};
+
+var suppliers    = [];
+var complianceData = {}; // {supplierId: {docId: status}}
+var kitData        = {}; // {supplierId: [rows]}
+var currentView    = 'suppliers';
+var editingId      = null;
+var compSupplierId = null;
+
+// ── Firestore ─────────────────────────────────────────────────────────────────
+async function load() {
+  try {
+    var snap = await _db.collection('suppliers_db').doc('suppliers').get();
+    if (snap.exists && snap.data().list && snap.data().list.length) {
+      suppliers = snap.data().list;
+    } else {
+      suppliers = SEED_SUPPLIERS.map(function(s){ return Object.assign({docs:{},kit:[]},s); });
+      await _db.collection('suppliers_db').doc('suppliers').set({list: suppliers});
+    }
+    var snap2 = await _db.collection('suppliers_db').doc('compliance').get();
+    if (snap2.exists) complianceData = snap2.data() || {};
+    var snap3 = await _db.collection('suppliers_db').doc('kit').get();
+    if (snap3.exists) kitData = snap3.data() || {};
+  } catch(e) { 
+    console.warn('Load failed', e); 
+    suppliers = SEED_SUPPLIERS.map(function(s){ return Object.assign({docs:{},kit:[]},s); });
+  }
+  if (suppliers.length && !compSupplierId) compSupplierId = suppliers[0].id;
+  render();
+}
+
+function save() {
+  _db.collection('suppliers_db').doc('suppliers').set({list: suppliers}).catch(function(e){ console.warn(e); });
+}
+
+function saveCompliance() {
+  _db.collection('suppliers_db').doc('compliance').set(complianceData).catch(function(e){ console.warn(e); });
+}
+
+function saveKit() {
+  _db.collection('suppliers_db').doc('kit').set(kitData).catch(function(e){ console.warn(e); });
+}
+
+// ── Compliance helpers ────────────────────────────────────────────────────────
+function getDocsForType(type) {
+  var docs = COMPLIANCE_DEFS.all.slice();
+  if (type === 'install_stay') docs = docs.concat(COMPLIANCE_DEFS.install_stay);
+  if (type === 'install_go')   docs = docs.concat(COMPLIANCE_DEFS.install_go);
+  if (type === 'caterer')      docs = docs.concat(COMPLIANCE_DEFS.caterer);
+  return docs;
+}
+
+function ragStatus(supplier) {
+  var docs = getDocsForType(supplier.type);
+  var comp = complianceData[supplier.id] || {};
+  var total = docs.length;
+  var checked = docs.filter(function(d){ return comp[d.id] === 'checked'; }).length;
+  var received = docs.filter(function(d){ return comp[d.id] === 'received' || comp[d.id] === 'checked'; }).length;
+  var na = docs.filter(function(d){ return comp[d.id] === 'na'; }).length;
+  var effective = total - na;
+  if (effective === 0) return {rag:'grey', label:'No docs required'};
+  if (checked === effective) return {rag:'green', label:'All checked ✓'};
+  if (received > 0) return {rag:'amber', label: received + '/' + effective + ' received'};
+  return {rag:'red', label:'Awaiting documents'};
+}
+
+// ── Views ─────────────────────────────────────────────────────────────────────
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.view-btn').forEach(function(b, i) {
+    b.classList.toggle('active', ['suppliers','compliance','kit'][i] === v);
+  });
+  render();
+}
+
+function render() {
+  var event = document.getElementById('eventFilter').value;
+  var type  = document.getElementById('typeFilter').value;
+  if (currentView === 'suppliers')   renderSuppliers(event, type);
+  else if (currentView === 'compliance') renderCompliance(event);
+  else renderKit(event);
+}
+
+function renderSuppliers(event, type) {
+  var filtered = suppliers.filter(function(s) {
+    if (event && !s.events.includes(event)) return false;
+    if (type  && s.type !== type) return false;
+    return true;
+  });
+  document.getElementById('countLabel').textContent = filtered.length + ' suppliers';
+
+  var html = '<div class="supplier-grid">';
+  filtered.forEach(function(s) {
+    var rag = ragStatus(s);
+    html += '<div class="s-card" onclick="openEditSupplier(\'' + s.id + '\')">';
+    html += '<div class="s-card-top">';
+    html += '<div><div class="s-name">' + s.name + '</div><div class="s-role">' + (s.role||'') + '</div></div>';
+    html += '<span class="badge rag-' + rag.rag + '">' + rag.label + '</span>';
+    html += '</div>';
+    if (s.contact || s.phone) {
+      html += '<div class="s-contact">';
+      if (s.contact) html += s.contact;
+      if (s.phone) html += (s.contact?' · ':'') + s.phone;
+      html += '</div>';
+    }
+    html += '<div class="s-badges">';
+    html += '<span class="badge type-' + s.type + '">' + TYPE_LABELS[s.type] + '</span>';
+    s.events.forEach(function(e){ html += '<span class="badge" style="background:#f1f5f9;color:#64748b">' + e + '</span>'; });
+    html += '</div>';
+    html += '<div style="margin-top:10px;display:flex;gap:6px">';
+    html += '<button class="btn-sm" style="background:#eff6ff;color:#1d4ed8" onclick="event.stopPropagation();goCompliance(\'' + s.id + '\')">Compliance</button>';
+    html += '<button class="btn-sm" style="background:#f0fdf4;color:#15803d" onclick="event.stopPropagation();openEmailModal(\'' + s.id + '\')">📧 Request docs</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderCompliance(event) {
+  var eventSuppliers = suppliers.filter(function(s){ return !event || s.events.includes(event); });
+  var current = suppliers.find(function(s){ return s.id === compSupplierId; }) || eventSuppliers[0];
+  if (!current) { document.getElementById('content').innerHTML = '<p style="padding:20px;color:#94a3b8">No suppliers found.</p>'; return; }
+  compSupplierId = current.id;
+  var comp = complianceData[current.id] || {};
+  var docs = getDocsForType(current.type);
+  var rag = ragStatus(current);
+
+  var html = '<div class="comp-header">';
+  html += '<div style="display:flex;align-items:center;gap:12px">';
+  html += '<select class="comp-supplier-select" onchange="compSupplierId=this.value;render()">';
+  eventSuppliers.forEach(function(s){
+    html += '<option value="' + s.id + '"' + (s.id===compSupplierId?' selected':'') + '>' + s.name + '</option>';
+  });
+  html += '</select>';
+  html += '<span class="badge rag-' + rag.rag + '">' + rag.label + '</span>';
+  html += '</div>';
+  html += '<button class="btn-sm" style="background:#f0fdf4;color:#15803d;padding:6px 14px" onclick="openEmailModal(\'' + current.id + '\')">📧 Request docs</button>';
+  html += '</div>';
+
+  // General docs section
+  html += '<div class="comp-section"><h4>All suppliers — required documents</h4>';
+  COMPLIANCE_DEFS.all.forEach(function(d){
+    html += renderCompItem(d, comp[d.id] || 'required', current.id);
+  });
+  html += '</div>';
+
+  // Type-specific docs
+  var typeKey = current.type;
+  var typeDocs = COMPLIANCE_DEFS[typeKey] || [];
+  if (typeDocs.length) {
+    var typeTitle = TYPE_LABELS[typeKey] + ' — additional documents';
+    html += '<div class="comp-section"><h4>' + typeTitle + '</h4>';
+    typeDocs.forEach(function(d){
+      html += renderCompItem(d, comp[d.id] || 'required', current.id);
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderCompItem(d, status, supplierId) {
+  var statusOpts = ['required','requested','received','checked','na'];
+  var statusLabels = {'required':'Awaiting','requested':'Requested','received':'Received','checked':'✓ Checked','na':'N/A'};
+  var opts = statusOpts.map(function(s){
+    return '<option value="' + s + '"' + (status===s?' selected':'') + '>' + statusLabels[s] + '</option>';
+  }).join('');
+
+  return '<div class="comp-item">' +
+    '<div><div class="comp-doc">' + d.doc + '</div><div class="comp-note">' + d.note + '</div></div>' +
+    '<div class="comp-status"><select class="status-' + status + '" onchange="setCompStatus(\'' + supplierId + '\',\'' + d.id + '\',this.value)">' + opts + '</select></div>' +
+    '<div class="comp-actions"><button class="upload-btn" title="Mark document received">📎</button></div>' +
+    '</div>';
+}
+
+
+function buildKitRow(row, i) {
+  function sel(field, options, val) {
+    return '<select onchange="updateKit(' + i + ',\'' + field + '\',this.value)">' +
+      options.map(function(o){ return '<option' + (val===o?' selected':'') + '>' + o + '</option>'; }).join('') +
+      '</select>';
+  }
+  function inp(field, val, extra) {
+    return '<input value="' + esc(val||'') + '" onchange="updateKit(' + i + ',\'' + field + '\',this.value)"' + (extra||'') + '>';
+  }
+  return '<tr>' +
+    '<td>' + inp('equipType', row.equipType, ' placeholder="Equipment type"') + '</td>' +
+    '<td>' + inp('desc', row.desc, ' placeholder="Description"') + '</td>' +
+    '<td>' + inp('zone', row.zone, ' placeholder="Zone"') + '</td>' +
+    '<td>' + inp('qty', row.qty, ' type="number" style="width:50px"') + '</td>' +
+    '<td>' + inp('wattage', row.wattage, ' type="number" style="width:70px" oninput="updateKitTotals()"') + '</td>' +
+    '<td>' + inp('amps', row.amps, ' type="number" style="width:50px"') + '</td>' +
+    '<td>' + sel('phase', ['Single','Three','Unknown'], row.phase) + '</td>' +
+    '<td>' + sel('connection', ['13A','16A','32A','63A','125A','Hardwired','Other'], row.connection) + '</td>' +
+    '<td>' + sel('fuel', ['None','LPG','Petrol','Diesel'], row.fuel) + '</td>' +
+    '<td>' + inp('cableDist', row.cableDist, ' type="number" style="width:60px"') + '</td>' +
+    '<td><button onclick="removeKitRow(' + i + ')" style="background:none;border:none;cursor:pointer;color:#e5e7eb;font-size:16px" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#e5e7eb\'">×</button></td>' +
+    '</tr>';
+}
+
+function renderKit(event) {
+  var eventSuppliers = suppliers.filter(function(s){ return !event || s.events.includes(event); });
+  if (!compSupplierId) compSupplierId = eventSuppliers[0] && eventSuppliers[0].id;
+  var kit = kitData[compSupplierId] || [];
+
+  var html = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">';
+  html += '<select class="comp-supplier-select" onchange="compSupplierId=this.value;render()">';
+  eventSuppliers.forEach(function(s){
+    html += '<option value="' + s.id + '"' + (s.id===compSupplierId?' selected':'') + '>' + s.name + '</option>';
+  });
+  html += '</select>';
+  html += '<button class="btn-sm" style="background:#eff6ff;color:#1d4ed8;padding:6px 12px" onclick="addKitRow()">+ Add item</button>';
+  html += '</div>';
+
+  var totalW = kit.reduce(function(n,r){ return n + (parseFloat(r.wattage)||0); }, 0);
+
+  html += '<table class="kit-table"><thead><tr>';
+  ['Equipment type','Description','Zone','Qty','Wattage (W)','Amps','Phase','Connection','Fuel/Gas','Cable dist (m)',''].forEach(function(h){
+    html += '<th>' + h + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+  kit.forEach(function(row, i) {
+    html += buildKitRow(row, i);
+>
