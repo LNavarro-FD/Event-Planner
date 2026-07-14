@@ -477,7 +477,7 @@ window._fbLoadAndInit=async function(){
 
   init();
 };
-let venues=['HRR','FD7','FD Shindig'];
+let venues=['FD7','HRR','FD Shindig'];
 let currentVenue=venues[0];
 let currentYear=String(new Date().getFullYear());
 let layouts={};
@@ -557,6 +557,17 @@ function applyBoundary(){
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
   boundary={w,d};document.getElementById('setup').classList.add('done');try{saveLayout();}catch(e){console.warn('save failed',e);}setTimeout(()=>{resize();fitView();},50);
+}
+function newLayout(){
+  if(!confirm('Start a new empty layout? Current layout will be cleared.'))return;
+  objects=[];boundary=null;selected=null;
+  const su=document.getElementById('setup');
+  document.getElementById('setupTitle').textContent='Set up '+currentVenue+' '+currentYear;
+  document.getElementById('setupW').value='';
+  document.getElementById('setupD').value='';
+  su.classList.remove('done');
+  su.style.pointerEvents='auto';
+  draw();updateStatus();
 }
 function editBoundary(){if(!boundary)return;document.getElementById('bndW').value=boundary.w;document.getElementById('bndD').value=boundary.d;openModal('boundaryModal');}
 function confirmBoundary(){
