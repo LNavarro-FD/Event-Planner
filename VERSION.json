@@ -26,19 +26,19 @@
       "description": "Simple task tracker (legacy \u2014 superseded by todo.html)"
     }
   },
-  "checkpoint": "v3-stable",
+  "checkpoint": "v4-stable",
   "checkpoint_date": "2026-07-14",
-  "notes": "Stable checkpoint \u2014 print/export about to be added. Staff module, venue planner save/load fixed, version numbers on all modules, build week dates fixed, drag/drop chips, pastel derig colours.",
+  "notes": "Stable checkpoint \u2014 print/export on all modules, collapsible library, click-to-place, stage items, pricing stripped from display, quotes sheet next.",
   "file_shas": {
     "hub.html": "08895937210b",
-    "todo.html": "9f854fcc7b90",
-    "kanban.html": "3ea75d8feed7",
-    "venue-planner.html": "9a45ea4f21af",
-    "staff.html": "fe39c2065ebc",
+    "todo.html": "979ea42f4866",
+    "kanban.html": "e8effa3950e9",
+    "venue-planner.html": "3dcc7bc3eb57",
+    "staff.html": "a266dfa35528",
     "config.js": "c5ed0ce7f4b5",
     "fd-db.js": "f8a90314d8a5",
     "seed-data.js": "47184a042ea3",
     "seed-todo.html": "28c2a8cb853a",
-    "VERSION.json": "9af984f70a11"
+    "VERSION.json": "828644a75d3a"
   }
 }
