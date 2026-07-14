@@ -65,9 +65,9 @@ canvas{display:block}
 #notify{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);background:#2c2c2a;color:#fff;font-size:12px;padding:6px 14px;border-radius:20px;display:none;white-space:nowrap;z-index:200}
 #statusbar{padding:3px 10px;background:#2c2c2a;color:#999;font-size:10px;display:flex;gap:14px;flex-shrink:0;flex-wrap:wrap}
 /* setup overlay */
-#setup{position:fixed;inset:0;background:rgba(248,249,252,0.97);z-index:900;display:flex;align-items:center;justify-content:center}
+#setup{position:fixed;inset:0;background:rgba(248,249,252,0.97);z-index:900;display:flex;align-items:flex-start;justify-content:center;padding-top:60px;overflow-y:auto}
 #setup.done{display:none}
-.setup-box{background:#fff;border-radius:12px;padding:26px;width:320px;border:1px solid #ddd}
+.setup-box{background:#fff;border-radius:12px;padding:20px;width:300px;border:1px solid #ddd}
 .setup-box h2{font-size:17px;font-weight:500;margin-bottom:5px}
 .setup-box p{font-size:12px;color:#888;margin-bottom:18px;line-height:1.5}
 .setup-box label{display:block;font-size:11px;color:#666;margin:9px 0 3px}
@@ -190,7 +190,7 @@ var _db=firebase.firestore();
         <p>Enter the site boundary. This becomes the outer perimeter on your canvas — everything you plan sits inside it.</p>
         <label>Width (m)</label><input id="setupW" type="number" placeholder="e.g. 120" min="1">
         <label>Depth (m)</label><input id="setupD" type="number" placeholder="e.g. 120" min="1">
-        <button class="setup-start" onclick="if(typeof applyBoundary==='function'){applyBoundary();}else{alert('applyBoundary not defined - JS error on load');}">Start planning</button>
+        <button class="setup-start" onclick="applyBoundary()">Start planning</button>
       </div>
     </div>
     <div id="autoPanel">
