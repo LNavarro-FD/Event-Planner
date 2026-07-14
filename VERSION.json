@@ -26,9 +26,9 @@
       "description": "Simple task tracker (legacy \u2014 superseded by todo.html)"
     }
   },
-  "checkpoint": "v6-stable",
+  "checkpoint": "v7-stable",
   "checkpoint_date": "2026-07-15",
-  "notes": "v6-stable checkpoint \u2014 real world use session.\nFixed: venue picker bug (setup modal no longer appears before venue chosen).\nFixed: build week drag & drop chips between cells.\nFixed: build week colour coding (isDerig passed correctly).\nAdded: collapse all / expand all in To-Do.\nAdded: Artist Liaison section in To-Do, free-text category input.\nAdded: people sorted A-Z by first name in Staff.\nAdded: tab renamed Design & Print.\nPending features agreed this session:\n- Smart bar planning tool (width/shape/stations/staff/revenue/lost revenue/RAG)\n- Smart toilet planning tool (capacity/pump-out timing/RAG)\n- Centre selected item on canvas (H/V/both)\n- Point-to-point measurement tool\n- Zone templates (bar, catering, stage)\n- Ticket sales as single source of truth (target + actuals audit log drives all calculations)\n- Staff roles sheet (roles first, people assigned with % split, utilisation & gap RAG)\n- Design & Print workflow (brief \u2192 quote \u2192 approved \u2192 production \u2192 print)\n- Designer shared workspace (brief sent, quote, timeline, draft review, approval)\n- Nothing hardcoded \u2014 all values from config/Firestore\n- Purple Guide commercial licence needed (Event Safety Alliance) before redistribution",
+  "notes": "v7-stable checkpoint \u2014 full planning session complete.\nFixed: suppliers.html truncation restored.\nFixed: venue picker bug.\nFixed: build week drag & drop and colour coding.\nAdded: people sorted A-Z.\nAdded: collapse all / expand all in To-Do.\nAdded: Design & Print renamed.\n\nArchitecture agreed this session:\n- Financials module: two views (Rosie headline, Louise detail)\n- Baseline locked, tracking editable, variance always shown\n- Contingency mandatory\n- Bar revenue: simple \u00a3/head per event (configurable) or advanced stock model\n- Ticket sales as single source of truth driving all resource calculations\n- Supplier export to Xero: contact name, email, phone, payment terms (no financial data)\n- Payment terms per supplier: deposit %, final %, triggers (days before event or date)\n- Smart bar planning tool (width/shape/stations/staff/revenue/RAG)\n- Smart toilet planning tool (capacity/pump-out/RAG)\n- Design & Print: batch-based quoting, group + supplier tag per item, full CRUD\n- Staff: roles first, people assigned with % split, utilisation & gap RAG\n- Nothing hardcoded \u2014 all values from config/Firestore\n- Full CRUD on every list in the app\n- Purple Guide: needs commercial licence from Event Safety Alliance\n- Shindig to be first event run through full system",
   "file_shas": {
     "hub.html": "1fe26382b8a0",
     "home.html": "0f32d9a5f063",
@@ -36,12 +36,12 @@
     "kanban.html": "77bca4308edf",
     "venue-planner.html": "2250a0dac390",
     "staff.html": "3d6432818281",
-    "suppliers.html": "47f5ba9269e6",
+    "suppliers.html": "19949a00adbb",
     "print.html": "40159c2cc3b8",
     "config.js": "c5ed0ce7f4b5",
     "fd-db.js": "f8a90314d8a5",
     "seed-data.js": "47184a042ea3",
     "seed-todo.html": "28c2a8cb853a",
-    "VERSION.json": "ab75eb0ae697"
+    "VERSION.json": "cbe6498297eb"
   }
 }
