@@ -38,52 +38,38 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#0f172a;overfl
   <div id="content">
     <div id="loading">
       <div class="spinner"></div>
-      <p id="loading-msg">Loading To-Do...</p>
+      <p id="loading-msg">Loading...</p>
     </div>
     <iframe class="frame" id="frame-todo"    data-src="todo.html"          title="To-Do"></iframe>
     <iframe class="frame" id="frame-planner" data-src="venue-planner.html" title="Site Planner"></iframe>
     <iframe class="frame" id="frame-kanban"  data-src="kanban.html"        title="Kanban"></iframe>
   </div>
   <div id="statusbar">
-    <span id="sb-status">FD Event Planner · hub v1.3.0</span>
+    <span id="sb-status">FD Event Planner v2.0.0</span>
   </div>
 </div>
-
 <script>
 var _loaded = {};
-
 function switchTab(tab) {
-  // Update nav
   var tabs = document.querySelectorAll('.nav-tab');
   for (var i = 0; i < tabs.length; i++) {
     tabs[i].classList.remove('active');
     if (tabs[i].getAttribute('data-tab') === tab) tabs[i].classList.add('active');
   }
-
-  // Hide all frames
   var frames = document.querySelectorAll('.frame');
-  for (var j = 0; j < frames.length; j++) {
-    frames[j].style.display = 'none';
-  }
-
-  // Show target frame
+  for (var j = 0; j < frames.length; j++) { frames[j].style.display = 'none'; }
   var frame = document.getElementById('frame-' + tab);
   if (!frame) return;
   frame.style.display = 'block';
-
-  // Load if not yet loaded
   if (!_loaded[tab]) {
     _loaded[tab] = true;
     var labels = { todo:'To-Do List', planner:'Site Planner', kanban:'Kanban' };
-    var loading = document.getElementById('loading');
-    loading.classList.remove('hidden');
+    document.getElementById('loading').classList.remove('hidden');
     document.getElementById('loading-msg').textContent = 'Loading ' + labels[tab] + '...';
-    frame.onload = function() { loading.classList.add('hidden'); };
+    frame.onload = function() { document.getElementById('loading').classList.add('hidden'); };
     frame.src = frame.getAttribute('data-src');
   }
 }
-
-// Load default tab on start
 switchTab('todo');
 </script>
 </body>
