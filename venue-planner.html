@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
 <script>
-window.onerror = function(msg, src, line, col, err) {
-  document.body.innerHTML = '<div style="padding:20px;font-family:sans-serif;background:#fee2e2;color:#991b1b;font-size:13px;line-height:1.6">' +
-    '<b>JS Error:</b><br>' + msg + '<br>' +
-    '<b>Line:</b> ' + line + '<br>' +
-    '<b>Source:</b> ' + src + '</div>';
-  return true;
+var _errors = [];
+window.onerror = function(msg, src, line) {
+  _errors.push(line + ': ' + msg);
+  var el = document.getElementById('_errlog');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_errlog';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;font-size:12px;padding:8px;z-index:99999;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto';
+    document.body.appendChild(el);
+  }
+  el.textContent = _errors.join('\n');
+  return false;
 };
 </script>
 <meta charset="UTF-8">
