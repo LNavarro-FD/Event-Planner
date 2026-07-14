@@ -100,6 +100,24 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 .confirmed-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b;margin-top:4px}
 .confirmed-toggle input{accent-color:#15803d}
 
+
+@media print {
+  @page { size: A4 landscape; margin: 14mm; }
+  #topbar, #searchbar, .add-btn, .view-btn, button, .form-overlay, #statusbar { display: none !important; }
+  body { background: #fff !important; font-size: 11px !important; overflow: visible !important; height: auto !important; }
+  #content { overflow: visible !important; height: auto !important; padding: 0 !important; }
+  #print-header { display: block !important; }
+  #print-footer { display: block !important; }
+  .person-card { break-inside: avoid; border: 1px solid #e2e8f0 !important; margin-bottom: 6px !important; }
+  .assign-table { font-size: 9px !important; }
+  .assign-table th, .assign-table td { padding: 4px 6px !important; }
+}
+#print-header { display: none; font-family: system-ui, sans-serif; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #1e293b; }
+#print-header h2 { font-size: 16px; font-weight: 700; color: #1e293b; }
+#print-header .ph-meta { font-size: 10px; color: #64748b; margin-top: 3px; display: flex; gap: 20px; flex-wrap: wrap; }
+#print-footer { display: none; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 4px; font-family: system-ui, sans-serif; }
+#print-footer .pf-meta { font-size: 9px; color: #94a3b8; display: flex; justify-content: space-between; }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -142,12 +160,28 @@ var _db = firebase.firestore();
     <option value="FD7">FD7 2026</option>
   </select>
   <button class="add-btn" onclick="openAddPerson()">+ Add person</button>
+  <button onclick="printStaff()" style="padding:5px 12px;background:#1e293b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">🖨 Print</button>
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
+</div>
+
+<div id="print-header">
+  <h2 id="ph-title">Staff & Resources</h2>
+  <div class="ph-meta">
+    <span id="ph-filter"></span>
+    <span id="ph-count"></span>
+    <span id="ph-printed"></span>
+  </div>
+</div>
+<div id="print-footer">
+  <div class="pf-meta">
+    <span>FD Event Planner · Staff v1.2.0</span>
+    <span id="pf-right"></span>
+  </div>
 </div>
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Staff v1.1.0</span></div>
+<div id="statusbar"><span>FD Staff v1.2.0</span></div>
 
 <!-- Add/Edit Person Form -->
 <div class="form-overlay" id="personForm">
@@ -544,6 +578,23 @@ function defaultShiftEnd(event) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+
+function printStaff() {
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  var sec  = document.getElementById('sectionFilter').value || 'All sections';
+  var evt  = document.getElementById('eventFilter').value   || 'All events';
+  var cnt  = document.getElementById('countLabel').textContent;
+  var view = currentView.charAt(0).toUpperCase() + currentView.slice(1);
+
+  document.getElementById('ph-title').textContent   = 'FD Staff & Resources — ' + view;
+  document.getElementById('ph-filter').textContent  = 'Filter: ' + sec + ' · ' + evt;
+  document.getElementById('ph-count').textContent   = cnt;
+  document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'Staff v1.2.0 · ' + dateStr;
+  window.print();
+}
+
 async function init() {
   try {
     var snap = await _db.collection('staff').doc('people').get();
