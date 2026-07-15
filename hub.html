@@ -24,6 +24,31 @@ iframe{position:absolute;inset:0;width:100%;height:100%;border:none;background:#
 #statusbar{background:#0f172a;height:22px;display:flex;align-items:center;padding:0 12px;flex-shrink:0}
 #sb{font-size:10px;color:#334155}
 </style>
+
+<script>
+function saveApiKey() {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { alert('Please enter an API key'); return; }
+  localStorage.setItem('fd_anthropic_key', key);
+  document.getElementById('apiKeyBanner').style.display = 'none';
+  alert('API key saved. AI features are now active.');
+}
+
+// Show banner if no key set
+window.addEventListener('load', function() {
+  if (!localStorage.getItem('fd_anthropic_key')) {
+    document.getElementById('apiKeyBanner').style.display = 'flex';
+  } else {
+    document.getElementById('apiKeyBanner').style.display = 'none';
+  }
+});
+
+// Global function for all modules to get the key
+window.getAnthropicKey = function() {
+  return localStorage.getItem('fd_anthropic_key') || '';
+};
+</script>
+
 </head>
 <body>
 <div id="shell">
