@@ -1403,12 +1403,12 @@ canvas.addEventListener('mousemove',e=>{
 canvas.addEventListener('mouseup',e=>{if(e.button===1||spaceDown)panning=false;dragging=false;rotating=false;updateStatus();});
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
-  if(e.ctrlKey||e.metaKey||e.deltaX===0&&Math.abs(e.deltaY)>Math.abs(e.deltaX)*3){
-    // Zoom — Cmd/Ctrl held, or pure vertical scroll
+  if(e.ctrlKey||e.metaKey){
+    // Zoom — only when Cmd/Ctrl held
     const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,mx=toMX(sx),my=toMY(sy);
     scale=Math.max(3,Math.min(100,scale*(e.deltaY<0?1.12:0.89)));ox=sx-mx*scale;oy=sy-my*scale;
   } else {
-    // Pan — Magic Mouse swipe or trackpad
+    // Pan — Magic Mouse and trackpad always pan
     ox-=e.deltaX;oy-=e.deltaY;
   }
   draw();
