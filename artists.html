@@ -229,10 +229,10 @@ var SEED_ARTISTS = [
    changeover:15, hotel:'yes', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'PAID 50%'},
   {id:'bobby_steve', perfName:'Bobby & Steve', legalName:'', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'20:00', setLength:120,
-   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also plays as part of Good 4 Tha Soul 20:00-22:00'},
   {id:'brandon_block', perfName:'Brandon Block', legalName:'Brandon Block', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7','HRR26'], fee:0, setTime:'20:00', setLength:120,
-   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also played HRR26'},
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also plays as part of Good 4 Tha Soul 20:00-22:00'},
   {id:'john_morales', perfName:'John Morales', legalName:'John Morales', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'16:00', setLength:60,
    changeover:15, hotel:'yes', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Hotel + transport required'},
@@ -241,17 +241,13 @@ var SEED_ARTISTS = [
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'ricky_morrison', perfName:'Ricky Morrison', legalName:'Ricky Morrison', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'20:00', setLength:120,
-   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also plays as part of Good 4 Tha Soul 20:00-22:00'},
   {id:'colin_francis', perfName:'Colin Francis', legalName:'Colin Francis', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'18:00', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'noah_herel', perfName:'Noah Herel', legalName:'Noah Herel', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'12:00', setLength:120,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},,
-  {id:'good_4_tha_soul', perfName:'Good 4 Tha Soul', legalName:'', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'20:00', setLength:120,
-   changeover:0, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no',
-   notes:'Members: Brandon Block, Bobby & Steve, Ricky Morrison, Ronnie Herel'},
   {id:'haifa', perfName:'Haifa', legalName:'', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'17:00', setLength:60,
    changeover:0, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no',
@@ -282,10 +278,10 @@ async function load() {
 
 function resetToSeed() {
   if (!confirm('Reset all artist data to seed data? This will overwrite any changes you have made in the app.')) return;
-  artists = SEED_ARTISTS.map(function(a){ return Object.assign({}, a); });
-  save();
-  render();
-  notify('Artist data reset to seed data');
+  artists = JSON.parse(JSON.stringify(SEED_ARTISTS));
+  _db.collection('artists_db').doc('artists').set({list: artists})
+    .then(function(){ render(); notify('Artist data reset — ' + artists.length + ' artists loaded'); })
+    .catch(function(e){ console.error(e); render(); notify('Reset complete (offline)'); });
 }
 
 function save() {
