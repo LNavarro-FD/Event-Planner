@@ -144,7 +144,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · To-Do v3.11.0</span>
+    <span>FD Event Planner · To-Do v3.12.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -564,8 +564,29 @@ function render(){
     let count=0;
     if(sec){sec.items.forEach((item,i)=>{const row=makeRow(item,cat+'_h_'+i,false,cat);if(row){body.appendChild(row);count++;}});}
     custom.filter(c=>c.cat===cat).forEach(item=>{const row=makeRow(item,'_c_'+item.id,true,cat);if(row){body.appendChild(row);count++;}});
+    // Quick-add input at bottom of section
+    const qa = document.createElement('div');
+    qa.style.cssText = 'padding:4px 8px 8px';
+    const qInput = document.createElement('input');
+    qInput.type = 'text';
+    qInput.placeholder = '+ Quick add task...';
+    qInput.style.cssText = 'width:100%;padding:5px 8px;border:1px dashed #e2e8f0;border-radius:6px;font-size:11px;font-family:inherit;outline:none;background:#fafafa;color:#475569';
+    qInput.dataset.cat = cat;
+    qInput.addEventListener('focus', function(){ this.style.borderColor='#FF4B7B';this.style.background='#fff'; });
+    qInput.addEventListener('blur', function(){ this.style.borderColor='#e2e8f0';this.style.background='#fafafa'; });
+    qInput.addEventListener('keydown', function(e){
+      if(e.key==='Enter'){
+        var task = this.value.trim();
+        if(!task) return;
+        var id = 'qa_' + Date.now();
+        custom.push({id:id, t:task, n:'', cat:this.dataset.cat, stage:2});
+        fbSave(); render();
+      }
+    });
+    qa.appendChild(qInput);
+    body.appendChild(qa);
     sd.appendChild(body);
-    if(count>0)el.appendChild(sd);
+    if(count>0||true)el.appendChild(sd);
   });
   renderSwimlane();
 }
@@ -956,7 +977,7 @@ function printTodo() {
 
   document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
   document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent   = 'To-Do v3.11.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.12.0 · ' + dateStr;
   window.print();
 }
 
