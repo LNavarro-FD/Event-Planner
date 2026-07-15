@@ -27,9 +27,9 @@ button.tb{font-size:11px;padding:3px 9px;border:1px solid #ccc;border-radius:4px
 button.tb:hover{background:#eee}
 button.tb.on{background:#185FA5;border-color:#185FA5;color:#fff}
 button.tb.red{color:#c0392b;border-color:#e0b0aa}
-#main{display:flex;flex:1;overflow:hidden}
+#main{display:flex;flex:1;overflow:hidden;min-height:0}
 #sidebar{width:185px;flex-shrink:0;background:#fff;border-right:1px solid #ddd;display:flex;flex-direction:column;overflow:hidden;transition:width .2s;height:100%}
-#sidebar.collapsed{width:28px}
+#sidebar.collapsed{width:0;border:none}
 #sidebar.collapsed #stabs,#sidebar.collapsed #scontent{display:none}
 #sidebar-toggle{position:absolute;bottom:50%;right:-12px;width:20px;height:36px;background:#fff;border:1px solid #ddd;border-radius:0 4px 4px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;z-index:10;box-shadow:1px 0 3px #0002;user-select:none}
 #sidebar-wrap{position:relative;display:flex;flex-direction:row;flex-shrink:0}
@@ -53,7 +53,7 @@ button.tb.red{color:#c0392b;border-color:#e0b0aa}
 .badge-legal{background:#fde8e8;color:#a32d2d}
 .badge-guide{background:#e8f0fd;color:#0c447c}
 .ref-search{width:100%;font-size:11px;padding:4px 7px;border:1px solid #ddd;border-radius:4px;background:#f8f8f8;margin-bottom:6px}
-#canvas-wrap{flex:1;position:relative;overflow:hidden;background:#ffffff}
+#canvas-wrap{flex:1;min-width:0;position:relative;overflow:hidden;background:#ffffff}
 canvas{display:block}
 #autoPanel{position:absolute;top:8px;right:8px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;width:205px;font-size:11px;display:none;z-index:10}
 #autoPanel.open{display:block}
@@ -703,7 +703,14 @@ function toggleSidebar() {
   _sidebarCollapsed = !_sidebarCollapsed;
   document.getElementById('sidebar').classList.toggle('collapsed', _sidebarCollapsed);
   document.getElementById('sidebar-toggle').textContent = _sidebarCollapsed ? '▶' : '◀';
-  setTimeout(function(){ resize(); }, 220);
+  var sb = document.getElementById('sidebar');
+  var wrap = document.getElementById('canvas-wrap');
+  // Force layout recalc
+  setTimeout(function(){
+    if(wrap) { wrap.style.flex='1'; }
+    resize();
+    draw();
+  }, 250);
 }
 
 // ── Shapes library ────────────────────────────────────────────────────────────
