@@ -125,7 +125,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.2.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.3.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -501,6 +501,96 @@ function addBulkPrintItems() {
   notify(count + ' items added');
 }
 
+
+// ── AI Chat ───────────────────────────────────────────────────────────────────
+function openPrintChat() {
+  document.getElementById('printChatOverlay').style.display = 'flex';
+  document.getElementById('printChatInput').focus();
+}
+function closePrintChat() {
+  document.getElementById('printChatOverlay').style.display = 'none';
+}
+
+function addChatMsg(text, isUser) {
+  var msgs = document.getElementById('printChatMessages');
+  var div = document.createElement('div');
+  div.style.cssText = 'border-radius:8px;padding:8px 10px;font-size:12px;max-width:90%;' +
+    (isUser ? 'background:#22224C;color:#fff;align-self:flex-end' : 'background:#f1f5f9;color:#475569;align-self:flex-start');
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendPrintChat() {
+  var input = document.getElementById('printChatInput');
+  var msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addChatMsg(msg, true);
+
+  // Build context from current items
+  var items = eventItems[currentEvent] || [];
+  var summary = 'Current Design & Print items for ' + currentEvent + ':\n';
+  var required = items.filter(function(i){ return i.status==='required'; });
+  var maybe = items.filter(function(i){ return i.status==='maybe'; });
+  summary += required.length + ' required items: ' + required.map(function(i){ return i.item + ' (' + (i.cat||'') + ')'; }).join(', ') + '\n';
+  summary += maybe.length + ' TBC items: ' + maybe.map(function(i){ return i.item; }).join(', ') + '\n';
+
+  var systemPrompt = 'You are an AI assistant helping manage Design & Print items for Funky Dory Festival 7, a music festival event. ' +
+    'You have access to the current list of items. Keep responses concise and practical. ' +
+    'If asked to add an item, respond with JSON action: {"action":"add","item":"name","cat":"group","needsDesign":true,"needsPrint":true}. ' +
+    'If asked a question, answer directly from the data provided. ' + summary;
+
+  try {
+    addChatMsg('Thinking...', false);
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: msg }]
+      })
+    });
+    var data = await response.json();
+    var text = data.content[0].text.trim();
+
+    // Remove thinking message
+    var msgs = document.getElementById('printChatMessages');
+    msgs.removeChild(msgs.lastChild);
+
+    // Check if it's an action
+    if (text.indexOf('{"action"') >= 0) {
+      try {
+        var start = text.indexOf('{');
+        var end = text.lastIndexOf('}') + 1;
+        var action = JSON.parse(text.slice(start, end));
+        if (action.action === 'add') {
+          if (!eventItems[currentEvent]) eventItems[currentEvent] = [];
+          eventItems[currentEvent].push({
+            item: action.item, cat: action.cat || 'Ad hoc', desc: '',
+            dims: 'TBC', status: 'maybe', notes: '',
+            needsDesign: action.needsDesign !== false,
+            needsPrint: action.needsPrint !== false,
+            supplier: '', orderNo: '', qty: '', unitPrice: '',
+            exVat: '', incVat: '', discount: '', deliveryDate: '',
+            designApproved: false, printVersion: false, orderPlaced: false, log: []
+          });
+          save(); render();
+          addChatMsg('Added: ' + action.item + ' (' + (action.cat||'Ad hoc') + ')', false);
+          return;
+        }
+      } catch(e) {}
+    }
+    addChatMsg(text, false);
+  } catch(e) {
+    var msgs = document.getElementById('printChatMessages');
+    if (msgs.lastChild) msgs.removeChild(msgs.lastChild);
+    addChatMsg('Sorry, something went wrong. Try again.', false);
+  }
+}
+
 function sendDesignBrief() {
   if (_editIdx === null) return;
   saveItem();
@@ -631,5 +721,23 @@ if (document.readyState === 'loading') {
     </div>
   </div>
 </div>
+
+<!-- AI Chat -->
+<button onclick="openPrintChat()" style="position:fixed;bottom:32px;right:16px;width:48px;height:48px;border-radius:50%;background:#FF4B7B;border:none;cursor:pointer;box-shadow:0 4px 12px #0003;font-size:22px;z-index:100;display:flex;align-items:center;justify-content:center">✨</button>
+
+<div id="printChatOverlay" style="position:fixed;bottom:90px;right:16px;width:360px;max-height:500px;background:#fff;border-radius:12px;box-shadow:0 8px 32px #0003;display:none;flex-direction:column;z-index:100">
+  <div style="padding:12px 16px;background:#22224C;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#fff;font-size:13px;font-weight:700">✨ Design &amp; Print Assistant</span>
+    <button onclick="closePrintChat()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px">&#215;</button>
+  </div>
+  <div id="printChatMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:200px;max-height:300px">
+    <div style="background:#f1f5f9;border-radius:8px;padding:8px 10px;font-size:12px;color:#475569">Hi! I can help with your Design &amp; Print items. Try: "Add a stage banner", "What needs a designer?", "Show me items missing dimensions"</div>
+  </div>
+  <div style="padding:8px;border-top:1px solid #e5e7eb;display:flex;gap:6px">
+    <input id="printChatInput" type="text" placeholder="Ask me anything..." style="flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendPrintChat()">
+    <button onclick="sendPrintChat()" style="padding:7px 12px;background:#FF4B7B;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Send</button>
+  </div>
+</div>
+
 </body>
 </html>
