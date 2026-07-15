@@ -129,7 +129,7 @@ firebase.initializeApp({
 });
 var _db = firebase.firestore();
 window._fbUser = { email: 'local' };  // dummy user so existing code works
-window._fbLoad();
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){if(typeof window._fbLoad==="function")window._fbLoad();});} else {if(typeof window._fbLoad==="function")window._fbLoad();}
 </script>
 </head>
 <body>
@@ -418,7 +418,7 @@ function renderInline(key){
   el.style.display=html?'block':'none';
 }
 
-function makeRow(item,key,isCustom){
+function makeRow(item,key,isCustom,cat){
   const d=!!done[key];
   const es=effectiveStatus(item,key);
   // Swimlane filter
@@ -562,8 +562,8 @@ function render(){
     body.id='secbody_'+safeId;
     body.className='sec-body'+(isCollapsed?' collapsed':'');
     let count=0;
-    if(sec){sec.items.forEach((item,i)=>{const row=makeRow(item,cat+'_h_'+i,false);if(row){body.appendChild(row);count++;}});}
-    custom.filter(c=>c.cat===cat).forEach(item=>{const row=makeRow(item,'_c_'+item.id,true);if(row){body.appendChild(row);count++;}});
+    if(sec){sec.items.forEach((item,i)=>{const row=makeRow(item,cat+'_h_'+i,false,cat);if(row){body.appendChild(row);count++;}});}
+    custom.filter(c=>c.cat===cat).forEach(item=>{const row=makeRow(item,'_c_'+item.id,true,cat);if(row){body.appendChild(row);count++;}});
     sd.appendChild(body);
     if(count>0)el.appendChild(sd);
   });
