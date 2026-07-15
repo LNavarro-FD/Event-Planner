@@ -124,7 +124,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.0.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.1.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -244,7 +244,8 @@ function render() {
 }
 
 function renderTemplate() {
-  var items = eventItems[currentEvent];
+  var items = eventItems[currentEvent] || [];
+  if (!items.length) { document.getElementById('content').innerHTML = '<div style="padding:24px;color:#94a3b8">Loading items...</div>'; return; }
   var required = items.filter(function(i){ return i.status === 'required'; }).length;
   var maybe    = items.filter(function(i){ return i.status === 'maybe'; }).length;
   document.getElementById('countLabel').textContent = required + ' required · ' + maybe + ' TBC';
@@ -362,7 +363,20 @@ function renderPanel(item) {
     return '<div class="log-entry"><div class="log-date">'+l.date+'</div>'+l.text+'</div>';
   }).join('') || '<div style="color:#94a3b8;font-size:11px">No updates yet</div>';
 
-  var html = '<div class="field-grid">';
+  var html = '';
+  html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#3b82f6;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #dbeafe">Design Brief</div>';
+  html += '<div class="field-grid">';
+  html += '<div class="field"><label>Dimensions</label><input id="pi-dims" type="text" value="'+esc(item.dims||'')+'" placeholder="e.g. 8000x920mm"></div>';
+  html += '<div class="field"><label>Bleed</label><input id="pi-bleed" type="text" value="'+esc(item.bleed||'')+'" placeholder="e.g. 3mm"></div>';
+  html += '<div class="field"><label>Resolution</label><input id="pi-dpi" type="text" value="'+esc(item.dpi||'')+'" placeholder="e.g. 150dpi"></div>';
+  html += '<div class="field"><label>File format</label><input id="pi-format" type="text" value="'+esc(item.format||'')+'" placeholder="e.g. PDF, AI"></div>';
+  html += '</div>';
+  html += '<div class="field" style="margin-bottom:8px"><label>Colours / Brand</label><input id="pi-colours" type="text" value="'+esc(item.colours||'')+'" placeholder="FD Pink #FF4B7B, Navy #22224C"></div>';
+  html += '<div class="field" style="margin-bottom:8px"><label>Copy / Text</label><textarea id="pi-copy" style="min-height:50px">'+esc(item.copy||'')+'</textarea></div>';
+  html += '<div class="field" style="margin-bottom:8px"><label>Brief notes</label><textarea id="pi-briefnotes" style="min-height:50px">'+esc(item.briefNotes||'')+'</textarea></div>';
+  html += '<div style="margin-bottom:16px"><button onclick="sendDesignBrief()" style="padding:6px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:600;color:#1d4ed8;cursor:pointer">📧 Send brief to designer</button></div>';
+  html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0">Procurement</div>';
+  html += '<div class="field-grid">';
   html += '<div class="field"><label>Supplier</label><input id="pi-supplier" type="text" value="'+esc(item.supplier||'')+'"></div>';
   html += '<div class="field"><label>Order number</label><input id="pi-orderno" type="text" value="'+esc(item.orderNo||'')+'"></div>';
   html += '<div class="field"><label>Qty</label><input id="pi-qty" type="number" value="'+esc(item.qty||'')+'"></div>';
@@ -371,7 +385,6 @@ function renderPanel(item) {
   html += '<div class="field"><label>Total inc VAT</label><input id="pi-inc" type="number" step="0.01" value="'+esc(item.incVat||'')+'"></div>';
   html += '<div class="field"><label>Discount</label><input id="pi-disc" type="text" value="'+esc(item.discount||'')+'" placeholder="e.g. 12% trade"></div>';
   html += '<div class="field"><label>Delivery date</label><input id="pi-deliv" type="date" value="'+esc(item.deliveryDate||'')+'"></div>';
-  html += '<div class="field"><label>Dimensions</label><input id="pi-dims" type="text" value="'+esc(item.dims||'')+'"></div>';
   html += '</div>';
 
   html += '<div style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Status</label>';
@@ -389,6 +402,29 @@ function renderPanel(item) {
   html += '</div>';
 
   document.getElementById('panelBody').innerHTML = html;
+}
+
+
+function sendDesignBrief() {
+  if (_editIdx === null) return;
+  saveItem();
+  var item = eventItems[currentEvent][_editIdx];
+  var nl = '\n';
+  var lines = [];
+  lines.push('Hi,'); lines.push(''); lines.push('Please find the design brief below.'); lines.push('');
+  lines.push('ITEM: ' + item.item);
+  if (item.desc)       lines.push('Description: ' + item.desc);
+  if (item.dims)       lines.push('Dimensions: ' + item.dims);
+  if (item.bleed)      lines.push('Bleed: ' + item.bleed);
+  if (item.dpi)        lines.push('Resolution: ' + item.dpi);
+  if (item.format)     lines.push('File format: ' + item.format);
+  if (item.colours)    lines.push('Colours: ' + item.colours);
+  if (item.copy)       { lines.push(''); lines.push('Copy / Text:'); lines.push(item.copy); }
+  if (item.briefNotes) { lines.push(''); lines.push('Notes:'); lines.push(item.briefNotes); }
+  lines.push(''); lines.push('Kind regards,'); lines.push('Louise Navarro'); lines.push('Funky Dory Love Ltd');
+  var subject = 'Design Brief: ' + item.item + ' — ' + currentEvent;
+  var body = lines.join(nl);
+  window.open('mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
 }
 
 function esc(s){ return String(s).replace(/"/g,"&quot;"); }
@@ -429,7 +465,11 @@ function saveItem() {
   item.discount      = document.getElementById('pi-disc').value;
   item.deliveryDate  = document.getElementById('pi-deliv').value;
   item.dims          = document.getElementById('pi-dims').value;
-  item.notes         = document.getElementById('pi-notes').value;
+  ['dims','bleed','dpi','format','colours','copy','briefNotes'].forEach(function(f){
+    var id={'dims':'pi-dims','bleed':'pi-bleed','dpi':'pi-dpi','format':'pi-format','colours':'pi-colours','copy':'pi-copy','briefNotes':'pi-briefnotes'}[f];
+    var el=document.getElementById(id); if(el) item[f]=el.value;
+  });
+  item.notes=document.getElementById('pi-notes').value;
   item.designApproved = document.getElementById('pi-design').checked;
   item.printVersion   = document.getElementById('pi-print').checked;
   item.orderPlaced    = document.getElementById('pi-ordered').checked;
