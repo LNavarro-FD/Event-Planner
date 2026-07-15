@@ -125,7 +125,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.4.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.5.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -454,6 +454,8 @@ async function runPrintBulkAI() {
   var items = input.split('\n').map(function(t){ return t.trim(); }).filter(Boolean);
   if (!items.length) return;
 
+  var apiKey = window.getAnthropicKey ? window.getAnthropicKey() : localStorage.getItem('fd_anthropic_key');
+  if (!apiKey) { alert('Please enter your Anthropic API key in the banner at the top of the hub.'); return; }
   document.getElementById('pbulk-step1').style.display = 'none';
   document.getElementById('pbulk-loading').style.display = 'block';
 
@@ -463,7 +465,7 @@ async function runPrintBulkAI() {
 
     var response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': (window.getAnthropicKey ? window.getAnthropicKey() : localStorage.getItem('fd_anthropic_key')||''), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
     });
     var data = await response.json();
