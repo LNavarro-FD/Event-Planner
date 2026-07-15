@@ -115,6 +115,7 @@ var _db = firebase.firestore();
   </select>
   <button class="btn" onclick="openAddArtist()">+ Add artist</button>
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
+  <button onclick="resetToSeed()" style="padding:5px 12px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">↺ Reset to seed data</button>
 </div>
 
 <div id="content"></div>
@@ -276,6 +277,15 @@ async function load() {
     artists = SEED_ARTISTS;
   }
   render();
+}
+
+
+function resetToSeed() {
+  if (!confirm('Reset all artist data to seed data? This will overwrite any changes you have made in the app.')) return;
+  artists = SEED_ARTISTS.map(function(a){ return Object.assign({}, a); });
+  save();
+  render();
+  notify('Artist data reset to seed data');
 }
 
 function save() {
