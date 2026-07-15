@@ -144,7 +144,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · To-Do v3.10.0</span>
+    <span>FD Event Planner · To-Do v3.11.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -853,6 +853,99 @@ function addBulkTasks() {
   notify(rows.length + ' tasks added');
 }
 
+
+// ── AI Chat ───────────────────────────────────────────────────────────────────
+function openTodoChat() {
+  document.getElementById('todoChatOverlay').style.display = 'flex';
+  document.getElementById('todoChatInput').focus();
+}
+function closeTodoChat() {
+  document.getElementById('todoChatOverlay').style.display = 'none';
+}
+
+function addTodoChatMsg(text, isUser) {
+  var msgs = document.getElementById('todoChatMessages');
+  var div = document.createElement('div');
+  div.style.cssText = 'border-radius:8px;padding:8px 10px;font-size:12px;max-width:90%;' +
+    (isUser ? 'background:#22224C;color:#fff;align-self:flex-end' : 'background:#f1f5f9;color:#475569;align-self:flex-start');
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendTodoChat() {
+  var input = document.getElementById('todoChatInput');
+  var msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addTodoChatMsg(msg, true);
+
+  // Build context
+  var cats = allCats();
+  var totalDone = 0, totalTasks = 0;
+  var sectionSummary = '';
+  cats.forEach(function(cat) {
+    var sec = sections.find(function(s){ return s.cat===cat; });
+    var items = sec ? sec.items : [];
+    var customItems = custom.filter(function(c){ return c.cat===cat; });
+    var all = items.concat(customItems);
+    var doneCount = all.filter(function(item, i){
+      var key = sec ? cat+'_h_'+sec.items.indexOf(item) : '_c_'+item.id;
+      return done[key];
+    }).length;
+    totalTasks += all.length;
+    totalDone += doneCount;
+    sectionSummary += cat + ': ' + doneCount + '/' + all.length + ' done. ';
+  });
+
+  var systemPrompt = 'You are an AI assistant helping manage a to-do list for Funky Dory Festival 7, a music festival. ' +
+    'Available sections: ' + cats.join(', ') + '. ' +
+    'Current progress: ' + totalDone + '/' + totalTasks + ' tasks complete. ' +
+    'Section breakdown: ' + sectionSummary + ' ' +
+    'If asked to add a task, respond with JSON: {"action":"add","task":"task name","cat":"section name"}. ' +
+    'Otherwise answer concisely from the data.';
+
+  try {
+    addTodoChatMsg('Thinking...', false);
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: msg }]
+      })
+    });
+    var data = await response.json();
+    var text = data.content[0].text.trim();
+
+    var msgs = document.getElementById('todoChatMessages');
+    msgs.removeChild(msgs.lastChild);
+
+    // Check for action
+    if (text.indexOf('{"action"') >= 0) {
+      try {
+        var start = text.indexOf('{');
+        var end = text.lastIndexOf('}') + 1;
+        var action = JSON.parse(text.slice(start, end));
+        if (action.action === 'add') {
+          var id = 'chat_' + Date.now();
+          custom.push({ id: id, t: action.task, n: '', cat: action.cat, stage: 2 });
+          fbSave(); render();
+          addTodoChatMsg('Added: "' + action.task + '" to ' + action.cat, false);
+          return;
+        }
+      } catch(e) {}
+    }
+    addTodoChatMsg(text, false);
+  } catch(e) {
+    var msgs = document.getElementById('todoChatMessages');
+    if (msgs.lastChild) msgs.removeChild(msgs.lastChild);
+    addTodoChatMsg('Sorry, something went wrong. Try again.', false);
+  }
+}
+
 function printTodo() {
   var now = new Date();
   var dateStr = now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
@@ -863,7 +956,7 @@ function printTodo() {
 
   document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
   document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent   = 'To-Do v3.10.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.11.0 · ' + dateStr;
   window.print();
 }
 
@@ -911,5 +1004,23 @@ if (document.readyState === 'loading') {
     </div>
   </div>
 </div>
+
+<!-- AI Chat -->
+<button onclick="openTodoChat()" style="position:fixed;bottom:32px;right:16px;width:48px;height:48px;border-radius:50%;background:#FF4B7B;border:none;cursor:pointer;box-shadow:0 4px 12px #0003;font-size:22px;z-index:100;display:flex;align-items:center;justify-content:center">✨</button>
+
+<div id="todoChatOverlay" style="position:fixed;bottom:90px;right:16px;width:360px;max-height:500px;background:#fff;border-radius:12px;box-shadow:0 8px 32px #0003;display:none;flex-direction:column;z-index:100">
+  <div style="padding:12px 16px;background:#22224C;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#fff;font-size:13px;font-weight:700">✨ To-Do Assistant</span>
+    <button onclick="closeTodoChat()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px">&#215;</button>
+  </div>
+  <div id="todoChatMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:200px;max-height:300px">
+    <div style="background:#f1f5f9;border-radius:8px;padding:8px 10px;font-size:12px;color:#475569">Hi! I can help manage your to-do list. Try: "Add task: chase Panache Audio to Production", "What tasks are overdue?", "What's left in Artist Liaison?"</div>
+  </div>
+  <div style="padding:8px;border-top:1px solid #e5e7eb;display:flex;gap:6px">
+    <input id="todoChatInput" type="text" placeholder="Ask me anything..." style="flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendTodoChat()">
+    <button onclick="sendTodoChat()" style="padding:7px 12px;background:#FF4B7B;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Send</button>
+  </div>
+</div>
+
 </body>
 </html>
