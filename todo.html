@@ -144,7 +144,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · To-Do v3.14.0</span>
+    <span>FD Event Planner · To-Do v3.15.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -240,6 +240,10 @@ const FB_DOC='fd7_todo_2026';
 // ── Inject Artist Liaison section if missing ──────────────────────────────────
 
 function ensureProductionNotes() {
+  // Panache Audio risk task
+  var panacheTask = {id:'risk_panache_livewire', t:'⚠ Get quote from Live Wire Event Solutions — stage & sound', n:'Panache Audio flagged as AT RISK for FD7. Live Wire previously quoted for HRR marquee — contact for FD7 stage and sound quote as backup/replacement. Contact: Live Wire Event Solutions.', cat:'Production', stage:2};
+  if (!custom.some(function(c){ return c.id==='risk_panache_livewire'; })) custom.push(panacheTask);
+
   var notes = [
     {id:'pn_bar_size', t:'Bar configuration', n:'Bar size same as last year — 18m. Confirm layout with supplier.', cat:'Bar & Catering', stage:2},
     {id:'pn_main_tent', t:'Main Bar stretch tent', n:'Same as last year. Confirm with Under The Canvas.', cat:'Structures & Tents', stage:2},
@@ -994,7 +998,7 @@ function printTodo() {
 
   document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
   document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent   = 'To-Do v3.14.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.15.0 · ' + dateStr;
   window.print();
 }
 
