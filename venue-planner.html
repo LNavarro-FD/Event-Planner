@@ -223,7 +223,7 @@ var _db=firebase.firestore();
       <div class="stab" onclick="showTab('shapes')">Shapes</div>
     </div>
     <div id="scontent">
-      <div id="tab-library"></div>
+      <div id="tab-library"><input id="lib-search" type="text" placeholder="&#128269; Search library..." oninput="renderLibrary()" style="width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-family:inherit;outline:none;margin-bottom:4px;box-sizing:border-box"><div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px"><span onclick="collapseLibrary(true)" style="font-size:10px;color:#94a3b8;cursor:pointer;text-decoration:underline">Collapse all</span><span onclick="collapseLibrary(false)" style="font-size:10px;color:#94a3b8;cursor:pointer;text-decoration:underline">Expand all</span></div><div id="lib-list"></div></div>
       <div id="tab-equipment" style="display:none">
         <button class="tb" style="width:100%;margin-bottom:8px" onclick="openAddEquip()">+ Add item</button>
         <div id="equip-list"></div>
@@ -728,6 +728,15 @@ var SHAPE_DEFAULTS = {
   zone_hatch: {w:12, d:8,  fillStyle:'transparent', strokeStyle:'#ef4444', label:'Exclusion', hatch:true},
   textblock:  {w:8,  d:3,  fillStyle:'transparent', strokeStyle:'transparent', label:'Label here', isText:true},
 };
+
+function collapseLibrary(collapse) {
+  document.querySelectorAll('.lib-cat-body').forEach(function(el){
+    el.style.display = collapse ? 'none' : 'block';
+  });
+  document.querySelectorAll('.lib-cat-toggle').forEach(function(el){
+    el.textContent = collapse ? '▶' : '▼';
+  });
+}
 
 function renderShapes() {
   var el = document.getElementById('shapes-list');
