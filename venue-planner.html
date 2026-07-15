@@ -1410,11 +1410,13 @@ canvas.addEventListener('mousedown',e=>{
   if(mode==='label'){pending={type:'label',x:mx,y:my};openModal('labelModal');return;}
 });
 canvas.addEventListener('dblclick',e=>{
-  // In select mode — double-click object to open resize panel
+  // In select mode — double-click object to resize, double-click empty space to fit view
   if(!drawing && mode==='select'){
     const r=canvas.getBoundingClientRect(),mx=toMX(e.clientX-r.left),my=toMY(e.clientY-r.top);
     const hit=hitTest(mx,my);
     if(hit&&hit.type==='item'){openResizePanel(hit);return;}
+    // Double-click on empty canvas = reset zoom to fit (Magic Mouse double-tap)
+    fitView();notify('Zoom reset');return;
   }
   if(!drawing)return;
   const r=canvas.getBoundingClientRect(),mx=snp(toMX(e.clientX-r.left)),my=snp(toMY(e.clientY-r.top));
