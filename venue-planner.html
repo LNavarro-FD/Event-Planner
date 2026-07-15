@@ -918,6 +918,41 @@ function placeBar() {
   notify('Bar placed — ' + b.stations + ' stations, ' + b.staffNeeded + ' staff needed');
 }
 
+
+var _resizeTarget = null;
+
+function openResizePanel(obj) {
+  _resizeTarget = obj;
+  document.getElementById('resize-title').textContent = obj.name || 'Resize object';
+  document.getElementById('resize-w').value = obj.w || '';
+  document.getElementById('resize-d').value = obj.d || '';
+  document.getElementById('resize-label').value = obj.name || '';
+  document.getElementById('resize-rot').value = obj.rot || 0;
+  document.getElementById('resizeOverlay').style.display = 'flex';
+}
+
+function closeResizePanel() {
+  document.getElementById('resizeOverlay').style.display = 'none';
+  _resizeTarget = null;
+}
+
+function applyResize() {
+  if (!_resizeTarget) return;
+  var w = parseFloat(document.getElementById('resize-w').value);
+  var d = parseFloat(document.getElementById('resize-d').value);
+  var label = document.getElementById('resize-label').value.trim();
+  var rot = parseFloat(document.getElementById('resize-rot').value) || 0;
+  if (w > 0) _resizeTarget.w = w;
+  if (d > 0) _resizeTarget.d = d;
+  if (label) _resizeTarget.name = label;
+  _resizeTarget.rot = rot;
+  pushUndo();
+  draw();
+  saveLayout();
+  closeResizePanel();
+  notify('Updated ' + (_resizeTarget ? _resizeTarget.name : 'object'));
+}
+
 function applyBoundary(){
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
@@ -1375,6 +1410,12 @@ canvas.addEventListener('mousedown',e=>{
   if(mode==='label'){pending={type:'label',x:mx,y:my};openModal('labelModal');return;}
 });
 canvas.addEventListener('dblclick',e=>{
+  // In select mode — double-click object to open resize panel
+  if(!drawing && mode==='select'){
+    const r=canvas.getBoundingClientRect(),mx=toMX(e.clientX-r.left),my=toMY(e.clientY-r.top);
+    const hit=hitTest(mx,my);
+    if(hit&&hit.type==='item'){openResizePanel(hit);return;}
+  }
   if(!drawing)return;
   const r=canvas.getBoundingClientRect(),mx=snp(toMX(e.clientX-r.left)),my=snp(toMY(e.clientY-r.top));
   if(mode==='wall'){if(drawPts.length>=2)objects.push({type:'wall',points:[...drawPts]});drawing=false;drawPts=[];draw();return;}
@@ -1999,5 +2040,37 @@ window._fbLoadAndInit();
   </div>
 </div>
 
+<div id="resizeOverlay" style="position:fixed;inset:0;background:#0004;z-index:150;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)closeResizePanel()">
+  <div style="background:#fff;border-radius:12px;width:340px;max-width:95vw;box-shadow:0 8px 32px #0003">
+    <div style="padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+      <h3 id="resize-title" style="font-size:13px;font-weight:700;color:#1e293b"></h3>
+      <button onclick="closeResizePanel()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px">&#215;</button>
+    </div>
+    <div style="padding:14px 18px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Width (m)</label>
+          <input id="resize-w" type="number" step="0.5" min="0.5" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:600;outline:none">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Depth (m)</label>
+          <input id="resize-d" type="number" step="0.5" min="0.5" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:600;outline:none">
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Label</label>
+        <input id="resize-label" type="text" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Rotation (°)</label>
+        <input id="resize-rot" type="number" step="15" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeResizePanel()" style="flex:1;padding:8px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Cancel</button>
+        <button onclick="applyResize()" style="flex:2;padding:8px;background:#1e293b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
