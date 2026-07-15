@@ -125,7 +125,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.6.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.7.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -199,6 +199,24 @@ function save() {
 }
 
 function ensureEventItems(event) {
+  // Always check for and add the bar sign if not present
+  if (eventItems[event]) {
+    var hasSign = eventItems[event].some(function(i){ return i.item === 'Pimms, Prosecco & Aperol Bar Sign'; });
+    if (!hasSign) {
+      eventItems[event].push({
+        item: 'Pimms, Prosecco & Aperol Bar Sign', cat: 'Print & Signage',
+        desc: 'A1 foamex sign for bar', dims: 'A1 (594x841mm)', bleed: '3mm',
+        dpi: '150dpi', format: 'PDF', colours: 'FD Pink #FF4B7B, Navy #22224C',
+        copy: 'Pimms, Prosecco & Aperol Bar. Open for all.',
+        briefNotes: 'A1 foamex rigid board. Include FD branding and drink graphics.',
+        status: 'required', needsDesign: true, needsPrint: true,
+        notes: '', supplier: '', orderNo: '', qty: '1', unitPrice: '',
+        exVat: '', incVat: '', discount: '', deliveryDate: '',
+        designApproved: false, printVersion: false, orderPlaced: false, log: []
+      });
+      save();
+    }
+  }
   if (!eventItems[event]) {
     // Seed from template — all items default to "maybe"
     eventItems[event] = TEMPLATE.map(function(t) {
