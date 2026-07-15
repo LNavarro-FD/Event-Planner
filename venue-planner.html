@@ -203,6 +203,10 @@ var _db=firebase.firestore();
   <button class="tb red" onclick="deleteByCount()" title="Delete multiple of same item">Delete N</button>
   <button class="tb red" onclick="clearCanvas()">Clear</button>
   <div class="sep"></div>
+  <button class="tb" id="centreBtn" onclick="centreSelected('both')" style="display:none" title="Centre on canvas">&#8853; Centre</button>
+  <button class="tb" id="centreHBtn" onclick="centreSelected('h')" style="display:none" title="Centre horizontally">&#8596;</button>
+  <button class="tb" id="centreVBtn" onclick="centreSelected('v')" style="display:none" title="Centre vertically">&#8597;</button>
+  <div class="sep"></div>
   <span class="lbl">Rotate selected</span>
   <button class="tb" onclick="rotateSelected(-45)">−45°</button>
   <button class="tb" onclick="rotateSelected(-15)">−15°</button>
@@ -953,6 +957,19 @@ function applyResize() {
   notify('Updated ' + (_resizeTarget ? _resizeTarget.name : 'object'));
 }
 
+
+function centreSelected(axis) {
+  if (!selected || !boundary) return;
+  var bCx = boundary.x + boundary.w / 2;
+  var bCy = boundary.y + boundary.d / 2;
+  if (axis === 'both' || axis === 'h') selected.x = bCx - (selected.w||0) / 2;
+  if (axis === 'both' || axis === 'v') selected.y = bCy - (selected.d||0) / 2;
+  pushUndo();
+  draw();
+  saveLayout();
+  notify('Centred ' + (axis==='both'?'on canvas':axis==='h'?'horizontally':'vertically'));
+}
+
 function applyBoundary(){
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
@@ -1565,6 +1582,11 @@ function showTab(t){
   tabs.forEach(tab=>document.getElementById('tab-'+tab).style.display=tab===t?'':'none');
 }
 function updateStatus(){
+  // Show/hide centre buttons based on selection
+  var cbv = (selected && selected.type==='item' && boundary) ? 'inline-block' : 'none';
+  var cb=document.getElementById('centreBtn'); if(cb) cb.style.display=cbv;
+  var ch=document.getElementById('centreHBtn'); if(ch) ch.style.display=cbv;
+  var cv=document.getElementById('centreVBtn'); if(cv) cv.style.display=cbv;
   const rotStr=selected&&selected.type==='item'&&selected.rotation?` · ${selected.rotation}°`:'';
   document.getElementById('sSel').textContent=selected?
     `Selected: ${selected.type}${selected.name?' — '+selected.name:selected.label?' — '+selected.label:selected.text?' — '+selected.text:''}${rotStr}`:
