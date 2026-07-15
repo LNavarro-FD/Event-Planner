@@ -125,7 +125,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.3.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.4.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -260,6 +260,7 @@ function renderTemplate() {
 
   var html = '';
   Object.keys(cats).forEach(function(cat) {
+    var safeCat = cat.replace(/[^a-z0-9]/gi,'_');
     html += '<div class="cat-header">' + cat + '</div>';
     cats[cat].forEach(function(row) {
       var item = row.item;
@@ -279,9 +280,36 @@ function renderTemplate() {
       html += '<button class="add-to-todo' + (item.addedToTodo?' added':'') + '" onclick="openItem(' + idx + ')">' + (item.addedToTodo ? '✓ In detail' : '+ Details') + '</button>';
       html += '</div>';
     });
+    // Quick-add at bottom of each category
+    html += '<div style="padding:4px 8px 8px">';
+    html += '<input type="text" class="print-quick-add" data-cat="' + cat.replace(/"/g,'&quot;') + '" placeholder="+ Quick add item..." ';
+    html += 'style="width:100%;padding:5px 8px;border:1px dashed #e2e8f0;border-radius:6px;font-size:11px;font-family:inherit;outline:none;background:#fafafa;color:#475569">';
+    html += '</div>';
   });
 
   document.getElementById('content').innerHTML = html;
+
+  // Attach quick-add listeners
+  document.querySelectorAll('.print-quick-add').forEach(function(input) {
+    input.addEventListener('focus', function(){ this.style.borderColor='#FF4B7B';this.style.background='#fff'; });
+    input.addEventListener('blur',  function(){ this.style.borderColor='#e2e8f0';this.style.background='#fafafa'; });
+    input.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter') return;
+      var name = this.value.trim();
+      if (!name) return;
+      var cat = this.getAttribute('data-cat');
+      if (!eventItems[currentEvent]) eventItems[currentEvent] = [];
+      eventItems[currentEvent].push({
+        item: name, cat: cat, desc: '', dims: 'TBC',
+        status: 'maybe', notes: '',
+        needsDesign: true, needsPrint: true,
+        supplier: '', orderNo: '', qty: '', unitPrice: '',
+        exVat: '', incVat: '', discount: '', deliveryDate: '',
+        designApproved: false, printVersion: false, orderPlaced: false, log: []
+      });
+      save(); render();
+    });
+  });
 }
 
 function renderProcurement() {
