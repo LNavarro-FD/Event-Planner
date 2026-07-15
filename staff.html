@@ -316,7 +316,7 @@ function renderPeople(q, sec, evt) {
     html += '</div>';
     html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
     html += '<span class="pc-section pill ' + sectionClass(p.section) + '">' + p.section + '</span>';
-    html += '<button class="pc-expand" onclick="toggleExpand(\'' + p.id + '\',event)">⋯</button>';
+    html += '<button class="pc-expand-btn" data-pid="' + p.id + '">⋯</button>';
     html += '</div></div>';
     html += '<div class="pc-contact">';
     if (p.email) html += '<a href="mailto:' + p.email + '">' + p.email + '</a>';
@@ -445,10 +445,11 @@ function renderRoles(q, sec, evt) {
 }
 
 // ── Expand/collapse person card ───────────────────────────────────────────────
-function toggleExpand(id, e) {
-  e.stopPropagation();
+function toggleExpand(id) {
   var d = document.getElementById('pcd_' + id);
   if (d) d.classList.toggle('open');
+  var btn = document.querySelector('.pc-expand-btn[data-pid="' + id + '"]');
+  if (btn) btn.textContent = d && d.classList.contains('open') ? '▲' : '⋯';
 }
 
 // ── Add/Edit person ───────────────────────────────────────────────────────────
