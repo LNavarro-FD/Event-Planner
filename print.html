@@ -114,6 +114,7 @@ var _db = firebase.firestore();
     <option value="FD Shindig">FD Shindig</option>
   </select>
   <button class="btn-primary" onclick="printSheet()">🖨 Print</button>
+  <button onclick="openBulkPrint()" style="padding:6px 14px;background:#22224C;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✨ Bulk add</button>
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
 </div>
 
@@ -124,7 +125,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.1.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.2.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -405,6 +406,101 @@ function renderPanel(item) {
 }
 
 
+
+// ── Bulk AI print/design import ───────────────────────────────────────────────
+function openBulkPrint() {
+  document.getElementById('printBulkOverlay').style.display = 'flex';
+  document.getElementById('pbulk-step1').style.display = 'block';
+  document.getElementById('pbulk-step2').style.display = 'none';
+  document.getElementById('pbulk-loading').style.display = 'none';
+  document.getElementById('pbulk-input').value = '';
+}
+
+function closeBulkPrint() {
+  document.getElementById('printBulkOverlay').style.display = 'none';
+}
+
+async function runPrintBulkAI() {
+  var input = document.getElementById('pbulk-input').value.trim();
+  if (!input) { alert('Please enter at least one item'); return; }
+  var items = input.split('\n').map(function(t){ return t.trim(); }).filter(Boolean);
+  if (!items.length) return;
+
+  document.getElementById('pbulk-step1').style.display = 'none';
+  document.getElementById('pbulk-loading').style.display = 'block';
+
+  try {
+    var groups = ['Print & Signage','Wristbands & Accreditation','Garments','Merchandise','Ad hoc'];
+    var prompt = 'You are helping categorise design and print items for a music festival event called Funky Dory Festival 7. Available groups: ' + groups.join(', ') + '. For each item, suggest: the best group, whether it needs design work (true/false), whether it needs printing/production (true/false). Respond ONLY with a JSON array, no markdown. Format: [{"item":"item name","group":"group name","needsDesign":true,"needsPrint":true}]. Items: ' + items.join(' | ');
+
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+    });
+    var data = await response.json();
+    var text = data.content[0].text.trim();
+    var start = text.indexOf('[');
+    var end = text.lastIndexOf(']') + 1;
+    var results = JSON.parse(text.slice(start, end));
+
+    document.getElementById('pbulk-loading').style.display = 'none';
+    document.getElementById('pbulk-step2').style.display = 'block';
+
+    var groupOpts = groups.map(function(g){ return '<option value="'+g+'">'+g+'</option>'; }).join('');
+    var html = '';
+    results.forEach(function(r) {
+      var opts = groups.map(function(g){
+        return '<option value="'+g+'"'+(g===r.group?' selected':'')+'>'+g+'</option>';
+      }).join('');
+      html += '<tr style="border-bottom:1px solid #f1f5f9">';
+      html += '<td style="padding:6px 8px;font-weight:500">'+r.item+'</td>';
+      html += '<td style="padding:6px 8px"><select class="pbulk-group" data-item="'+r.item.replace(/"/g,'&quot;')+'" style="padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;font-family:inherit;outline:none">'+opts+'</select></td>';
+      html += '<td style="padding:6px 8px;text-align:center"><input type="checkbox" class="pbulk-design"'+(r.needsDesign?' checked':'')+' style="width:16px;height:16px;cursor:pointer"></td>';
+      html += '<td style="padding:6px 8px;text-align:center"><input type="checkbox" class="pbulk-print"'+(r.needsPrint?' checked':'')+' style="width:16px;height:16px;cursor:pointer"></td>';
+      html += '</tr>';
+    });
+    document.getElementById('pbulk-results').innerHTML = html;
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById('pbulk-loading').style.display = 'none';
+    document.getElementById('pbulk-step1').style.display = 'block';
+    alert('AI categorisation failed. Try again.');
+  }
+}
+
+function addBulkPrintItems() {
+  var rows = document.querySelectorAll('#pbulk-results tr');
+  if (!rows.length) return;
+  var count = 0;
+  rows.forEach(function(row) {
+    var groupEl  = row.querySelector('.pbulk-group');
+    var designEl = row.querySelector('.pbulk-design');
+    var printEl  = row.querySelector('.pbulk-print');
+    if (!groupEl) return;
+    var itemName = groupEl.getAttribute('data-item');
+    var group    = groupEl.value;
+    if (!itemName) return;
+    if (!eventItems[currentEvent]) eventItems[currentEvent] = [];
+    eventItems[currentEvent].push({
+      item: itemName, cat: group, desc: '', dims: 'TBC',
+      status: 'maybe', notes: '',
+      needsDesign: designEl ? designEl.checked : true,
+      needsPrint:  printEl  ? printEl.checked  : true,
+      supplier: '', orderNo: '', qty: '', unitPrice: '',
+      exVat: '', incVat: '', discount: '', deliveryDate: '',
+      designApproved: false, printVersion: false, orderPlaced: false,
+      log: []
+    });
+    count++;
+  });
+  save();
+  render();
+  closeBulkPrint();
+  notify(count + ' items added');
+}
+
 function sendDesignBrief() {
   if (_editIdx === null) return;
   saveItem();
@@ -500,5 +596,40 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', load);
 } else { load(); }
 </script>
+<div id="printBulkOverlay" style="position:fixed;inset:0;background:#0006;z-index:200;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)closeBulkPrint()">
+  <div style="background:#fff;border-radius:12px;width:600px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px #0003">
+    <div style="padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <h3 style="font-size:15px;font-weight:700;color:#22224C">&#10024; Bulk add design &amp; print items</h3>
+      <button onclick="closeBulkPrint()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px">&#215;</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 20px">
+      <div id="pbulk-step1">
+        <p style="font-size:12px;color:#64748b;margin-bottom:10px">Type or paste items one per line. Claude will suggest the group, and whether each needs design, print or both.</p>
+        <textarea id="pbulk-input" style="width:100%;min-height:160px;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;outline:none;resize:vertical" placeholder="Stage front banner&#10;Staff t-shirts&#10;Guest wristbands&#10;Site map signs&#10;Branded cups"></textarea>
+        <button onclick="runPrintBulkAI()" style="margin-top:10px;padding:8px 20px;background:#FF4B7B;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;width:100%">&#10024; Categorise with AI</button>
+      </div>
+      <div id="pbulk-step2" style="display:none">
+        <p style="font-size:12px;color:#64748b;margin-bottom:10px">Claude has suggested groups and requirements — change any before adding.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr style="background:#f8fafc">
+            <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0">Item</th>
+            <th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0">Group</th>
+            <th style="padding:6px 8px;text-align:center;border-bottom:1px solid #e2e8f0">Design</th>
+            <th style="padding:6px 8px;text-align:center;border-bottom:1px solid #e2e8f0">Print</th>
+          </tr></thead>
+          <tbody id="pbulk-results"></tbody>
+        </table>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button onclick="document.getElementById('pbulk-step1').style.display='block';document.getElementById('pbulk-step2').style.display='none'" style="padding:7px 14px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">&#8592; Back</button>
+          <button onclick="addBulkPrintItems()" style="flex:1;padding:8px 20px;background:#22224C;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Add all items</button>
+        </div>
+      </div>
+      <div id="pbulk-loading" style="display:none;text-align:center;padding:24px">
+        <div style="font-size:24px;margin-bottom:8px">&#10024;</div>
+        <div style="font-size:13px;color:#64748b">Claude is categorising your items...</div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
