@@ -144,7 +144,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · To-Do v3.12.0</span>
+    <span>FD Event Planner · To-Do v3.13.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -824,13 +824,15 @@ async function runBulkAI() {
   var tasks = input.split('\n').map(function(t){ return t.trim(); }).filter(Boolean);
   if (!tasks.length) return;
   var cats = allCats();
+  var apiKey = window.getAnthropicKey ? window.getAnthropicKey() : localStorage.getItem('fd_anthropic_key');
+  if (!apiKey) { alert('Please enter your Anthropic API key in the banner at the top of the hub.'); return; }
   document.getElementById('bulk-step1').style.display = 'none';
   document.getElementById('bulk-loading').style.display = 'block';
   try {
     var prompt = 'You are helping categorise tasks for an event planning to-do list for Funky Dory Festival 7 (a music festival). Available sections: ' + cats.join(', ') + '. For each task, suggest the best section. Respond ONLY with a JSON array, no markdown fences, no explanation. Format: [{"task":"task text","section":"section name"}]. Tasks: ' + tasks.join(' | ');
     var response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': (window.getAnthropicKey ? window.getAnthropicKey() : localStorage.getItem('fd_anthropic_key')||''), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
     });
     var data = await response.json();
@@ -977,7 +979,7 @@ function printTodo() {
 
   document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
   document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent   = 'To-Do v3.12.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.13.0 · ' + dateStr;
   window.print();
 }
 
