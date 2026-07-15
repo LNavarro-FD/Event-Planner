@@ -113,5 +113,67 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
   <span>All data saves to Firestore automatically — open on any device and it picks up where you left off. Every module has a Print button for physical copies.</span>
 </div>
 
+
+<script>
+async function runAICommand() {
+  var input = document.getElementById('aiCmd');
+  var cmd = input.value.trim();
+  if (!cmd) return;
+  var result = document.getElementById('aiCmdResult');
+  result.style.color = '#94a3b8';
+  result.textContent = 'Processing...';
+
+  var apiKey = localStorage.getItem('fd_anthropic_key') || '';
+  if (!apiKey) {
+    result.style.color = '#dc2626';
+    result.textContent = 'Please set your Anthropic API key first (see banner above).';
+    return;
+  }
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 300,
+        system: 'You are a routing assistant for an event planning app for Funky Dory Festival 7. Parse the user command and return ONLY a JSON object with: {"module":"todo|print|artists|suppliers|staff","action":"add|update|note","data":{...relevant fields...},"confirm":"one sentence confirming what you did"}. Modules: todo=tasks, print=design & print items, artists=DJ/artist records, suppliers=supplier records, staff=staff records. For todo: data={task,category,notes}. For print: data={item,category,needsDesign,needsPrint,dims,notes}. For artists: data={name,field,value}.',
+        messages: [{ role: 'user', content: cmd }]
+      })
+    });
+    var data = await response.json();
+    var text = data.content[0].text.trim();
+    var start = text.indexOf('{');
+    var end = text.lastIndexOf('}') + 1;
+    var action = JSON.parse(text.slice(start, end));
+
+    // Route to correct module via postMessage to iframe
+    var iframe = document.querySelector('#frameContainer iframe') || window.parent.document.getElementById('mainFrame');
+    
+    // Store action in sessionStorage for modules to pick up
+    sessionStorage.setItem('fd_ai_action', JSON.stringify(action));
+
+    // Navigate to the right module
+    if (window.parent && window.parent.go) {
+      window.parent.go(action.module);
+    }
+
+    result.style.color = '#15803d';
+    result.textContent = '✓ ' + action.confirm;
+    input.value = '';
+
+  } catch(e) {
+    result.style.color = '#dc2626';
+    result.textContent = 'Failed to process command. Try again.';
+    console.error(e);
+  }
+}
+</script>
+
 </body>
 </html>
