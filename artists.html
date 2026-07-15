@@ -221,31 +221,31 @@ var _db = firebase.firestore();
 // ── Data ──────────────────────────────────────────────────────────────────────
 var SEED_ARTISTS = [
   {id:'gordon_mac', perfName:'Gordon Mac', legalName:'Gordon McTavish', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:300, setTime:'21:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'michael_gray', perfName:'Michael Gray', legalName:'Michael Gray', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:1700, setTime:'22:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'yes', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'PAID 50%'},
   {id:'bobby_steve', perfName:'Bobby & Steve', legalName:'', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:600, setTime:'19:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'brandon_block', perfName:'Brandon Block', legalName:'Brandon Block', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7','HRR26'], fee:600, setTime:'20:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7','HRR26'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also played HRR26'},
   {id:'john_morales', perfName:'John Morales', legalName:'John Morales', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:1587.5, setTime:'23:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'yes', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Hotel + transport required'},
   {id:'mark_knight', perfName:'Mark Knight', legalName:'Mark Knight', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:500, setTime:'18:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'ricky_morrison', perfName:'Ricky Morrison', legalName:'Ricky Morrison', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:400, setTime:'17:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'colin_francis', perfName:'Colin Francis', legalName:'Colin Francis', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:500, setTime:'16:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'noah_herel', perfName:'Noah Herel', legalName:'Noah Herel', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:150, setTime:'15:00', setLength:60,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
 ];
 
@@ -346,7 +346,6 @@ function renderArtists(filtered) {
     if (guestCount > 0) html += '<span class="badge badge-info">'+guestCount+' guest'+(guestCount>1?'s':'')+'</span>';
     if (a.hotel === 'yes') html += '<span class="badge badge-info">Hotel needed</span>';
     if (a.packSent === 'yes') html += '<span class="badge badge-green">Pack sent</span>';
-    if (a.fee) html += '<span class="badge badge-info">£'+a.fee+'</span>';
     if (a.notes) html += '<span class="badge badge-amber" title="'+a.notes+'">Note</span>';
     html += '</div>';
     html += '<div class="a-actions">';
