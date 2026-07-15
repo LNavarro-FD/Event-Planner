@@ -166,7 +166,7 @@ firebase.initializeApp({
 });
 var _db=firebase.firestore();
 window._fbUser={email:'local'};
-window._loadTasks();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){if(typeof window._loadTasks==='function')window._loadTasks(); else if(typeof loadBuildCells==='function')loadBuildCells();});}else{if(typeof window._loadTasks==='function')window._loadTasks(); else if(typeof loadBuildCells==='function')loadBuildCells();}
 </script>
 </head>
 <body>
