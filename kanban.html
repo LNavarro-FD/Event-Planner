@@ -653,4 +653,54 @@ function renderBuildGrid(){
     </td>`;
   }
 
-  >
+  // ── Render grid ──────────────────────────────────────────────────────────────
+  var html = '<div class="bg-title">'+bw.title+'</div>';
+  if(bw.subtitle) html += '<div class="bg-subt">'+bw.subtitle+'</div>';
+  html += '<div style="overflow-x:auto"><table class="bgt"><thead><tr>';
+  html += '<th style="min-width:140px">Task</th>';
+  bw.days.forEach(function(d){
+    html += '<th class="'+d.type+'-day" style="min-width:90px;text-align:center;font-size:10px">'+d.label+'</th>';
+  });
+  html += '</tr></thead><tbody>';
+  bw.sections.forEach(function(sec){
+    html += '<tr><td class="section-td" colspan="'+(bw.days.length+1)+'">'+sec.name+'</td></tr>';
+    sec.tasks.forEach(function(task){
+      html += '<tr><td style="font-size:11px;color:#374151;min-width:160px;white-space:nowrap">'+task.name+'</td>';
+      bw.days.forEach(function(d,i){ html += makeCell(sec.name, task.name, i, task.default||'', d.type); });
+      html += '</tr>';
+    });
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('buildGrid').innerHTML = html;
+}
+
+// ── Cell persistence ──────────────────────────────────────────────────────────
+async function loadBuildCells(){
+  try{
+    var snap = await _db.collection('kanban').doc('fd7_build_2026').get();
+    if(snap.exists && snap.data().cells) cells = snap.data().cells;
+  }catch(e){console.warn('Load cells failed',e);}
+  renderBuildGrid();
+}
+
+async function saveBuildCells(){
+  try{
+    await _db.collection('kanban').doc('fd7_build_2026').set({cells:cells});
+  }catch(e){console.warn('Save cells failed',e);}
+}
+
+function editBuildCell(td, key, defaultVal){
+  var cur = cells[key] !== undefined ? cells[key] : defaultVal;
+  var val = prompt('Assign to:', cur||'');
+  if(val === null) return;
+  cells[key] = val;
+  saveBuildCells().then(function(){ renderBuildGrid(); });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', loadBuildCells);
+} else { loadBuildCells(); }
+</script>
+</body>
+</html>
