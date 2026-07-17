@@ -970,6 +970,166 @@ function centreSelected(axis) {
   notify('Centred ' + (axis==='both'?'on canvas':axis==='h'?'horizontally':'vertically'));
 }
 
+
+// ── AI Site Planner Assistant ─────────────────────────────────────────────────
+function toggleVPChat() {
+  var panel = document.getElementById('vpChatPanel');
+  var open = panel.style.display === 'flex';
+  panel.style.display = open ? 'none' : 'flex';
+  if (!open) document.getElementById('vpChatInput').focus();
+}
+
+function addVPMsg(text, isUser) {
+  var msgs = document.getElementById('vpChatMsgs');
+  var div = document.createElement('div');
+  div.style.cssText = 'border-radius:8px;padding:8px 10px;font-size:12px;max-width:92%;white-space:pre-wrap;' +
+    (isUser ? 'background:#22224C;color:#fff;align-self:flex-end' : 'background:#f1f5f9;color:#374151;align-self:flex-start');
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function buildVPContext() {
+  var ctx = '';
+  if (boundary) {
+    ctx += 'Canvas boundary: ' + boundary.w + 'm wide x ' + boundary.d + 'm deep.\n';
+  }
+  if (objects.length) {
+    ctx += 'Objects on canvas (' + objects.length + '):\n';
+    objects.forEach(function(o, i) {
+      if (o.type === 'item') {
+        ctx += '  ' + (i+1) + '. ' + o.name + ' — ' + o.w + 'x' + o.d + 'm at position x:' + Math.round(o.x) + 'm, y:' + Math.round(o.y) + 'm' + (o.rot?' rot:'+o.rot+'°':'') + '\n';
+      }
+    });
+  } else {
+    ctx += 'Canvas is empty.\n';
+  }
+  ctx += 'Active event: ' + (typeof currentVenue !== "undefined" ? currentVenue + ' ' + currentYear : 'unknown') + '\n';
+  return ctx;
+}
+
+async function sendVPChat() {
+  var input = document.getElementById('vpChatInput');
+  var msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addVPMsg(msg, true);
+
+  var apiKey = localStorage.getItem('fd_anthropic_key') || '';
+  if (!apiKey) {
+    addVPMsg('Please set your Anthropic API key in the hub first.', false);
+    return;
+  }
+
+  var thinking = addVPMsg('Thinking...', false);
+
+  var systemPrompt = 'You are an AI assistant for a site planning canvas tool used by Funky Dory, an event company. ' +
+    'The canvas uses metres as units. Top-left is 0,0. X increases right, Y increases down. ' +
+    'You can place, move and resize objects on the canvas. ' +
+    'When asked to do something, respond with a JSON action object. Otherwise answer the question from the context. ' +
+    'Action format: {"action":"place|move|resize|clear|answer","name":"object name","w":10,"d":6,"x":0,"y":0,"confirm":"what you did"} ' +
+    'For placement positions: top=y near 0, bottom=y near boundary depth, left=x near 0, right=x near boundary width, centre=middle. ' +
+    'For "top centre" of an 8x6 stage on a 120x80m boundary: x=56, y=2. ' +
+    'Always include a "confirm" field describing what you did in plain English. ' +
+    'If answering a question (not taking action), use {"action":"answer","confirm":"your answer"}. ' +
+    'Current canvas state:\n' + buildVPContext();
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: msg }]
+      })
+    });
+
+    var data = await response.json();
+    var text = data.content[0].text.trim();
+    thinking.remove();
+
+    // Parse action
+    var action = null;
+    try {
+      var start = text.indexOf('{');
+      var end = text.lastIndexOf('}') + 1;
+      if (start >= 0) action = JSON.parse(text.slice(start, end));
+    } catch(e) {}
+
+    if (action) {
+      if (action.action === 'place' && action.name) {
+        // Find matching library item or create generic
+        var libMatch = equipment.find(function(e){ return e.name.toLowerCase().includes(action.name.toLowerCase()); });
+        var newObj = {
+          type: 'item',
+          name: action.name,
+          cat: libMatch ? libMatch.cat : 'Other',
+          w: action.w || (libMatch ? libMatch.w : 8),
+          d: action.d || (libMatch ? libMatch.d : 6),
+          x: action.x !== undefined ? action.x : (boundary ? boundary.w/2 - (action.w||8)/2 : 0),
+          y: action.y !== undefined ? action.y : (boundary ? boundary.d/2 - (action.d||6)/2 : 0),
+          rot: action.rot || 0,
+          colour: libMatch ? libMatch.colour : '#475569',
+          snap: 'grid',
+          supplier: '',
+          confirmed: false
+        };
+        pushUndo();
+        objects.push(newObj);
+        selected = newObj;
+        draw();
+        updateStatus();
+        saveLayout();
+        addVPMsg('✓ ' + action.confirm, false);
+
+      } else if (action.action === 'move' && action.name) {
+        var target = objects.find(function(o){ return o.name && o.name.toLowerCase().includes(action.name.toLowerCase()); });
+        if (target) {
+          pushUndo();
+          if (action.x !== undefined) target.x = action.x;
+          if (action.y !== undefined) target.y = action.y;
+          draw(); updateStatus(); saveLayout();
+          addVPMsg('✓ ' + action.confirm, false);
+        } else {
+          addVPMsg('Could not find "' + action.name + '" on canvas.', false);
+        }
+
+      } else if (action.action === 'resize' && action.name) {
+        var target2 = objects.find(function(o){ return o.name && o.name.toLowerCase().includes(action.name.toLowerCase()); });
+        if (target2) {
+          pushUndo();
+          if (action.w) target2.w = action.w;
+          if (action.d) target2.d = action.d;
+          draw(); updateStatus(); saveLayout();
+          addVPMsg('✓ ' + action.confirm, false);
+        } else {
+          addVPMsg('Could not find "' + action.name + '" on canvas.', false);
+        }
+
+      } else if (action.action === 'answer') {
+        addVPMsg(action.confirm, false);
+      } else {
+        addVPMsg(action.confirm || text, false);
+      }
+    } else {
+      addVPMsg(text, false);
+    }
+
+  } catch(e) {
+    if (thinking.parentNode) thinking.remove();
+    addVPMsg('Something went wrong. Try again.', false);
+    console.error(e);
+  }
+}
+
 function applyBoundary(){
   const w=parseFloat(document.getElementById('setupW').value),d=parseFloat(document.getElementById('setupD').value);
   if(!w||!d||w<1||d<1){alert('Enter valid dimensions.');return;}
@@ -2096,5 +2256,27 @@ window._fbLoadAndInit();
     </div>
   </div>
 </div>
+
+<!-- AI Site Planner Assistant -->
+<div id="vpChatBtn" onclick="toggleVPChat()" style="position:fixed;bottom:32px;right:16px;width:48px;height:48px;border-radius:50%;background:#22224C;border:none;cursor:pointer;box-shadow:0 4px 12px #0003;font-size:22px;z-index:100;display:flex;align-items:center;justify-content:center;color:#FF4B7B">✨</div>
+
+<div id="vpChatPanel" style="position:fixed;bottom:90px;right:16px;width:380px;max-height:520px;background:#fff;border-radius:12px;box-shadow:0 8px 32px #0003;display:none;flex-direction:column;z-index:100">
+  <div style="padding:12px 16px;background:#22224C;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+    <span style="color:#fff;font-size:13px;font-weight:700">✨ Site Planner Assistant</span>
+    <button onclick="toggleVPChat()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px">&#215;</button>
+  </div>
+  <div id="vpChatMsgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:200px;max-height:340px">
+    <div style="background:#f1f5f9;border-radius:8px;padding:8px 10px;font-size:12px;color:#475569">Hi! I can help plan your site. Try:<br>
+    · "Place the stage top centre"<br>
+    · "Add an 18m bar along the bottom"<br>
+    · "Move the stage 5m left"<br>
+    · "What objects are on the canvas?"</div>
+  </div>
+  <div style="padding:8px;border-top:1px solid #e5e7eb;display:flex;gap:6px;flex-shrink:0">
+    <input id="vpChatInput" type="text" placeholder="Tell me what to do..." style="flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendVPChat()">
+    <button onclick="sendVPChat()" style="padding:7px 12px;background:#FF4B7B;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Go</button>
+  </div>
+</div>
+
 </body>
 </html>
