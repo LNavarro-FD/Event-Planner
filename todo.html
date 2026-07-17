@@ -144,7 +144,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · To-Do v3.16.0</span>
+    <span>FD Event Planner · To-Do v3.17.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -240,6 +240,12 @@ const FB_DOC='fd7_todo_2026';
 // ── Inject Artist Liaison section if missing ──────────────────────────────────
 
 function ensureProductionNotes() {
+  // Security brief and DJ comms tasks
+  var secTask = {id:'task_security_brief', t:'Send accreditation brief to security team', n:'Use Security Brief button in Artists tab. Cover: AAA lanyard+wristband = stage access, AAA wristband only = backstage/green room, general = FOH. Stage rule non-negotiable.', cat:'Artist Liaison', stage:4};
+  var djCommsTask = {id:'task_dj_comms', t:'Send accreditation info to all DJs & artists', n:'Use DJ Comms button in Artists tab. Covers: accreditation on arrival, 2 x AAA guest wristbands, stage rule, what we need from them.', cat:'Artist Liaison', stage:3};
+  if (!custom.some(function(c){ return c.id==='task_security_brief'; })) custom.push(secTask);
+  if (!custom.some(function(c){ return c.id==='task_dj_comms'; })) custom.push(djCommsTask);
+
   // Accreditation decision
   var accredTask = {
     id:'decision_aaa_policy',
@@ -1008,7 +1014,7 @@ function printTodo() {
 
   document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
   document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent   = 'To-Do v3.16.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.17.0 · ' + dateStr;
   window.print();
 }
 
