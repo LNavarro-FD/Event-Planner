@@ -115,6 +115,8 @@ var _db = firebase.firestore();
   </select>
   <button class="btn" onclick="openAddArtist()">+ Add artist</button>
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
+  <button onclick="openSecurityBrief()" style="padding:5px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:#475569">📋 Security brief</button>
+  <button onclick="sendAllDJComms()" style="padding:5px 12px;background:#fce7f3;border:1px solid #fbcfe8;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:#9d174d">📧 DJ comms</button>
   <button onclick="resetToSeed()" style="padding:5px 12px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">↺ Reset to seed data</button>
 </div>
 
@@ -275,6 +277,120 @@ async function load() {
   render();
 }
 
+
+
+// ── Security brief ────────────────────────────────────────────────────────────
+function openSecurityBrief() {
+  var evt = document.getElementById('eventFilter').value;
+  var filtered = artists.filter(function(a){ return a.events && a.events.includes(evt); });
+  filtered.sort(function(a,b){ return (a.setTime||'').localeCompare(b.setTime||''); });
+
+  var lines = [];
+  lines.push('FUNKY DORY FESTIVAL 7 — SECURITY BRIEFING');
+  lines.push('Accreditation & Stage Access Policy');
+  lines.push('Saturday 15 August 2026 | Ashfields Carriage & Polo Club, CM6 1JU');
+  lines.push('');
+  lines.push('WRISTBAND & LANYARD TYPES');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('AAA LANYARD + AAA WRISTBAND — DJ/Artist');
+  lines.push('  Full access: stage, green room, all areas');
+  lines.push('');
+  lines.push('AAA WRISTBAND (no lanyard) — Artist guest');
+  lines.push('  Backstage + green room ONLY. NOT permitted on stage.');
+  lines.push('  Each artist receives maximum 2 of these.');
+  lines.push('');
+  lines.push('GENERAL ENTRY WRISTBAND — All other guests');
+  lines.push('  Front of house only. No backstage access.');
+  lines.push('');
+  lines.push('STAGE ACCESS RULE — NON-NEGOTIABLE');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('ONLY the following are permitted on stage:');
+  lines.push('  1. AAA LANYARD + AAA WRISTBAND holders');
+  lines.push('  2. Authorised sound crew (Panache Audio)');
+  lines.push('NO EXCEPTIONS. If in doubt, call Louise: 07832 153489');
+  lines.push('');
+  lines.push('ARTIST LINEUP — ' + evt);
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  filtered.forEach(function(a) {
+    var time = a.setTime || 'TBC';
+    var end = fmtEndTime(a.setTime, a.setLength);
+    lines.push(time + (end?' – '+end:'') + '  ' + a.perfName);
+  });
+  lines.push('');
+  lines.push('ARTIST GUESTS');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  filtered.forEach(function(a) {
+    var guests = a.guests || [];
+    if (guests.length) {
+      lines.push(a.perfName + ':');
+      guests.forEach(function(g){ lines.push('  - ' + g.name + ' (AAA wristband — backstage/green room only)'); });
+    }
+  });
+  lines.push('');
+  lines.push('ASK FOR ANGELA policy is in operation across the whole event.');
+  lines.push('Key contacts: Louise Navarro 07832 153489 | Ronnie Herel 07775 875522');
+
+  var subject = 'FD7 Security Brief — Accreditation & Stage Access Policy';
+  window.open('mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join('\n')));
+}
+
+// ── DJ comms ──────────────────────────────────────────────────────────────────
+function sendAllDJComms() {
+  var evt = document.getElementById('eventFilter').value;
+  var filtered = artists.filter(function(a){ return a.events && a.events.includes(evt); });
+
+  var lines = [];
+  lines.push('Dear DJ / Artist,');
+  lines.push('');
+  lines.push('We are looking forward to having you join us for Funky Dory Festival 7.');
+  lines.push('');
+  lines.push('Please find below your accreditation information.');
+  lines.push('');
+  lines.push('YOUR ACCREDITATION');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('You will receive on arrival:');
+  lines.push('  ✓ AAA Lanyard — gives you full site access including stage');
+  lines.push('  ✓ AAA Wristband — must be worn at all times');
+  lines.push('  ✓ 2 x AAA Guest Wristbands for your guests');
+  lines.push('    (backstage + green room access — guests are NOT permitted on stage)');
+  lines.push('');
+  lines.push('Please note: only people wearing BOTH an AAA lanyard and AAA wristband');
+  lines.push('are permitted on stage. This rule is strictly enforced. No exceptions.');
+  lines.push('');
+  lines.push('ON ARRIVAL');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('Venue: Ashfields Carriage & Polo Club, CM6 1JU');
+  lines.push('Follow signs to Artist & Crew entrance on arrival.');
+  lines.push('Ask for Louise or Ronnie at the gate.');
+  lines.push('');
+  lines.push('WHAT WE NEED FROM YOU');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('Please reply with:');
+  lines.push('  1. Your full legal name');
+  lines.push('  2. Mobile number (day of event)');
+  lines.push('  3. Emergency contact name & number');
+  lines.push('  4. Names of any guests (max 2, 21+ only)');
+  lines.push('  5. Technical rider (if not already sent)');
+  lines.push('  6. Hospitality requirements');
+  lines.push('');
+  lines.push('Set times will be confirmed separately once finalised.');
+  lines.push('');
+  lines.push('Any questions — call or WhatsApp Louise: +34 604 336810');
+  lines.push('');
+  lines.push('Chic by Tradition, Funky by Nature.');
+  lines.push('');
+  lines.push('Louise Navarro');
+  lines.push('Event Manager · Funky Dory Love Ltd');
+  lines.push('louise@funkydorylove.co.uk · 07832 153489');
+
+  var subject = 'Funky Dory Festival 7 — Artist Information & Accreditation';
+  // Open mailto with BCC to all artists who have emails
+  var emails = filtered.map(function(a){ return a.agentEmail || a.email; }).filter(Boolean);
+  var mailto = 'mailto:' + (emails.length ? emails[0] : '') +
+    (emails.length > 1 ? '?bcc=' + emails.slice(1).join(',') + '&' : '?') +
+    'subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join('\n'));
+  window.open(mailto);
+}
 
 function resetToSeed() {
   if (!confirm('Reset all artist data to seed data? This will overwrite any changes you have made in the app.')) return;
