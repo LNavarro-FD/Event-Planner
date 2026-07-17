@@ -26,23 +26,23 @@
       "description": "Simple task tracker (legacy \u2014 superseded by todo.html)"
     }
   },
-  "checkpoint": "v9-stable",
+  "checkpoint": "v10-stable",
   "checkpoint_date": "2026-07-15",
-  "notes": "v9-stable \u2014 final fixes before morning test.\nFixed: Design & Print gap (print-header hidden on screen).\nFixed: Staff card collapse/expand using delegated events.\nFixed: Canvas not expanding when sidebar collapses.\nFixed: Artists set times and fees removed from seed data.\nFixed: Artist email pulls event details from config.\nAll modules ready for morning test.",
+  "notes": "v10-stable \u2014 full day session checkpoint.\nArtists: v1.5.0 \u2014 set times, accreditation policy, security brief, DJ comms, reset button, Good 4 Tha Soul removed.\nTo-Do: v3.17.0 \u2014 AI bulk add, quick-add per section, AI chat, production notes, accreditation decision, Live Wire task.\nDesign & Print: v1.7.0 \u2014 design brief section, AI bulk add, quick-add per group, AI chat, bar sign added.\nSite Planner: v4.25.0 \u2014 Magic Mouse fix, double-click resize, centre fix, search box, shapes tab, drag/drop.\nSuppliers: v1.3.0 \u2014 Panache AT RISK flag, Xero import, payment terms.\nKanban: v3.4.3 \u2014 showView restored, async fixed, drag/drop colour coding.\nHub: API key banner added for AI features.\nHome: AI command input added.\nAccreditation policy: AAA lanyard+wristband for DJs, 2 x AAA guest wristbands per artist, stage rule strict.\nHRR 2027: 29 June \u2013 4 July 2027.\nPending: Dashboard module, t-shirt brief fields, Design & Print group-based fields.",
   "file_shas": {
-    "hub.html": "59d6713552e5",
-    "home.html": "0f32d9a5f063",
-    "artists.html": "e1e68503388d",
-    "todo.html": "fd45cd719fa0",
-    "kanban.html": "77bca4308edf",
-    "venue-planner.html": "ef88f67f359e",
+    "hub.html": "4f304cb0fd4a",
+    "home.html": "d7dcccd1b220",
+    "artists.html": "4a3c9b1e7119",
+    "todo.html": "8c11cf4a7ca8",
+    "kanban.html": "e8053d8ebb47",
+    "venue-planner.html": "2e9a4e73d25d",
     "staff.html": "3bb700fe2873",
-    "suppliers.html": "ab1d939a139b",
-    "print.html": "40956319ec93",
+    "suppliers.html": "f31571325d06",
+    "print.html": "ac041cce0b0b",
     "config.js": "c5ed0ce7f4b5",
     "fd-db.js": "f8a90314d8a5",
     "seed-data.js": "47184a042ea3",
     "seed-todo.html": "28c2a8cb853a",
-    "VERSION.json": "93528a3118f4"
+    "VERSION.json": "f0afd375d084"
   }
 }
