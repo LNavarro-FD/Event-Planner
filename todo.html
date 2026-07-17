@@ -144,7 +144,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · To-Do v3.15.0</span>
+    <span>FD Event Planner · To-Do v3.16.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -240,6 +240,16 @@ const FB_DOC='fd7_todo_2026';
 // ── Inject Artist Liaison section if missing ──────────────────────────────────
 
 function ensureProductionNotes() {
+  // Accreditation decision
+  var accredTask = {
+    id:'decision_aaa_policy',
+    t:'DECISION: AAA accreditation policy agreed 15 Jul 2026',
+    n:'DJs/Artists: AAA lanyard + AAA wristband. Each artist gets 2 x AAA guest wristbands (backstage + green room, NOT stage). Stage access: only people with AAA lanyard + AAA wristband permitted on stage, plus sound crew. Action: brief door team, print lanyards and wristbands accordingly.',
+    cat:'Artist Liaison',
+    stage:2
+  };
+  if (!custom.some(function(c){ return c.id==='decision_aaa_policy'; })) custom.push(accredTask);
+
   // Panache Audio risk task
   var panacheTask = {id:'risk_panache_livewire', t:'⚠ Get quote from Live Wire Event Solutions — stage & sound', n:'Panache Audio flagged as AT RISK for FD7. Live Wire previously quoted for HRR marquee — contact for FD7 stage and sound quote as backup/replacement. Contact: Live Wire Event Solutions.', cat:'Production', stage:2};
   if (!custom.some(function(c){ return c.id==='risk_panache_livewire'; })) custom.push(panacheTask);
@@ -998,7 +1008,7 @@ function printTodo() {
 
   document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
   document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent   = 'To-Do v3.15.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.16.0 · ' + dateStr;
   window.print();
 }
 
