@@ -125,7 +125,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.8.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.9.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -427,6 +427,7 @@ function renderPanel(item) {
   html += '<div class="field" style="margin-bottom:8px"><label>Colours / Brand</label><input id="pi-colours" type="text" value="'+esc(item.colours||'')+'" placeholder="FD Pink #FF4B7B, Navy #22224C"></div>';
   html += '<div class="field" style="margin-bottom:8px"><label>Copy / Text</label><textarea id="pi-copy" style="min-height:50px">'+esc(item.copy||'')+'</textarea></div>';
   html += '<div class="field" style="margin-bottom:8px"><label>Brief notes</label><textarea id="pi-briefnotes" style="min-height:50px">'+esc(item.briefNotes||'')+'</textarea></div>';
+  html += '<div class="field" style="margin-bottom:8px"><label>Designer email</label><input id="pi-designer-email" type="email" value="'+esc(item.designerEmail||'')+'" placeholder="designer@example.com"></div>';
   html += '<div style="margin-bottom:16px"><button onclick="sendDesignBrief()" style="padding:6px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:600;color:#1d4ed8;cursor:pointer">📧 Send brief to designer</button></div>';
   html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0">Procurement</div>';
   html += '<div class="field-grid">';
@@ -676,7 +677,8 @@ function sendDesignBrief() {
   lines.push(''); lines.push('Kind regards,'); lines.push('Louise Navarro'); lines.push('Funky Dory Love Ltd');
   var subject = 'Design Brief: ' + item.item + ' — ' + currentEvent;
   var body = lines.join(nl);
-  window.open('mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
+  var recipient = item.designerEmail || '';
+  location.href = 'mailto:' + recipient + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
 }
 
 function esc(s){ return String(s).replace(/"/g,"&quot;"); }
