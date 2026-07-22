@@ -69,7 +69,7 @@ window.getAnthropicKey = function() {
     <div id="loading"><div class="spinner"></div><p>Loading...</p></div>
     <iframe id="f" src="home.html" onload="loaded()"></iframe>
   </div>
-  <div id="statusbar"><span id="sb">FD Event Planner · hub v1.4.0</span></div>
+  <div id="statusbar"><span id="sb">FD Event Planner · hub v1.5.0</span></div>
 </div>
 <script>
 var SRCS = {home:'home.html', artists:'artists.html', todo:'todo.html', planner:'venue-planner.html', kanban:'kanban.html', staff:'staff.html', suppliers:'suppliers.html', print:'print.html'};
@@ -78,6 +78,13 @@ var cur = 'home';
 function loaded() {
   document.getElementById('loading').classList.add('hidden');
 }
+
+// Listen for version messages from module iframes
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'fd_version') {
+    document.getElementById('sb').textContent = e.data.version;
+  }
+});
 
 function go(tab) {
   if (tab === cur) return;
