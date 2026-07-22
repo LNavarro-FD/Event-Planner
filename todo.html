@@ -144,7 +144,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · To-Do v3.22.0</span>
+    <span>FD Event Planner · To-Do v3.23.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -844,8 +844,17 @@ function collapseAll(collapse) {
   cats.forEach(function(cat) {
     collapsedSections[cat] = collapse;
   });
-  fbSave();
-  render();
+  saveCollapsed();
+  // Update DOM directly without full re-render for speed
+  cats.forEach(function(cat) {
+    var safeId = cat.replace(/[^a-z0-9]/gi,'_');
+    var body = document.getElementById('secbody_' + safeId);
+    var hdr  = document.getElementById('sechdr_' + safeId);
+    var chev = document.getElementById('secchev_' + safeId);
+    if (body) body.classList.toggle('collapsed', collapse);
+    if (hdr)  hdr.classList.toggle('collapsed', collapse);
+    if (chev) chev.style.transform = collapse ? 'rotate(-90deg)' : 'rotate(0deg)';
+  });
 }
 
 
@@ -1023,7 +1032,7 @@ function printTodo() {
 
   document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
   document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent   = 'To-Do v3.22.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.23.0 · ' + dateStr;
   window.print();
 }
 
