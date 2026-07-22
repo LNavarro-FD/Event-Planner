@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FD Kanban v3.5.0 — FD7 Kanban</title>
+<title>FD Kanban v3.5.2 — FD7 Kanban</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -211,7 +211,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 <div id="buildGrid"></div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · Kanban v3.5.0</span>
+    <span>FD Event Planner · Kanban v3.5.2</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -545,7 +545,7 @@ function printBuildWeek() {
   document.getElementById('ph-event').textContent    = 'Event: Saturday 15 August 2026 · Ashfields Carriage & Polo Club';
   document.getElementById('ph-dates').textContent    = 'Period: ' + firstDay + ' – ' + lastDay;
   document.getElementById('ph-printed').textContent  = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent    = 'FD Event Planner · Kanban v3.5.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent    = 'FD Event Planner · Kanban v3.5.2 · ' + dateStr;
   window.print();
 }
 
@@ -675,14 +675,103 @@ function renderBuildGrid(){
 // ── Cell persistence ──────────────────────────────────────────────────────────
 
 function showView(view, el) {
-  ['kanban','gantt','build'].forEach(function(v){
-    var d = document.getElementById(v+'View');
-    if (d) d.style.display = v===view ? 'block' : 'none';
+  var viewMap = {kanban:'kanbanView', gantt:'ganttView', build:'buildView'};
+  Object.keys(viewMap).forEach(function(v){
+    var d = document.getElementById(viewMap[v]);
+    if (d) d.style.display = v===view ? (v==='kanban'?'flex':'block') : 'none';
   });
   document.querySelectorAll('.vtab').forEach(function(t){ t.classList.remove('active'); });
   if (el) el.classList.add('active');
   if (view === 'build') renderBuildGrid();
-  if (view === 'kanban') renderAll();
+  else renderAll();
+}
+
+
+var _detailTaskId = null;
+
+function openDetail(id) {
+  var t = tasks.find(function(t2){ return t2.id === id; });
+  if (!t) return;
+  _detailTaskId = id;
+
+  document.getElementById('dt-title').textContent = t.task;
+  document.getElementById('dt-status').value = t.status || 'Not Started';
+
+  var stageLabel = STAGE_LABELS[t.stages ? t.stages[t.currentStage||0] : 'P'] || 'Purchase / Book';
+  var html = '';
+  if (t.cat) html += '<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:8px">' + t.cat + '</div>';
+  if (t.supplier) html += '<div style="font-size:12px;margin-bottom:8px;color:#374151">📦 ' + t.supplier + '</div>';
+  if (t.notes) html += '<div style="font-size:12px;color:#475569;background:#f8fafc;border-radius:6px;padding:8px 10px;margin-bottom:8px">' + t.notes + '</div>';
+  if (t.dueDate) html += '<div style="font-size:11px;color:#854d0e;background:#fef9c3;padding:4px 8px;border-radius:4px;display:inline-block;margin-bottom:8px">📅 Due: ' + t.dueDate + '</div>';
+
+  // Current stage
+  html += '<div style="font-size:11px;color:#64748b;margin-bottom:6px">Current stage: <strong style="color:#1e293b">' + stageLabel + '</strong></div>';
+
+  // Stage progress
+  if (t.stages && t.stages.length) {
+    html += '<div style="display:flex;gap:4px;margin-bottom:10px">';
+    t.stages.forEach(function(s, i) {
+      var active = i === (t.currentStage||0);
+      var done = i < (t.currentStage||0);
+      var col = done ? '#15803d' : active ? (STAGE_COLORS[s]||'#64748b') : '#e2e8f0';
+      html += '<div style="flex:1;height:6px;border-radius:3px;background:' + col + '" title="' + (STAGE_LABELS[s]||s) + '"></div>';
+    });
+    html += '</div>';
+  }
+
+  // Task notes input
+  html += '<div style="margin-top:8px"><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Notes</label>';
+  html += '<textarea id="dt-notes" style="width:100%;min-height:70px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none;resize:vertical">' + (t.taskNotes||'') + '</textarea></div>';
+
+  document.getElementById('dt-body').innerHTML = html;
+
+  // Stage advance buttons
+  var stageBtns = document.getElementById('dt-stage-btns');
+  stageBtns.innerHTML = '';
+  if (t.stages && (t.currentStage||0) < t.stages.length - 1) {
+    var nextStage = STAGE_LABELS[t.stages[(t.currentStage||0)+1]] || 'Next';
+    var btn = document.createElement('button');
+    btn.textContent = 'Advance to ' + nextStage + ' →';
+    btn.style.cssText = 'padding:7px 14px;background:#22224C;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer';
+    btn.onclick = function(){ advanceStage(); };
+    stageBtns.appendChild(btn);
+  }
+
+  document.getElementById('detailModal').style.display = 'flex';
+}
+
+function closeDetail() {
+  // Save notes
+  if (_detailTaskId !== null) {
+    var t = tasks.find(function(t2){ return t2.id === _detailTaskId; });
+    var notesEl = document.getElementById('dt-notes');
+    if (t && notesEl) { t.taskNotes = notesEl.value; fbSave(); }
+  }
+  document.getElementById('detailModal').style.display = 'none';
+  renderAll();
+}
+
+function updateTaskStatus() {
+  if (_detailTaskId === null) return;
+  var t = tasks.find(function(t2){ return t2.id === _detailTaskId; });
+  if (!t) return;
+  t.status = document.getElementById('dt-status').value;
+  if (t.status === 'Done') t.currentStage = (t.stages||[]).length - 1;
+  fbSave();
+  renderAll();
+}
+
+function advanceStage() {
+  if (_detailTaskId === null) return;
+  var t = tasks.find(function(t2){ return t2.id === _detailTaskId; });
+  if (!t || !t.stages) return;
+  if ((t.currentStage||0) < t.stages.length - 1) {
+    t.currentStage = (t.currentStage||0) + 1;
+    if (t.currentStage === t.stages.length - 1) t.status = 'Done';
+  }
+  fbSave();
+  openDetail(_detailTaskId);
+  renderAll();
 }
 
 async function loadBuildCells(){
@@ -720,5 +809,31 @@ if(document.readyState==='loading'){
   setTimeout(function(){ showView('kanban', document.querySelector('.vtab')); }, 300);
 }
 </script>
+
+<!-- Task detail modal -->
+<div id="detailModal" style="position:fixed;inset:0;background:#0006;z-index:100;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)closeDetail()">
+  <div style="background:#fff;border-radius:12px;width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 32px #0003">
+    <div style="padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <h3 id="dt-title" style="font-size:14px;font-weight:700;color:#1e293b"></h3>
+      <button onclick="closeDetail()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px">&#215;</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 18px">
+      <div id="dt-body"></div>
+    </div>
+    <div style="padding:12px 18px;border-top:1px solid #e5e7eb;display:flex;gap:8px;justify-content:space-between;flex-shrink:0">
+      <div style="display:flex;gap:8px" id="dt-stage-btns"></div>
+      <div style="display:flex;gap:8px">
+        <select id="dt-status" onchange="updateTaskStatus()" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-family:inherit;outline:none">
+          <option value="Not Started">Not Started</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Stuck">Stuck</option>
+          <option value="Done">Done</option>
+        </select>
+        <button onclick="closeDetail()" style="padding:7px 14px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
