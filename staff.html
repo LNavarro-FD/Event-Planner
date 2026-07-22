@@ -90,8 +90,8 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 <div id="topbar">
   <h1>FD Staff</h1>
   <div class="tb-sep"></div>
-  <button class="tb-btn active" onclick="setView('people',this)">People</button>
-  <button class="tb-btn" onclick="setView('roles',this)">Staff Planner</button>
+  <button class="tb-btn active" onclick="setView('roles',this)">Staff Planner</button>
+  <button class="tb-btn" onclick="setView('people',this)">People</button>
   <button class="tb-btn" onclick="setView('wristbands',this)">Wristbands & T-Shirts</button>
   <div style="margin-left:auto;display:flex;gap:8px">
     <button class="tb-btn-primary" onclick="openAddPerson()">+ Add person</button>
@@ -119,7 +119,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Staff · v2.5.0</span></div>
+<div id="statusbar"><span>FD Staff · v2.5.1</span></div>
 
 <!-- Add/Edit person overlay -->
 <div class="overlay" id="personOverlay" onclick="if(event.target===this)closePersonForm()">
@@ -654,7 +654,7 @@ var assignments = [];
 
 var _editingPersonId = null;
 var _editingAssignId = null;
-var _currentView = 'people';
+var _currentView = 'roles';
 
 // ── Firebase ──────────────────────────────────────────────────────────────────
 async function load() {
@@ -1160,7 +1160,7 @@ if(document.readyState==='loading'){
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Staff v2.5.0';
+  var VERSION_STR = 'FD Event Planner · Staff v2.5.1';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
