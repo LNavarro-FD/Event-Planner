@@ -305,8 +305,7 @@ function renderPeople(q, sec, evt) {
     var myAssigns = assignments.filter(function(a) { return a.personId === p.id; });
     var roles = myAssigns.map(function(a) { return a.role; }).filter(function(r,i,arr) { return arr.indexOf(r) === i; }).join(', ');
     var events = myAssigns.map(function(a) { return a.event; }).filter(function(e,i,arr) { return arr.indexOf(e) === i; }).join(', ');
-    var totalH = 0;
-    myAssigns.forEach(function(a) { totalH += totalHours(a); });
+
 
     html += '<div class="person-card" id="pc_' + p.id + '">';
     html += '<div class="pc-top">';
@@ -325,7 +324,7 @@ function renderPeople(q, sec, evt) {
     html += '<div class="pc-meta">';
     if (p.lastEvent) html += '<span class="pc-badge">Last: ' + p.lastEvent + '</span>';
     if (events) html += '<span class="pc-badge">' + events + '</span>';
-    if (totalH > 0) html += '<span class="pc-badge">' + totalH + 'h total</span>';
+
     if (p.tshirtSize) html += '<span class="pc-badge">T: ' + p.tshirtSize + (p.neckShape ? ' ' + p.neckShape : '') + '</span>';
     if (p.health) html += '<span class="pc-health">⚠ ' + p.health + '</span>';
     html += '</div>';
