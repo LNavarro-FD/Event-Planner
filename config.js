@@ -76,12 +76,13 @@ window.FD_CONFIG = {
       name:        'FD Shindig',
       shortName:   'FD Shindig',
       year:        2026,
-      eventDate:   new Date('2026-08-15'),
-      displayDate: '15 August 2026',
+      eventDate:   new Date('2026-12-05'),
+      eventDateStr: '2026-12-05',
+      displayDate: 'Saturday 5 December 2026',
       venue:       'TBC',
-      buildStartDate: '2026-08-10',  // Monday before event
-      derigDate:      '2026-08-16',  // day after event
-      buildStartDisplay: 'Monday 10 August 2026',
+      buildStartDate: '2026-11-30',  // Monday before event
+      derigDate:      '2026-12-06',  // Sunday after event
+      buildStartDisplay: 'Monday 30 November 2026',
     },
   },
 
