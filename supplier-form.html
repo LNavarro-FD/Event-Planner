@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supplier Information Form — Funky Dory</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:14px;background:#f1f5f9;color:#1e293b;min-height:100vh}
+.header{background:#22224C;padding:16px 20px;color:#fff}
+.header h1{font-size:18px;font-weight:700}
+.header p{font-size:12px;color:#94a3b8;margin-top:4px}
+.logo{color:#FF4B7B;font-size:22px;font-weight:800;letter-spacing:-1px;margin-bottom:8px}
+.content{max-width:640px;margin:0 auto;padding:16px}
+.section{background:#fff;border-radius:10px;padding:16px;margin-bottom:16px;border:1px solid #e2e8f0}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#22224C;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #FF4B7B}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;outline:none;background:#fff}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#FF4B7B;box-shadow:0 0 0 3px #FF4B7B20}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-add{width:100%;padding:10px;background:#f8fafc;border:2px dashed #d1d5db;border-radius:8px;font-size:13px;color:#64748b;cursor:pointer;margin-top:8px}
+.btn-add:hover{border-color:#FF4B7B;color:#FF4B7B;background:#fff}
+.item-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:8px;position:relative}
+.item-card .remove{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1}
+.item-card .remove:hover{color:#ef4444}
+.submit-btn{width:100%;padding:14px;background:#FF4B7B;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px}
+.submit-btn:hover{background:#e83d68}
+.submit-btn:disabled{background:#94a3b8;cursor:not-allowed}
+.success{display:none;text-align:center;padding:40px 20px}
+.success h2{color:#15803d;font-size:24px;margin-bottom:8px}
+.success p{color:#64748b}
+.note{font-size:11px;color:#94a3b8;margin-top:4px;font-style:italic}
+.warning{background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:12px}
+.required{color:#FF4B7B}
+#loadingState{text-align:center;padding:40px;color:#64748b}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">FD</div>
+  <h1>Supplier Information Form</h1>
+  <p id="eventLabel">Funky Dory Events</p>
+</div>
+
+<div id="loadingState">Loading form...</div>
+
+<div id="formContent" style="display:none">
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Company Details</div>
+    <div class="field"><label>Company / Trading name <span class="required">*</span></label><input id="co-name" type="text" placeholder="Your company name"></div>
+    <div class="field-row">
+      <div class="field"><label>Contact name <span class="required">*</span></label><input id="co-contact" type="text"></div>
+      <div class="field"><label>Role / title</label><input id="co-role" type="text" placeholder="e.g. Director, Manager"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Mobile <span class="required">*</span></label><input id="co-phone" type="tel"></div>
+      <div class="field"><label>Email <span class="required">*</span></label><input id="co-email" type="email"></div>
+    </div>
+    <div class="field"><label>What you are providing at this event</label><input id="co-service" type="text" placeholder="e.g. Stage and PA system, Catering unit, Bar infrastructure"></div>
+    <div class="field"><label>Fuel / gas use on site</label>
+      <select id="co-fuel">
+        <option value="N/A">None — no fuel or gas on site</option>
+        <option value="LPG">LPG</option>
+        <option value="Petrol">Petrol</option>
+        <option value="Diesel">Diesel</option>
+        <option value="Electric">Electric only</option>
+      </select>
+      <div class="note">If you use LPG, your Gas Safety Certificate is required before site access is granted.</div>
+    </div>
+  </div>
+
+  <!-- Staff section -->
+  <div class="section">
+    <div class="section-title">Staff & Vehicles Attending Site</div>
+    <div class="warning">All personnel attending site must be named in advance. Only declared individuals may attend. All must bring photographic ID on the day.</div>
+    <div id="staffList"></div>
+    <button class="btn-add" onclick="addStaffRow()">+ Add person</button>
+  </div>
+
+  <!-- Kit & Power section -->
+  <div class="section">
+    <div class="section-title">Equipment, Kit & Power Requirements</div>
+    <div class="warning">Please list ALL equipment you will bring on site. No undeclared equipment may be introduced. Wattage should be in Watts (W). If you use kW, multiply by 1000.</div>
+    <div id="kitList"></div>
+    <button class="btn-add" onclick="addKitRow()">+ Add equipment item</button>
+  </div>
+
+  <!-- Compliance declarations -->
+  <div class="section">
+    <div class="section-title">Compliance Declarations</div>
+    <p style="font-size:12px;color:#64748b;margin-bottom:12px">Please confirm you have or will provide the following before site access. Tick each item you can confirm.</p>
+    <div id="complianceList"></div>
+  </div>
+
+  <!-- Documents -->
+  <div class="section">
+    <div class="section-title">Document Submission</div>
+    <p style="font-size:12px;color:#64748b;margin-bottom:12px">Please email your compliance documents to <strong>louise@funkydorylove.co.uk</strong> with your company name in the subject line. Alternatively, WhatsApp documents to <strong>+34 604 336810</strong>.</p>
+    <div class="field"><label>Documents submitted / notes</label>
+      <textarea id="doc-notes" style="min-height:80px" placeholder="e.g. PLI sent by email 14 Jul, RAMS to follow, Gas cert expiry date..."></textarea>
+    </div>
+  </div>
+
+  <!-- Declaration -->
+  <div class="section">
+    <div class="section-title">Declaration</div>
+    <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer">
+      <input type="checkbox" id="declaration" style="width:20px;height:20px;margin-top:2px;flex-shrink:0">
+      <span>I confirm that the information provided is accurate and complete. I have read and agree to the Funky Dory Love Ltd event contractor conditions. I understand that access to site is conditional on all required documents being submitted and approved.</span>
+    </label>
+  </div>
+
+  <button class="submit-btn" onclick="submitForm()" id="submitBtn">Submit Information</button>
+  <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:12px;padding-bottom:24px">Questions? Contact Louise: louise@funkydorylove.co.uk · +34 604 336810</p>
+
+</div>
+</div>
+
+<div class="success" id="successState">
+  <div style="font-size:48px;margin-bottom:16px">✅</div>
+  <h2>Information Submitted</h2>
+  <p>Thank you. We have received your information and will be in touch if we need anything further.<br><br>Please remember to email your compliance documents to louise@funkydorylove.co.uk</p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="config.js"></script>
+<script>
+// ── Parse URL params ──────────────────────────────────────────────────────────
+var params = new URLSearchParams(window.location.search);
+var supplierId = params.get('id') || '';
+var supplierName = params.get('name') || '';
+var eventName = params.get('event') || 'FD7';
+
+document.getElementById('eventLabel').textContent = eventName + ' — Supplier Information Form';
+
+// ── Compliance items based on supplier type ───────────────────────────────────
+var COMPLIANCE_ITEMS = [
+  {id:'pli',           label:'Public Liability Insurance (min £5m)',          required:true},
+  {id:'rams',          label:'Risk Assessment & Method Statement (RAMS)',      required:true},
+  {id:'staff_list',    label:'Named staff list submitted in this form',        required:true},
+  {id:'vehicles',      label:'Vehicle details submitted in this form',         required:true},
+  {id:'pat',           label:'PAT testing records available for inspection',   required:true},
+  {id:'photo_id',      label:'All staff will bring photographic ID on the day',required:true},
+  {id:'gas_cert',      label:'Gas Safety Certificate (if using LPG/gas)',      required:false},
+  {id:'food_hygiene',  label:'Food hygiene registration (caterers)',           required:false},
+  {id:'sia',           label:'SIA licence details (security only)',            required:false},
+  {id:'elec_cert',     label:'Temporary electrical installation certificate',  required:false},
+  {id:'structural',    label:'Structural calculations / design information',   required:false},
+  {id:'handover',      label:'Handover / completion sign-off on departure',    required:false},
+];
+
+function buildCompliance() {
+  var html = '';
+  COMPLIANCE_ITEMS.forEach(function(item) {
+    html += '<label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;cursor:pointer">';
+    html += '<input type="checkbox" class="comp-check" data-id="'+item.id+'" style="width:20px;height:20px;margin-top:1px;flex-shrink:0">';
+    html += '<span style="font-size:13px">' + item.label + (item.required ? ' <span style="color:#FF4B7B;font-size:10px">REQUIRED</span>' : ' <span style="font-size:10px;color:#94a3b8">if applicable</span>') + '</span>';
+    html += '</label>';
+  });
+  document.getElementById('complianceList').innerHTML = html;
+
+  // Show/hide gas cert based on fuel selection
+  document.getElementById('co-fuel').addEventListener('change', function() {
+    var gasRow = document.querySelector('[data-id="gas_cert"]');
+    if (gasRow && (this.value === 'LPG')) {
+      gasRow.parentElement.style.background = '#fef9c3';
+      gasRow.parentElement.style.borderRadius = '6px';
+      gasRow.parentElement.style.padding = '6px';
+    }
+  });
+}
+
+// ── Staff rows ────────────────────────────────────────────────────────────────
+var staffCount = 0;
+function addStaffRow(data) {
+  staffCount++;
+  var id = 'staff_' + staffCount;
+  var div = document.createElement('div');
+  div.className = 'item-card';
+  div.id = id;
+  div.innerHTML = '<button class="remove" onclick="document.getElementById(\''+id+'\').remove()">&#215;</button>' +
+    '<div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px">Person ' + staffCount + '</div>' +
+    '<div class="field-row"><div class="field"><label>First name *</label><input class="s-first" type="text" value="'+(data&&data.firstName||'')+'"></div>' +
+    '<div class="field"><label>Last name *</label><input class="s-last" type="text" value="'+(data&&data.lastName||'')+'"></div></div>' +
+    '<div class="field-row"><div class="field"><label>Mobile *</label><input class="s-phone" type="tel" value="'+(data&&data.phone||'')+'"></div>' +
+    '<div class="field"><label>Email</label><input class="s-email" type="email" value="'+(data&&data.email||'')+'"></div></div>' +
+    '<div class="field-row"><div class="field"><label>Vehicle reg</label><input class="s-vreg" type="text" placeholder="e.g. AB12 CDE" value="'+(data&&data.vehicleReg||'')+'"></div>' +
+    '<div class="field"><label>Vehicle type</label><input class="s-vtype" type="text" placeholder="e.g. Van, Car, Truck" value="'+(data&&data.vehicleType||'')+'"></div></div>' +
+    '<div class="field-row"><div class="field"><label>Emergency contact name</label><input class="s-emname" type="text" value="'+(data&&data.emName||'')+'"></div>' +
+    '<div class="field"><label>Emergency contact mobile</label><input class="s-emphone" type="tel" value="'+(data&&data.emPhone||'')+'"></div></div>' +
+    '<div class="field"><label>Allergies / medical conditions</label><input class="s-medical" type="text" placeholder="None, or describe..." value="'+(data&&data.medical||'')+'"></div>';
+  document.getElementById('staffList').appendChild(div);
+}
+
+// ── Kit & Power rows ──────────────────────────────────────────────────────────
+var kitCount = 0;
+function addKitRow(data) {
+  kitCount++;
+  var id = 'kit_' + kitCount;
+  var div = document.createElement('div');
+  div.className = 'item-card';
+  div.id = id;
+  div.innerHTML = '<button class="remove" onclick="document.getElementById(\''+id+'\').remove()">&#215;</button>' +
+    '<div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px">Equipment item ' + kitCount + '</div>' +
+    '<div class="field"><label>Equipment description *</label><input class="k-desc" type="text" placeholder="e.g. Fridge unit, PA speaker, LED bar, Gas burner" value="'+(data&&data.desc||'')+'"></div>' +
+    '<div class="field-row">' +
+    '<div class="field"><label>Equipment type</label><select class="k-type">' +
+    '<option value="">— Select —</option>' +
+    ['Audio Equipment','Lighting Equipment','Catering Equipment','Refrigeration','Bar Equipment','Electrical Distribution','Generator','IT / Networking','AV / Screens','Heating','Structure','Furniture / Fixtures','Other'].map(function(t){return '<option value="'+t+'"'+(data&&data.type===t?' selected':'')+'>'+t+'</option>';}).join('') +
+    '</select></div>' +
+    '<div class="field"><label>Fuel / gas</label><select class="k-fuel">' +
+    '<option value="N/A">N/A</option><option value="LPG"'+(data&&data.fuel==='LPG'?' selected':'')+'>LPG</option><option value="Electric"'+(data&&data.fuel==='Electric'?' selected':'')+'>Electric</option><option value="Petrol"'+(data&&data.fuel==='Petrol'?' selected':'')+'>Petrol</option><option value="Diesel"'+(data&&data.fuel==='Diesel'?' selected':'')+'>Diesel</option>' +
+    '</select></div></div>' +
+    '<div class="field-row">' +
+    '<div class="field"><label>Wattage (W)</label><input class="k-watts" type="number" placeholder="e.g. 500" value="'+(data&&data.watts||'')+'"></div>' +
+    '<div class="field"><label>Connection type</label><select class="k-conn">' +
+    '<option value="">None needed</option>' +
+    ['13A','16A','32A','63A','125A','Hardwired','Other'].map(function(t){return '<option value="'+t+'"'+(data&&data.conn===t?' selected':'')+'>'+t+'</option>';}).join('') +
+    '</select></div></div>' +
+    '<div class="field-row">' +
+    '<div class="field"><label>Phase</label><select class="k-phase">' +
+    '<option value="Single">Single phase</option><option value="Three"'+(data&&data.phase==='Three'?' selected':'')+'>Three phase</option>' +
+    '</select></div>' +
+    '<div class="field"><label>Qty</label><input class="k-qty" type="number" value="'+(data&&data.qty||1)+'" min="1"></div></div>' +
+    '<div class="field"><label>Zone / location on site</label><input class="k-zone" type="text" placeholder="e.g. Main stage, Bar area, Food zone" value="'+(data&&data.zone||'')+'"></div>';
+  document.getElementById('kitList').appendChild(div);
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function submitForm() {
+  var btn = document.getElementById('submitBtn');
+
+  // Validate required fields
+  var coName = document.getElementById('co-name').value.trim();
+  var coContact = document.getElementById('co-contact').value.trim();
+  var coPhone = document.getElementById('co-phone').value.trim();
+  var coEmail = document.getElementById('co-email').value.trim();
+  var declared = document.getElementById('declaration').checked;
+
+  if (!coName || !coContact || !coPhone || !coEmail) {
+    alert('Please fill in all required company details (marked with *)');
+    return;
+  }
+  if (!declared) {
+    alert('Please read and confirm the declaration before submitting.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  // Collect staff
+  var staff = [];
+  document.querySelectorAll('#staffList .item-card').forEach(function(card) {
+    var first = card.querySelector('.s-first').value.trim();
+    var last  = card.querySelector('.s-last').value.trim();
+    if (!first && !last) return;
+    staff.push({
+      firstName: first, lastName: last,
+      phone: card.querySelector('.s-phone').value.trim(),
+      email: card.querySelector('.s-email').value.trim(),
+      vehicleReg: card.querySelector('.s-vreg').value.trim(),
+      vehicleType: card.querySelector('.s-vtype').value.trim(),
+      emName: card.querySelector('.s-emname').value.trim(),
+      emPhone: card.querySelector('.s-emphone').value.trim(),
+      medical: card.querySelector('.s-medical').value.trim(),
+    });
+  });
+
+  // Collect kit
+  var kit = [];
+  document.querySelectorAll('#kitList .item-card').forEach(function(card) {
+    var desc = card.querySelector('.k-desc').value.trim();
+    if (!desc) return;
+    kit.push({
+      desc: desc,
+      type: card.querySelector('.k-type').value,
+      fuel: card.querySelector('.k-fuel').value,
+      watts: card.querySelector('.k-watts').value,
+      conn: card.querySelector('.k-conn').value,
+      phase: card.querySelector('.k-phase').value,
+      qty: card.querySelector('.k-qty').value,
+      zone: card.querySelector('.k-zone').value.trim(),
+    });
+  });
+
+  // Collect compliance
+  var compliance = {};
+  document.querySelectorAll('.comp-check').forEach(function(cb) {
+    compliance[cb.getAttribute('data-id')] = cb.checked ? 'checked' : 'pending';
+  });
+
+  var submission = {
+    supplierId: supplierId,
+    supplierName: supplierName || coName,
+    event: eventName,
+    submittedAt: new Date().toISOString(),
+    company: {
+      name: coName, contact: coContact, phone: coPhone, email: coEmail,
+      role: document.getElementById('co-role').value.trim(),
+      service: document.getElementById('co-service').value.trim(),
+      fuel: document.getElementById('co-fuel').value,
+    },
+    staff: staff,
+    kit: kit,
+    compliance: compliance,
+    docNotes: document.getElementById('doc-notes').value.trim(),
+  };
+
+  try {
+    var docId = (supplierId || coName.toLowerCase().replace(/[^a-z0-9]/g,'_')) + '_' + eventName + '_form';
+    await _db.collection('supplier_forms').doc(docId).set(submission);
+    document.getElementById('formContent').style.display = 'none';
+    document.getElementById('successState').style.display = 'block';
+    window.scrollTo(0,0);
+  } catch(e) {
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = 'Submit Information';
+    alert('Submission failed. Please try again or email louise@funkydorylove.co.uk directly.');
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('load', function() {
+  if (supplierName) document.getElementById('co-name').value = supplierName;
+  buildCompliance();
+  addStaffRow();
+  addKitRow();
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('formContent').style.display = 'block';
+});
+</script>
+</body>
+</html>
