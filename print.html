@@ -21,7 +21,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 
 /* Template view */
 .cat-header{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:12px 0 6px;border-bottom:1px solid #e2e8f0;margin-bottom:4px}
-.template-item{display:grid;grid-template-columns:1fr 160px 90px;gap:8px;align-items:center;padding:8px 10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:4px;transition:opacity .2s}
+.template-item{display:grid;grid-template-columns:1fr 160px auto 90px;gap:8px;align-items:center;padding:8px 10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:4px;transition:opacity .2s}
 .template-item.not-required{opacity:0.35}
 .template-item.not-required .ti-name{text-decoration:line-through;color:#94a3b8}
 .ti-name{font-weight:600;font-size:12px}
@@ -125,7 +125,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.7.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v1.8.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -295,6 +295,12 @@ function renderTemplate() {
       html += '<option value="maybe"'   + (item.status==='maybe'   ?' selected':'') + '>? Maybe</option>';
       html += '<option value="not-required"' + (item.status==='not-required'?' selected':'') + '>✗ Not required</option>';
       html += '</select>';
+      var dActive = item.needsDesign !== false;
+      var pActive = item.needsPrint !== false;
+      html += '<div style="display:flex;gap:4px;align-items:center">';
+      html += '<button onclick="toggleFlag(' + idx + ',\'design\')" title="Needs design" style="padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ' + (dActive ? '#3b82f6' : '#e2e8f0') + ';background:' + (dActive ? '#dbeafe' : '#f8fafc') + ';color:' + (dActive ? '#1d4ed8' : '#94a3b8') + '">✏ Design</button>';
+      html += '<button onclick="toggleFlag(' + idx + ',\'print\')" title="Needs print/production" style="padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid ' + (pActive ? '#7c3aed' : '#e2e8f0') + ';background:' + (pActive ? '#ede9fe' : '#f8fafc') + ';color:' + (pActive ? '#5b21b6' : '#94a3b8') + '">🖨 Print</button>';
+      html += '</div>';
       html += '<button class="add-to-todo' + (item.addedToTodo?' added':'') + '" onclick="openItem(' + idx + ')">' + (item.addedToTodo ? '✓ In detail' : '+ Details') + '</button>';
       html += '</div>';
     });
@@ -637,6 +643,18 @@ async function sendPrintChat() {
     if (msgs.lastChild) msgs.removeChild(msgs.lastChild);
     addChatMsg('Sorry, something went wrong. Try again.', false);
   }
+}
+
+
+function toggleFlag(idx, flag) {
+  var item = eventItems[currentEvent][idx];
+  if (flag === 'design') {
+    item.needsDesign = item.needsDesign === false ? true : false;
+  } else {
+    item.needsPrint = item.needsPrint === false ? true : false;
+  }
+  save();
+  render();
 }
 
 function sendDesignBrief() {
