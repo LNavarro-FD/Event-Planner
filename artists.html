@@ -117,7 +117,7 @@ var _db = firebase.firestore();
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
   <button onclick="openSecurityBrief()" style="padding:5px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:#475569">📋 Security brief</button>
   <button onclick="sendAllDJComms()" style="padding:5px 12px;background:#fce7f3;border:1px solid #fbcfe8;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:#9d174d">📧 DJ comms</button>
-  <button onclick="resetToSeed()" style="padding:5px 12px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">↺ Reset to seed data</button>
+  <button onclick="resetToSeed()" style="padding:5px 12px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">↺ Update to latest data</button>
 </div>
 
 <div id="content"></div>
@@ -393,11 +393,16 @@ function sendAllDJComms() {
 }
 
 function resetToSeed() {
-  if (!confirm('Reset all artist data to seed data? This will overwrite any changes you have made in the app.')) return;
+  if (!confirm('Update artist data to latest set times and lineup? This will overwrite any manual changes.')) return;
+  // Update in-memory immediately
   artists = JSON.parse(JSON.stringify(SEED_ARTISTS));
+  // Save to Firestore
   _db.collection('artists_db').doc('artists').set({list: artists})
-    .then(function(){ render(); notify('Artist data reset — ' + artists.length + ' artists loaded'); })
-    .catch(function(e){ console.error(e); render(); notify('Reset complete (offline)'); });
+    .then(function(){ notify('Updated — ' + artists.length + ' artists loaded with latest set times'); })
+    .catch(function(e){ console.warn('Firestore save failed, showing local data:', e); });
+  // Render immediately from updated in-memory data
+  render();
+  notify('Updating...');
 }
 
 function save() {
