@@ -144,7 +144,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · To-Do v3.21.0</span>
+    <span>FD Event Planner · To-Do v3.22.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -184,6 +184,10 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
   <textarea id="notes-area" placeholder="Add notes here..." style="width:100%;min-height:100px;border:none;padding:12px 14px;font-family:Arial,sans-serif;font-size:13px;color:#222;resize:vertical;background:#fff;outline:none;line-height:1.6"></textarea>
 </div>
 
+<div style="display:flex;justify-content:flex-end;gap:12px;margin-bottom:8px">
+  <span onclick="collapseAll(true)" style="font-size:12px;color:#FF4B7B;cursor:pointer;font-weight:600">⊟ Collapse all</span>
+  <span onclick="collapseAll(false)" style="font-size:12px;color:#FF4B7B;cursor:pointer;font-weight:600">⊞ Expand all</span>
+</div>
 <div class="filters">
   <button class="active" onclick="setFilter('all',this)">All</button>
   <button onclick="setFilter('urgent',this)">Urgent</button>
@@ -1019,7 +1023,7 @@ function printTodo() {
 
   document.getElementById('ph-filter').textContent  = filterText + ' · ' + doneCount + '/' + totalCount + ' done';
   document.getElementById('ph-printed').textContent = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent   = 'To-Do v3.21.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent   = 'To-Do v3.22.0 · ' + dateStr;
   window.print();
 }
 
