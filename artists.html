@@ -111,8 +111,7 @@ var _db = firebase.firestore();
 <div id="toolbar">
   <select id="eventFilter" onchange="render()">
     <option value="FD7">FD7 2026</option>
-    <option value="HRR26">HRR 2026</option>
-    <option value="FD Shindig">FD Shindig</option>
+
   </select>
   <button class="btn" onclick="openAddArtist()">+ Add artist</button>
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
@@ -122,7 +121,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Artists & DJs · v1.6.0</span></div>
+<div id="statusbar"><span>FD Artists & DJs · v1.7.0</span></div>
 
 <!-- Add/Edit Artist Modal -->
 <div class="overlay" id="artistModal" onclick="if(event.target===this)closeModal()">
@@ -158,8 +157,7 @@ var _db = firebase.firestore();
         <div class="field"><label>Events</label>
           <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap" id="a-events">
             <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD7" checked> FD7</label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="HRR26"> HRR26</label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD Shindig"> Shindig</label>
+
           </div>
         </div>
         <div class="field"><label>Fee £</label><input id="a-fee" type="number" placeholder="0"></div>
@@ -234,7 +232,7 @@ var SEED_ARTISTS = [
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'20:00', setLength:120,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also plays as part of Good 4 Tha Soul 20:00-22:00'},
   {id:'brandon_block', perfName:'Brandon Block', legalName:'Brandon Block', email:'', phone:'', emName:'', emPhone:'',
-   agentName:'', agentEmail:'', agentPhone:'', events:['FD7','HRR26'], fee:0, setTime:'20:00', setLength:120,
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'20:00', setLength:120,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also plays as part of Good 4 Tha Soul 20:00-22:00'},
   {id:'john_morales', perfName:'John Morales', legalName:'John Morales', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'16:00', setLength:60,
@@ -300,7 +298,8 @@ function openSecurityBrief() {
   var lines = [];
   lines.push('FUNKY DORY FESTIVAL 7 — SECURITY BRIEFING');
   lines.push('Accreditation & Stage Access Policy');
-  lines.push('Saturday 15 August 2026 | Ashfields Carriage & Polo Club, CM6 1JU');
+  var _ev = (window.FD_CONFIG && window.FD_CONFIG.events.fd7) ? window.FD_CONFIG.events.fd7 : {};
+  lines.push((_ev.displayDate||'Saturday 15 August 2026') + ' | ' + (_ev.venue||'Ashfields Carriage & Polo Club') + ', ' + (_ev.postcode||'CM6 1JU'));
   lines.push('');
   lines.push('WRISTBAND & LANYARD TYPES');
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -371,7 +370,8 @@ function sendAllDJComms() {
   lines.push('');
   lines.push('ON ARRIVAL');
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  lines.push('Venue: Ashfields Carriage & Polo Club, CM6 1JU');
+  var _ev2 = (window.FD_CONFIG && window.FD_CONFIG.events.fd7) ? window.FD_CONFIG.events.fd7 : {};
+  lines.push('Venue: ' + (_ev2.venue||'Ashfields Carriage & Polo Club') + ', ' + (_ev2.postcode||'CM6 1JU'));
   lines.push('Follow signs to Artist & Crew entrance on arrival.');
   lines.push('Ask for Louise or Ronnie at the gate.');
   lines.push('');
