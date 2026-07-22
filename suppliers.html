@@ -136,7 +136,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Suppliers · v1.4.0</span></div>
+<div id="statusbar"><span>FD Suppliers · v1.5.0</span></div>
 
 <!-- Add/Edit Supplier -->
 <div class="overlay" id="supplierModal" onclick="if(event.target===this)closeModal()">
@@ -152,13 +152,34 @@ var _db = firebase.firestore();
           <select id="s-type" onchange="updateTypeDesc()">
             <option value="install_stay">Install &amp; Stay</option>
             <option value="install_go">Install &amp; Go</option>
-            <option value="caterer">Caterer / Retailer</option>
+            <option value="caterer">Caterer</option>
+            <option value="retailer">Retailer</option>
             <option value="goods_services">Goods &amp; Services</option>
           </select>
           <div id="s-type-desc" class="type-badge type-install_stay">On site for build, event &amp; derig</div>
         </div>
       </div>
       <div class="field"><label>Role / what they provide</label><input id="s-role" type="text" placeholder="e.g. Stage, PA, sound &amp; lighting"></div>
+      <div class="field"><label>Compliance category (for checklist)</label>
+        <select id="s-subtype">
+          <option value="">— Use base type —</option>
+          <option value="structure">Structures / Marquee / Stage / Rigging</option>
+          <option value="bar_equipment">Bar Infrastructure / Refrigeration</option>
+          <option value="security">Security / Stewarding</option>
+          <option value="electrical">Electrical / Generator / Power</option>
+          <option value="sound">Sound / Audio / DJ Equipment</option>
+          <option value="lighting">Lighting / Lasers / Effects</option>
+        </select>
+      </div>
+      <div class="field"><label>Fuel / Gas use on site</label>
+        <select id="s-fuel">
+          <option value="N/A">N/A — no fuel or gas</option>
+          <option value="LPG">LPG</option>
+          <option value="Petrol">Petrol</option>
+          <option value="Diesel">Diesel</option>
+          <option value="Electric">Electric only</option>
+        </select>
+      </div>
       <div class="field-row">
         <div class="field"><label>Contact name</label><input id="s-contact" type="text"></div>
         <div class="field"><label>Phone</label><input id="s-phone" type="tel"></div>
@@ -306,6 +327,8 @@ function openEditSupplier(id) {
   document.getElementById('s-paydays').value = s.payDays || '';
   document.getElementById('s-notes').value = s.notes || '';
   if (document.getElementById('s-onedrive')) document.getElementById('s-onedrive').value = s.onedrive || '';
+  if (document.getElementById('s-subtype')) document.getElementById('s-subtype').value = s.subtype || '';
+  if (document.getElementById('s-fuel')) document.getElementById('s-fuel').value = s.fuel || 'N/A';
   document.querySelectorAll('#s-events input[type=checkbox]').forEach(function(cb){
     cb.checked = (s.events || []).includes(cb.value);
   });
@@ -334,6 +357,8 @@ function saveSupplier() {
     payDays: document.getElementById('s-paydays').value,
     notes: document.getElementById('s-notes').value.trim(),
     onedrive: document.getElementById('s-onedrive') ? document.getElementById('s-onedrive').value.trim() : '',
+    subtype: document.getElementById('s-subtype') ? document.getElementById('s-subtype').value : '',
+    fuel: document.getElementById('s-fuel') ? document.getElementById('s-fuel').value : 'N/A',
     events: events,
     risk: editingId ? (suppliers.find(function(s){return s.id===editingId;})||{}).risk : undefined
   };
@@ -357,6 +382,18 @@ function notify(msg) {
   setTimeout(function(){ t.style.opacity='0'; }, 2500);
 }
 
+
+function openSupplierForm(supplierId) {
+  var s = suppliers.find(function(s2){ return s2.id === supplierId; });
+  if (!s) return;
+  // Generate form URL — opens supplier-form.html with supplier ID
+  var formUrl = 'supplier-form.html?id=' + supplierId + '&name=' + encodeURIComponent(s.name) + '&type=' + encodeURIComponent(s.type||'') + '&subtype=' + encodeURIComponent(s.subtype||'');
+  // Copy to clipboard and open
+  if (navigator.clipboard) navigator.clipboard.writeText(window.location.origin + '/' + formUrl);
+  window.open(formUrl, '_blank');
+  notify('Form opened — link copied to clipboard to share with supplier');
+}
+
 function save() {
   _db.collection('suppliers_db').doc('suppliers').set({list: suppliers}).catch(function(e){ console.warn(e); });
 }
@@ -370,16 +407,28 @@ function saveKit() {
 }
 
 // ── Compliance helpers ────────────────────────────────────────────────────────
-function getDocsForType(type) {
+function getDocsForType(type, supplierSubtype) {
   var docs = COMPLIANCE_DEFS.all.slice();
-  if (type === 'install_stay') docs = docs.concat(COMPLIANCE_DEFS.install_stay);
-  if (type === 'install_go')   docs = docs.concat(COMPLIANCE_DEFS.install_go);
-  if (type === 'caterer')      docs = docs.concat(COMPLIANCE_DEFS.caterer);
-  return docs;
+  // Base type
+  if (type === 'install_stay')   docs = docs.concat(COMPLIANCE_DEFS.install_stay);
+  if (type === 'install_go')     docs = docs.concat(COMPLIANCE_DEFS.install_go);
+  if (type === 'caterer')        docs = docs.concat(COMPLIANCE_DEFS.caterer);
+  if (type === 'retailer')       docs = docs.concat(COMPLIANCE_DEFS.retailer);
+  // Subtype (what the supplier actually does)
+  var sub = supplierSubtype || '';
+  if (sub === 'structure')       docs = docs.concat(COMPLIANCE_DEFS.structure);
+  if (sub === 'bar_equipment')   docs = docs.concat(COMPLIANCE_DEFS.bar_equipment);
+  if (sub === 'security')        docs = docs.concat(COMPLIANCE_DEFS.security);
+  if (sub === 'electrical')      docs = docs.concat(COMPLIANCE_DEFS.electrical);
+  if (sub === 'sound')           docs = docs.concat(COMPLIANCE_DEFS.sound);
+  if (sub === 'lighting')        docs = docs.concat(COMPLIANCE_DEFS.lighting);
+  // Deduplicate by id
+  var seen = {};
+  return docs.filter(function(d){ if(seen[d.id]) return false; seen[d.id]=true; return true; });
 }
 
 function ragStatus(supplier) {
-  var docs = getDocsForType(supplier.type);
+  var docs = getDocsForType(supplier.type, supplier.subtype);
   var comp = complianceData[supplier.id] || {};
   var total = docs.length;
   var checked = docs.filter(function(d){ return comp[d.id] === 'checked'; }).length;
@@ -437,6 +486,7 @@ function renderSuppliers(event, type) {
     html += '</div>';
     html += '<div style="margin-top:10px;display:flex;gap:6px">';
     html += '<button class="btn-sm" style="background:#eff6ff;color:#1d4ed8" onclick="event.stopPropagation();goCompliance(\'' + s.id + '\')">Compliance</button>';
+    html += '<button class="btn-sm" style="background:#f0fdf4;color:#15803d" onclick="event.stopPropagation();openSupplierForm(\'' + s.id + '\')">📋 Info form</button>';
     html += '<button class="btn-sm" style="background:#f0fdf4;color:#15803d" onclick="event.stopPropagation();openEmailModal(\'' + s.id + '\')">📧 Request docs</button>';
     html += '</div>';
     html += '</div>';
@@ -451,7 +501,7 @@ function renderCompliance(event) {
   if (!current) { document.getElementById('content').innerHTML = '<p style="padding:20px;color:#94a3b8">No suppliers found.</p>'; return; }
   compSupplierId = current.id;
   var comp = complianceData[current.id] || {};
-  var docs = getDocsForType(current.type);
+  var docs = getDocsForType(current.type, current.subtype);
   var rag = ragStatus(current);
 
   var html = '<div class="comp-header">';
