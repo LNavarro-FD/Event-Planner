@@ -119,7 +119,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Staff · v2.3.0</span></div>
+<div id="statusbar"><span>FD Staff · v2.4.0</span></div>
 
 <!-- Add/Edit person overlay -->
 <div class="overlay" id="personOverlay" onclick="if(event.target===this)closePersonForm()">
@@ -272,6 +272,10 @@ var ROLE_DEFS = [
     {id:'door_main',       name:'Door Staff — Main Entrance', fixed:true,fixedQty:3, ratio:null, ratioDesc:'3 fixed — number of entrance lanes',                     plhRequired:false},
     {id:'door_dj',         name:'Door Staff — DJ/Artist Entrance', fixed:true,fixedQty:1, ratio:null, ratioDesc:'1 fixed — artist entrance',                        plhRequired:false},
   ]},
+  {section:'Setup & Takedown',sectionColor:'#374151',sectionBg:'#f1f5f9',roles:[
+    {id:'setup_crew',      name:'Setup Crew',    fixed:false,fixedQty:null, ratio:null, ratioDesc:'~1 per 100 guests (1,500=8 / 2,000=12 / 2,500=16)',              plhRequired:false},
+    {id:'takedown_crew',   name:'Takedown Crew', fixed:false,fixedQty:null, ratio:null, ratioDesc:'1,500=6 / 2,000=8 / 2,500=10',                                  plhRequired:false},
+  ]},
 ];
 
 var TOILET_UNITS = {1500:5, 2000:7, 2500:8};
@@ -282,6 +286,8 @@ function calcRoleQty(role, guests) {
   if (role.ratio) return Math.ceil(guests / role.ratio);
   if (role.id === 'back_bar_stocker') return Math.ceil(Math.ceil(guests/100) / 3.5);
   if (role.id === 'toilet_attendant') return Math.ceil((TOILET_UNITS[guests]||6) / 3);
+  if (role.id === 'setup_crew')    return guests === 1500 ? 8 : guests === 2000 ? 12 : 16;
+  if (role.id === 'takedown_crew') return guests === 1500 ? 6 : guests === 2000 ? 8  : 10;
   return 0;
 }
 
@@ -980,7 +986,7 @@ if(document.readyState==='loading'){
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Staff v2.3.0';
+  var VERSION_STR = 'FD Event Planner · Staff v2.4.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
