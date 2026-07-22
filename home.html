@@ -31,7 +31,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 <body>
 
 <div class="title">FD Event Planner</div>
-<div class="sub">Funky Dory Events Management · FD7 2026 · Sat 15 Aug · Ashfields CM6 1JU</div>
+<div class="sub" id="home-sub">Funky Dory Events Management · FD7 2026</div>
 
 <div class="phase-label">Plan the event</div>
 <div class="col-grid">
@@ -175,5 +175,14 @@ async function runAICommand() {
 }
 </script>
 
+<script>
+window.addEventListener('load', function() {
+  if (window.parent && window.parent.FD_CONFIG && window.parent.FD_CONFIG.events.fd7) {
+    var _ev = window.parent.FD_CONFIG.events.fd7;
+    var sub = document.getElementById('home-sub');
+    if (sub) sub.textContent = 'Funky Dory Events Management · ' + _ev.name + ' · ' + _ev.displayDate + ' · ' + _ev.venue;
+  }
+});
+</script>
 </body>
 </html>
