@@ -92,6 +92,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
   <div class="tb-sep"></div>
   <button class="tb-btn active" onclick="setView('people',this)">People</button>
   <button class="tb-btn" onclick="setView('assignments',this)">FD7 Assignments</button>
+  <button class="tb-btn" onclick="setView('roles',this)">Roles & Headcount</button>
   <div style="margin-left:auto;display:flex;gap:8px">
     <button class="tb-btn-primary" onclick="openAddPerson()">+ Add person</button>
     <button class="tb-btn" onclick="openAssignEvent()" id="assignBtn" style="display:none">+ Assign to FD7</button>
@@ -118,7 +119,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Staff · v2.0.0</span></div>
+<div id="statusbar"><span>FD Staff · v2.1.0</span></div>
 
 <!-- Add/Edit person overlay -->
 <div class="overlay" id="personOverlay" onclick="if(event.target===this)closePersonForm()">
@@ -252,6 +253,143 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 <script>
 window._fbUser = window._fbUser || {email:'local'};
 
+
+// ── Roles & Headcount ─────────────────────────────────────────────────────────
+var ROLE_DEFS = [
+  {section:'Front Bar',sectionColor:'#0369a1',sectionBg:'#dbeafe',roles:[
+    {id:'bar_manager',     name:'Bar Manager',             fixed:true, fixedQty:1,    ratio:null, ratioDesc:'1 per event — fixed',                                    plhRequired:true},
+    {id:'front_bar_staff', name:'Bar Staff',               fixed:false,fixedQty:null, ratio:100,  ratioDesc:'1 per 100 guests at peak (Purple Guide)',                plhRequired:false},
+  ]},
+  {section:'Back Bar',sectionColor:'#0f766e',sectionBg:'#d1fae5',roles:[
+    {id:'back_bar_manager',name:'Back Bar Manager',        fixed:true, fixedQty:1,    ratio:null, ratioDesc:'1 per event — fixed',                                    plhRequired:false},
+    {id:'back_bar_stocker',name:'Back Bar Stocker',        fixed:false,fixedQty:null, ratio:null, ratioDesc:'1 per 3-4 front bar staff',                             plhRequired:false},
+  ]},
+  {section:'Cleaning',sectionColor:'#7c3aed',sectionBg:'#ede9fe',roles:[
+    {id:'rubbish_cleaner', name:'Rubbish Cleaner',         fixed:false,fixedQty:null, ratio:300,  ratioDesc:'1 per 300 guests (Purple Guide)',                       plhRequired:false},
+    {id:'toilet_attendant',name:'Toilet Attendant',        fixed:false,fixedQty:null, ratio:null, ratioDesc:'1 per 3 toilet units',                                  plhRequired:false},
+  ]},
+  {section:'Entrance',sectionColor:'#b45309',sectionBg:'#fef3c7',roles:[
+    {id:'door_main',       name:'Door Staff — Main Entrance', fixed:true,fixedQty:3, ratio:null, ratioDesc:'3 fixed — number of entrance lanes',                     plhRequired:false},
+    {id:'door_dj',         name:'Door Staff — DJ/Artist Entrance', fixed:true,fixedQty:1, ratio:null, ratioDesc:'1 fixed — artist entrance',                        plhRequired:false},
+  ]},
+];
+
+var TOILET_UNITS = {1500:5, 2000:7, 2500:8};
+var roleOverrides = {};
+
+function calcRoleQty(role, guests) {
+  if (role.fixed) return role.fixedQty;
+  if (role.ratio) return Math.ceil(guests / role.ratio);
+  if (role.id === 'back_bar_stocker') return Math.ceil(Math.ceil(guests/100) / 3.5);
+  if (role.id === 'toilet_attendant') return Math.ceil((TOILET_UNITS[guests]||6) / 3);
+  return 0;
+}
+
+function saveRoleOverrides() {
+  _db.collection('staff').doc('role_overrides_fd7').set({overrides:roleOverrides}).catch(function(e){console.warn(e);});
+}
+
+async function loadRoleOverrides() {
+  try {
+    var snap = await _db.collection('staff').doc('role_overrides_fd7').get();
+    if (snap.exists && snap.data().overrides) roleOverrides = snap.data().overrides;
+  } catch(e) {console.warn(e);}
+}
+
+function editRoleOverride(roleId, tier, calcQty) {
+  var key = roleId + '_' + tier;
+  var current = roleOverrides[key];
+  var currentQty = current ? current.qty : calcQty;
+  var newQty = prompt('Override headcount for ' + tier.toLocaleString() + ' guests.\nPurple Guide recommendation: ' + calcQty + '\n\nEnter your planned number:', currentQty);
+  if (newQty === null) return;
+  newQty = parseInt(newQty);
+  if (isNaN(newQty) || newQty < 0) { alert('Please enter a valid number'); return; }
+  var reason = '';
+  if (newQty !== calcQty) {
+    reason = prompt('Reason for override (optional):', current ? current.reason : '') || '';
+  }
+  if (newQty === calcQty && !reason) { delete roleOverrides[key]; }
+  else { roleOverrides[key] = {qty:newQty, reason:reason, calcQty:calcQty, updatedAt:new Date().toISOString()}; }
+  saveRoleOverrides();
+  renderRoles();
+  notify(newQty === calcQty ? 'Reverted to recommended' : 'Override saved');
+}
+
+function renderRoles() {
+  var TIERS = [1500, 2000, 2500];
+  var html = '';
+
+  html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px">';
+  html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:6px">Staffing Calculator — FD7 2026</div>';
+  html += '<div style="font-size:11px;color:#64748b;line-height:1.6">Recommended headcount based on <strong>Purple Guide (Feb 2026)</strong> standards. Click any number to manually override.</div>';
+  html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">';
+  html += '<div style="font-size:10px;padding:2px 8px;border-radius:4px;background:#f1f5f9;color:#64748b">Default = Purple Guide</div>';
+  html += '<div style="font-size:10px;padding:2px 8px;border-radius:4px;background:#fef9c3;color:#854d0e">✏ Manually overridden</div>';
+  html += '<div style="font-size:10px;padding:2px 8px;border-radius:4px;background:#dcfce7;color:#166534">🔒 PLH required</div>';
+  html += '</div></div>';
+
+  html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">';
+  html += '<table style="width:100%;border-collapse:collapse">';
+  html += '<thead><tr style="background:#0f172a;color:#fff">';
+  html += '<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700">Role</th>';
+  html += '<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700">Basis</th>';
+  TIERS.forEach(function(t){ html += '<th style="padding:10px 14px;text-align:center;font-size:11px;font-weight:700">' + t.toLocaleString() + '</th>'; });
+  html += '</tr></thead><tbody>';
+
+  ROLE_DEFS.forEach(function(section) {
+    html += '<tr style="background:' + section.sectionBg + '"><td colspan="5" style="padding:7px 14px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + section.sectionColor + '">' + section.section + '</td></tr>';
+
+    section.roles.forEach(function(role) {
+      html += '<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:10px 14px">';
+      html += '<div style="font-size:12px;font-weight:600">' + role.name + '</div>';
+      if (role.plhRequired) html += '<div style="font-size:10px;color:#166534;font-weight:600">🔒 PLH required</div>';
+      html += '</td><td style="padding:10px 14px;font-size:10px;color:#64748b">' + role.ratioDesc + '</td>';
+
+      TIERS.forEach(function(t) {
+        var key = role.id + '_' + t;
+        var override = roleOverrides[key];
+        var calc = calcRoleQty(role, t);
+        var qty = override ? override.qty : calc;
+        var isOver = !!override;
+        html += '<td style="padding:10px 14px;text-align:center">';
+        html += '<button onclick="editRoleOverride(' + JSON.stringify(role.id) + ',' + t + ',' + calc + ')" style="width:44px;height:44px;border-radius:50%;border:2px solid ' + (isOver?'#f59e0b':section.sectionColor) + ';background:' + (isOver?'#fef9c3':section.sectionBg) + ';color:' + section.sectionColor + ';font-size:16px;font-weight:800;cursor:pointer">' + qty + '</button>';
+        if (isOver && override.reason) html += '<div style="font-size:9px;color:#854d0e;margin-top:2px">' + override.reason + '</div>';
+        html += '</td>';
+      });
+      html += '</tr>';
+    });
+
+    // Section total
+    html += '<tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0"><td colspan="2" style="padding:7px 14px;font-size:11px;font-weight:700;color:#64748b">SECTION TOTAL</td>';
+    TIERS.forEach(function(t) {
+      var tot = section.roles.reduce(function(s,r){ var ov=roleOverrides[r.id+'_'+t]; return s+(ov?ov.qty:calcRoleQty(r,t)); },0);
+      html += '<td style="padding:7px 14px;text-align:center;font-size:13px;font-weight:700">' + tot + '</td>';
+    });
+    html += '</tr>';
+  });
+
+  // Grand total
+  html += '<tr style="background:#0f172a"><td colspan="2" style="padding:12px 14px;font-size:12px;font-weight:700;color:#fff">TOTAL ALL STAFF</td>';
+  TIERS.forEach(function(t) {
+    var grand = ROLE_DEFS.reduce(function(s,sec){ return s+sec.roles.reduce(function(s2,r){ var ov=roleOverrides[r.id+'_'+t]; return s2+(ov?ov.qty:calcRoleQty(r,t)); },0); },0);
+    html += '<td style="padding:12px 14px;text-align:center;font-size:20px;font-weight:800;color:#FF4B7B">' + grand + '</td>';
+  });
+  html += '</tr></tbody></table></div>';
+
+  // PLH panel
+  var plhPeople = people.filter(function(p){ return p.plh==='yes' && p.status!=='inactive'; });
+  html += '<div style="margin-top:12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px">';
+  html += '<div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px">PERSONAL LICENCE HOLDERS</div>';
+  if (plhPeople.length) {
+    plhPeople.forEach(function(p){ html += '<span style="display:inline-block;background:#dcfce7;color:#166534;font-size:11px;padding:3px 10px;border-radius:12px;margin:2px;font-weight:600">' + (p.firstName+' '+(p.lastName||'')).trim() + '</span>'; });
+  } else {
+    html += '<span style="color:#dc2626;font-size:12px;font-weight:600">⚠ No PLH holders in database — add PLH staff in People view</span>';
+  }
+  html += '</div>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
 // ── Data ──────────────────────────────────────────────────────────────────────
 var CURRENT_EVENT = 'FD7';
 var CURRENT_EVENT_DATE = '2026-08-15';
@@ -269,6 +407,7 @@ var _currentView = 'people';
 
 // ── Firebase ──────────────────────────────────────────────────────────────────
 async function load() {
+  await loadRoleOverrides();
   try {
     var snap = await _db.collection('staff').doc('people_v2').get();
     if (snap.exists && snap.data().people) people = snap.data().people;
@@ -331,12 +470,14 @@ function setView(v, el) {
   document.querySelectorAll('.tb-btn').forEach(function(b){b.classList.remove('active');});
   if(el) el.classList.add('active');
   document.getElementById('assignBtn').style.display = v === 'assignments' ? 'inline-block' : 'none';
+  if (v === 'roles') { setTimeout(renderRoles, 50); return; }
   render();
 }
 
 function render() {
   if (_currentView === 'people') renderPeople();
-  else renderAssignments();
+  else if (_currentView === 'assignments') renderAssignments();
+  else if (_currentView === 'roles') renderRoles();
 }
 
 function personName(p) { return (p.firstName + ' ' + (p.lastName||'')).trim(); }
