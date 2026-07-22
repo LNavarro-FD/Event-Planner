@@ -114,6 +114,8 @@ var _db = firebase.firestore();
     <option value="FD Shindig">FD Shindig</option>
   </select>
   <button class="btn-primary" onclick="printSheet()">🖨 Print</button>
+  <button onclick="exportXLS('design')" style="padding:6px 12px;background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">⬇ Design costs XLS</button>
+  <button onclick="exportXLS('print')" style="padding:6px 12px;background:#ede9fe;color:#5b21b6;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">⬇ Print costs XLS</button>
   <button onclick="openBulkPrint()" style="padding:6px 14px;background:#22224C;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✨ Bulk add</button>
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
 </div>
@@ -125,7 +127,7 @@ var _db = firebase.firestore();
 
 <div id="content"></div>
 
-<div id="statusbar"><span>FD Design &amp; Print · v1.9.0</span></div>
+<div id="statusbar"><span>FD Design &amp; Print · v2.0.0</span></div>
 
 <!-- Item detail panel -->
 <div class="overlay" id="itemOverlay" onclick="if(event.target===this)closePanel()">
@@ -658,6 +660,63 @@ function toggleFlag(idx, flag) {
   render();
 }
 
+
+function exportXLS(type) {
+  var items = (eventItems[currentEvent] || []).filter(function(i){ return i.status === 'required'; });
+  var rows, headers;
+
+  if (type === 'design') {
+    headers = ['Item','Group','Designer','Design Fee (ex VAT)','Design Fee (inc VAT)','Quote Link','Quote Approved','Design Approved','Brief Notes'];
+    rows = items.filter(function(i){ return i.needsDesign !== false; }).map(function(i){
+      return [
+        i.item, i.cat, i.designSupplier||'',
+        i.designFee||0, i.designFee ? (parseFloat(i.designFee)*1.2).toFixed(2) : 0,
+        i.designQuoteLink||'',
+        i.designQuoteApproved ? 'Yes' : 'No',
+        i.designApproved ? 'Yes' : 'No',
+        i.briefNotes||''
+      ];
+    });
+  } else {
+    headers = ['Item','Group','Print Supplier','Qty','Unit Price (ex VAT)','Setup Fee (ex VAT)','Delivery (ex VAT)','Total (ex VAT)','Total (inc VAT)','Discount','Delivery Date','Quote Link','Order Placed','Delivered'];
+    rows = items.filter(function(i){ return i.needsPrint !== false; }).map(function(i){
+      var qty = parseFloat(i.qty)||0;
+      var unit = parseFloat(i.unitPrice)||0;
+      var setup = parseFloat(i.setupFee)||0;
+      var deliv = parseFloat(i.deliveryCost)||0;
+      var exVat = (qty*unit)+setup+deliv;
+      return [
+        i.item, i.cat, i.supplier||'',
+        qty, unit, setup, deliv,
+        exVat.toFixed(2), (exVat*1.2).toFixed(2),
+        i.discount||'', i.deliveryDate||'',
+        i.printQuoteLink||'',
+        i.orderPlaced ? 'Yes' : 'No',
+        i.delivered ? 'Yes' : 'No'
+      ];
+    });
+  }
+
+  // Build CSV (opens in Excel)
+  var csv = headers.join(',') + '\n';
+  rows.forEach(function(row){
+    csv += row.map(function(v){
+      var s = String(v||'');
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) s = '"' + s.replace(/"/g,'""') + '"';
+      return s;
+    }).join(',') + '\n';
+  });
+
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'FD7_' + (type==='design'?'Design':'Print') + '_Costs_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  notify('Downloaded ' + rows.length + ' items');
+}
+
 function sendDesignBrief() {
   if (_editIdx === null) return;
   saveItem();
@@ -684,8 +743,11 @@ function sendDesignBrief() {
 function esc(s){ return String(s).replace(/"/g,"&quot;"); }
 
 function calcTotals() {
-  var qty  = parseFloat(document.getElementById('pi-qty').value) || 1;
-  var unit = parseFloat(document.getElementById('pi-unit').value) || 0;
+  var qty    = parseFloat(document.getElementById('pi-qty').value) || 1;
+  var unit   = parseFloat(document.getElementById('pi-unit').value) || 0;
+  var setup  = parseFloat(document.getElementById('pi-setup') ? document.getElementById('pi-setup').value : 0) || 0;
+  var deliv  = parseFloat(document.getElementById('pi-delivery-cost') ? document.getElementById('pi-delivery-cost').value : 0) || 0;
+  var designFee = parseFloat(document.getElementById('pi-design-fee') ? document.getElementById('pi-design-fee').value : 0) || 0;
   var ex   = qty * unit;
   document.getElementById('pi-ex').value  = ex ? ex.toFixed(2) : '';
   document.getElementById('pi-inc').value = ex ? (ex*1.2).toFixed(2) : '';
@@ -724,7 +786,7 @@ function saveItem() {
     var el=document.getElementById(id); if(el) item[f]=el.value;
   });
   item.notes=document.getElementById('pi-notes').value;
-  item.designApproved = document.getElementById('pi-design').checked;
+  item.designApproved = document.getElementById('pi-design-approved') ? document.getElementById('pi-design-approved').checked : item.designApproved||false;
   item.printVersion   = document.getElementById('pi-print').checked;
   item.orderPlaced    = document.getElementById('pi-ordered').checked;
   save();
