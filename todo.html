@@ -164,6 +164,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 </div>
 
 <div style="display:flex;justify-content:flex-end;gap:12px;margin-bottom:8px">
+  <button onclick="restoreSections()" style="padding:5px 12px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↺ Restore tasks</button>
   <span onclick="collapseAll(true)" style="font-size:12px;color:#FF4B7B;cursor:pointer;font-weight:600">⊟ Collapse all</span>
   <span onclick="collapseAll(false)" style="font-size:12px;color:#FF4B7B;cursor:pointer;font-weight:600">⊞ Expand all</span>
 </div>
@@ -492,13 +493,13 @@ window._fbLoad=async function(){
       subs=d.subs||{};
       overrides=d.overrides||{};
       generalNotes=d.generalNotes||'';
-      if(d.sections&&d.sections.length) sections=d.sections;
+      if(d.sections&&d.sections.length>5) sections=d.sections; // only use if substantial
     }
   }catch(e){console.warn('Load failed',e);}
   // Also try loading sections from separate doc (written by seed-todo.html)
   try{
     const ssnap=await _db.collection('todos').doc('fd7_sections_2026').get();
-    if(ssnap.exists&&ssnap.data().sections&&ssnap.data().sections.length){
+    if(ssnap.exists&&ssnap.data().sections&&ssnap.data().sections.length>5){
       sections=ssnap.data().sections;
     }
   }catch(e){}
@@ -1100,6 +1101,16 @@ async function sendTodoChat() {
   }
 }
 
+
+function restoreSections() {
+  if (!confirm('Restore all sections to the default task list? Your custom tasks and completion status will be kept — only the section template resets.')) return;
+  sections = JSON.parse(JSON.stringify(window._SEED_SECTIONS));
+  _db.collection('todos').doc('fd7_sections_2026').set({sections: sections}).then(function(){
+    stats(); render(); populateCatDropdown();
+    notify('Tasks restored ✓');
+  });
+}
+
 function printTodo() {
   var now = new Date();
   var dateStr = now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + ' ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
@@ -1179,7 +1190,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · To-Do v3.26.0';
+  var VERSION_STR = 'FD Event Planner · To-Do v3.26.1';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
