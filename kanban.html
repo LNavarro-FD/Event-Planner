@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FD Kanban v3.7.0 — FD7 Kanban</title>
+<title>FD Kanban v3.7.1 — FD7 Kanban</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -213,7 +213,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 <div id="buildGrid"></div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · Kanban v3.7.0</span>
+    <span>FD Event Planner · Kanban v3.7.1</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -304,56 +304,57 @@ const BUILD_WEEK = {
       {task:'Pitch marking & boundaries',       hire:'fd',   days:['','FD Team','','','','','','']},
     ]},
     {name:'STRUCTURES', tasks:[
-      {task:'Stretch tent — main bar',          hire:'week', days:['','Under The Canvas','','','','','','Under The Canvas — collect']},
-      {task:'Wellness tent',                    hire:'week', days:['','Under The Canvas','','','','','','Under The Canvas — collect']},
-      {task:'VIP tipi',                         hire:'week', days:['','Tipis 4 Hire','','','','','','Tipis 4 Hire — collect']},
-      {task:'Sponsor tent tipi',                hire:'week', days:['','Tipis 4 Hire','','','','','','Tipis 4 Hire — collect']},
-      {task:'Skip hire — Dunmow',               hire:'day',  days:['','Skip delivery','','','','','','Skip collect']},
-      {task:'RoRo 40yd — Dunmow',              hire:'day',  days:['','RoRo delivery','','','','','','RoRo collect']},
-      {task:'Welfare unit',                     hire:'week', days:['','Welfare unit delivery','','','','','','Welfare unit — collect']},
+      {task:'Stretch tent — main bar',          hire:'week', derig:'selfderig', days:['','Under The Canvas','','','','','','Under The Canvas — collect']},
+      {task:'Wellness tent',                    hire:'week', derig:'selfderig', days:['','Under The Canvas','','','','','','Under The Canvas — collect']},
+      {task:'VIP tipi',                         hire:'week', derig:'selfderig', days:['','Tipis 4 Hire','','','','','','Tipis 4 Hire — collect']},
+      {task:'Sponsor tent tipi',                hire:'week', derig:'selfderig', days:['','Tipis 4 Hire','','','','','','Tipis 4 Hire — collect']},
+      {task:'Skip hire — Dunmow',               hire:'day',  derig:'fdpack', days:['','Skip delivery','','','','','','Skip collect']},
+      {task:'RoRo 40yd — Dunmow',              hire:'day',  derig:'fdpack', days:['','RoRo delivery','','','','','','RoRo collect']},
+      {task:'Welfare unit',                     hire:'week', derig:'selfderig', days:['','Welfare unit delivery','','','','','','Welfare unit — collect']},
     ]},
     {name:'STAGE & SOUND', tasks:[
-      {task:'Stage arrival & positioning',      hire:'week', days:['','','','','Panache Audio','','','Panache — collect']},
-      {task:'Stage build',                      hire:'week', days:['','','','','Panache Audio','','','']},
-      {task:'PA & lighting installed',          hire:'week', days:['','','','','Panache Audio','','','']},
-      {task:'DJ equipment installed',           hire:'week', days:['','','','','Kacy Sounds','','','Kacy — collect']},
+      {task:'Stage arrival & positioning',      hire:'week', derig:'selfderig', days:['','','','','Panache Audio','','','Panache — collect']},
+      {task:'Stage build',                      hire:'week', derig:'selfderig', days:['','','','','Panache Audio','','','']},
+      {task:'PA & lighting installed',          hire:'week', derig:'selfderig', days:['','','','','Panache Audio','','','']},
+      {task:'DJ equipment installed',           hire:'week', derig:'selfderig', days:['','','','','Kacy Sounds','','','Kacy — collect']},
       {task:'Sound check',                      hire:'fd',   days:['','','','','','Panache Audio — AM','','']},
       {task:'Stage barriers up',                hire:'fd',   days:['','','','','','Site team — AM','','']},
     ]},
     {name:'POWER & TECH', tasks:[
       {task:'Generator installed',              hire:'week', days:['','','','Panache Audio','','','','Panache — collect']},
       {task:'Site power / cable runs',          hire:'week', days:['','','','Panache Audio','','','','']},
-      {task:'Internet on site — main router',    hire:'week', days:['','','','','Internet (Lloydy)','','','Internet — collect']},
-      {task:'WiFi access point — stage area',    hire:'week', days:['','','','','Internet (Lloydy)','','','']},
-      {task:'WiFi access point — bar area',      hire:'week', days:['','','','','Internet (Lloydy)','','','']},
-      {task:'WiFi access point — entrance',      hire:'week', days:['','','','','Internet (Lloydy)','','','']},
-      {task:'Till system setup',                hire:'week', days:['','','','','WTS','','','WTS — collect']},
+      {task:'Internet on site — main router',    hire:'week', derig:'selfderig', days:['','','','','Internet (Lloydy)','','','Internet — collect']},
+      {task:'WiFi access point — stage area',    hire:'week', derig:'selfderig', days:['','','','','Internet (Lloydy)','','','']},
+      {task:'WiFi access point — bar area',      hire:'week', derig:'selfderig', days:['','','','','Internet (Lloydy)','','','']},
+      {task:'WiFi access point — entrance',      hire:'week', derig:'selfderig', days:['','','','','Internet (Lloydy)','','','']},
+      {task:'Till system setup',                hire:'week', derig:'selfderig', days:['','','','','WTS','','','WTS — collect']},
     ]},
     {name:'BAR & FRIDGE', tasks:[
-      {task:'Bar structure installed',          hire:'week', days:['','','','House Group','','','','House Group — collect']},
-      {task:'Fridge trailer(s) arrive',         hire:'week', days:['','','','House Group','','','','House Group — collect']},
+      {task:'Bar structure installed',          hire:'week', derig:'selfderig', days:['','','','House Group','','','','House Group — collect']},
+      {task:'Fridge trailer(s) arrive',         hire:'week', derig:'selfderig', days:['','','','House Group','','','','House Group — collect']},
       {task:'Drinks stock delivery',            hire:'fd',   days:['','','','','Stock delivery','','','']},
     ]},
     {name:'FENCING & BARRIERS', tasks:[
-      {task:'Heras fencing installed',          hire:'week', days:['','','Local Toilet Hire','','','','','Local Toilet Hire — collect']},
-      {task:'Crowd barriers installed',         hire:'week', days:['','','','Local Toilet Hire','','','','Local Toilet Hire — collect']},
+      {task:'Heras fencing installed',          hire:'week', derig:'fdpack', days:['','','Local Toilet Hire','','','','','Local Toilet Hire — collect']},
+      {task:'Crowd barriers installed',         hire:'week', derig:'fdpack', days:['','','','Local Toilet Hire','','','','Local Toilet Hire — collect']},
+      {task:'Picket fencing — tipi area',       hire:'week', derig:'fdpack', days:['','','Picket fencing delivery','','','','','Collect']},
     ]},
     {name:'TOILETS', tasks:[
-      {task:'Toilet units delivered',           hire:'week', days:['','','Luxury Toilet Hire','','','','','Luxury Toilet Hire — collect']},
-      {task:'Toilet area fencing',              hire:'week', days:['','','Local Toilet Hire','','','','','']},
-      {task:'Toilet lighting',                  hire:'week', days:['','','','Marvellous Glow','','','','Marvellous Glow — collect']},
+      {task:'Toilet units delivered',           hire:'week', derig:'selfderig', days:['','','Luxury Toilet Hire','','','','','Luxury Toilet Hire — collect']},
+      {task:'Toilet area fencing',              hire:'week', derig:'fdpack', days:['','','Local Toilet Hire','','','','','']},
+      {task:'Toilet lighting',                  hire:'week', derig:'selfderig', days:['','','','Marvellous Glow','','','','Marvellous Glow — collect']},
     ]},
     {name:'FURNITURE & DECOR', tasks:[
-      {task:'Furniture delivery — RDL',         hire:'week', days:['','','','RDL','','','','RDL — collect']},
+      {task:'Furniture delivery — RDL',         hire:'week', derig:'fdpack', days:['','','','RDL','','','','RDL — collect']},
       {task:'Telehandler for offloading',       hire:'day',  days:['','','','Telehandler','','','','']},
       {task:'Tables & chairs set up',           hire:'fd',   days:['','','','','Setup team','','','']},
-      {task:'Flowers & decor',                  hire:'week', days:['','','','','Fleur De Lys','','','']},
-      {task:'Site lighting & powered signs',    hire:'week', days:['','','','','Marvellous Glow','','','Marvellous Glow — collect']},
+      {task:'Flowers & decor',                  hire:'week', derig:'selfderig', days:['','','','','Fleur De Lys','','','']},
+      {task:'Site lighting & powered signs',    hire:'week', derig:'selfderig', days:['','','','','Marvellous Glow','','','Marvellous Glow — collect']},
     ]},
     {name:'ENTRANCE & SCANNING', tasks:[
       {task:'Gazebo — main entrance',           hire:'fd',   days:['','','','','Site team','','','']},
       {task:'Gazebo — DJ/artist entrance',      hire:'fd',   days:['','','','','Site team','','','']},
-      {task:'Tables & chairs — entrance',       hire:'week', days:['','','','RDL','','','','RDL — collect']},
+      {task:'Tables & chairs — entrance',       hire:'week', derig:'fdpack', days:['','','','RDL','','','','RDL — collect']},
       {task:'Coconut matting laid',             hire:'fd',   days:['','','','','','FD Team — AM','','']},
       {task:'Entrance signage & WiFi signs',    hire:'fd',   days:['','','','','Site team','','','']},
       {task:'Wristband station setup',          hire:'fd',   days:['','','','','','FD Team — AM','','']},
@@ -573,7 +574,7 @@ function printBuildWeek() {
   document.getElementById('ph-event').textContent    = 'Event: ' + (_ev.displayDate||'Saturday 15 August 2026') + ' · ' + (_ev.venue||'Ashfields Carriage & Polo Club');
   document.getElementById('ph-dates').textContent    = 'Period: ' + firstDay + ' – ' + lastDay;
   document.getElementById('ph-printed').textContent  = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent    = 'FD Event Planner · Kanban v3.7.0 · ' + dateStr;
+  document.getElementById('pf-right').textContent    = 'FD Event Planner · Kanban v3.7.1 · ' + dateStr;
   window.print();
 }
 
@@ -687,6 +688,8 @@ function renderBuildGrid(){
   html += '<span style="background:#1e40af;color:#fff;padding:1px 8px;border-radius:3px">WEEK = weekly hire</span>';
   html += '<span style="background:#b45309;color:#fff;padding:1px 8px;border-radius:3px">DAY = daily rate — minimise days on site</span>';
   html += '<span style="color:#94a3b8">No badge = FD own / staff</span>';
+  html += '<span style="background:#5b21b6;color:#fff;padding:1px 8px;border-radius:3px">&#127917; Self derig = supplier removes own kit</span>';
+  html += '<span style="background:#9a3412;color:#fff;padding:1px 8px;border-radius:3px">&#128230; FD Pack = we pack for collection or removal</span>';
   html += '</div>';
   if(bw.subtitle) html += '<div class="bg-subt">'+bw.subtitle+'</div>';
   html += '<div style="overflow-x:auto;max-height:calc(100vh - 180px)"><table class="bgt"><thead><tr style="position:sticky;top:0;z-index:10">';
@@ -700,10 +703,12 @@ function renderBuildGrid(){
     sec.tasks.forEach(function(task){
       var tname = task.task || task.name || '';
       var hireColors = {week:'#dbeafe', day:'#fef3c7', fd:'#ffffff'};
+      var derigLabels = {selfderig:{label:'🎛 Self derig', color:'#5b21b6', bg:'#ede9fe'}, fdpack:{label:'📦 FD Pack', color:'#9a3412', bg:'#ffedd5'}};
+      var derigTag = task.derig && derigLabels[task.derig] ? '<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:'+derigLabels[task.derig].bg+';color:'+derigLabels[task.derig].color+';font-weight:700;margin-left:4px;vertical-align:middle">'+derigLabels[task.derig].label+'</span>' : '';
       var hireLabels = {week:'W', day:'D', fd:''};
       var hireBg = hireColors[task.hire] || '#fff';
       var hireTag = task.hire && task.hire !== 'fd' ? '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:'+(task.hire==='week'?'#1e40af':'#b45309')+';color:#fff;font-weight:700;margin-left:4px;vertical-align:middle">'+(task.hire==='week'?'WEEK':'DAY')+'</span>' : '';
-      html += '<tr style="background:'+hireBg+'"><td style="font-size:11px;color:#374151;min-width:180px;white-space:nowrap;padding:5px 8px">'+tname+hireTag+'</td>';
+      html += '<tr style="background:'+hireBg+'"><td style="font-size:11px;color:#374151;min-width:180px;white-space:nowrap;padding:5px 8px">'+tname+hireTag+derigTag+'</td>';
       bw.days.forEach(function(d,i){
         var defVal = (task.days && task.days[i] !== undefined) ? task.days[i] : (task.default||'');
         html += makeCell(sec.name, tname, i, defVal, d.type);
@@ -895,7 +900,7 @@ if(document.readyState==='loading'){
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Kanban v3.7.0';
+  var VERSION_STR = 'FD Event Planner · Kanban v3.7.1';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
