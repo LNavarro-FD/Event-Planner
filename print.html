@@ -930,5 +930,14 @@ if (document.readyState === 'loading') {
   </div>
 </div>
 
+<script>
+// Post version to hub statusbar
+(function() {
+  var VERSION_STR = 'FD Event Planner · Design & Print v2.0.0';
+  function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
+  else { postVersion(); }
+})();
+</script>
 </body>
 </html>
