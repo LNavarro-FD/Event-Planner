@@ -21,18 +21,31 @@ window.FD_RULES = (function() {
     return d.toISOString().slice(0, 10);
   }
 
-  function buildWeekStart() {
-    // Wednesday before event (build week starts Wed)
-    var d = new Date(getEventDate());
-    var day = d.getDay(); // 0=Sun, 3=Wed, 6=Sat
-    // Days back to get to Wednesday: Sat=3, Sun=4, Mon=5, Tue=6, Wed=0, Thu=6, Fri=5
-    var daysBack = (day + 4) % 7; // for Saturday event this = 3
-    d.setDate(d.getDate() - daysBack);
-    return d;
-  }
-
   function buildWeekStartStr() {
-    return buildWeekStart().toISOString().slice(0, 10);
+    // Read from config — each event has its own buildStartDate configured
+    if (typeof window.FD_CONFIG !== 'undefined') {
+      var events = window.FD_CONFIG.events || {};
+      for (var key in events) {
+        var ev = events[key];
+        if (ev.buildStartDate) {
+          // Match current event by checking EVENT_DATE
+          var evDate = typeof EVENT_DATE !== 'undefined' ? EVENT_DATE : null;
+          if (evDate && ev.eventDate) {
+            var evDateStr = (ev.eventDate instanceof Date ? ev.eventDate : new Date(ev.eventDate)).toISOString().slice(0,10);
+            var currentStr = evDate.toISOString().slice(0,10);
+            if (evDateStr === currentStr) return ev.buildStartDate;
+          }
+          // If only one event or can't match, use first one with buildStartDate
+          return ev.buildStartDate;
+        }
+      }
+    }
+    // Fallback: Wednesday before event
+    var d = new Date(getEventDate());
+    var day = d.getDay();
+    var daysBack = (day + 4) % 7;
+    d.setDate(d.getDate() - daysBack);
+    return d.toISOString().slice(0, 10);
   }
 
   function monthsBefore(m) {
