@@ -114,6 +114,8 @@ var _db = firebase.firestore();
     <option value="FD Shindig">FD Shindig</option>
   </select>
   <button class="btn-primary" onclick="printSheet()">🖨 Print</button>
+  <button onclick="exportXLS('design')" style="padding:6px 12px;background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">⬇ Design XLS</button>
+  <button onclick="exportXLS('print')" style="padding:6px 12px;background:#ede9fe;color:#5b21b6;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">⬇ Print XLS</button>
   <button onclick="exportXLS('design')" style="padding:6px 12px;background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">⬇ Design costs XLS</button>
   <button onclick="exportXLS('print')" style="padding:6px 12px;background:#ede9fe;color:#5b21b6;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">⬇ Print costs XLS</button>
   <button onclick="openBulkPrint()" style="padding:6px 14px;background:#22224C;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✨ Bulk add</button>
@@ -432,18 +434,40 @@ function renderPanel(item) {
   html += '<div class="field" style="margin-bottom:8px"><label>Designer email</label><input id="pi-designer-email" type="email" value="'+esc(item.designerEmail||'')+'" placeholder="designer@example.com"></div>';
   html += '<div style="margin-bottom:16px"><button onclick="sendDesignBrief()" style="padding:6px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:600;color:#1d4ed8;cursor:pointer">📧 Send brief to designer</button></div>';
   html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0">Procurement</div>';
+
+  // ── Design costs ──
+  html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#3b82f6;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid #dbeafe">Design Costs</div>';
   html += '<div class="field-grid">';
-  html += '<div class="field"><label>Supplier</label><input id="pi-supplier" type="text" value="'+esc(item.supplier||'')+'"></div>';
+  html += '<div class="field"><label>Designer</label><input id="pi-design-supplier" type="text" value="'+esc(item.designSupplier||'')+'" placeholder="e.g. Louise the designer"></div>';
+  html += '<div class="field"><label>Design fee (ex VAT)</label><input id="pi-design-fee" type="number" step="0.01" value="'+esc(item.designFee||'')+'" placeholder="0.00" oninput="calcTotals()"></div>';
+  html += '</div>';
+  html += '<div class="field" style="margin-bottom:6px"><label>Design quote (OneDrive link)</label><input id="pi-design-quote" type="url" value="'+esc(item.designQuoteLink||'')+'" placeholder="Paste OneDrive link to quote...">';
+  if (item.designQuoteLink) html += '<a href="'+esc(item.designQuoteLink)+'" target="_blank" style="font-size:10px;color:#3b82f6;display:block;margin-top:2px">Open quote</a>';
+  html += '</div>';
+  html += '<div style="margin-bottom:14px"><div class="check-group">';
+  html += '<label class="check-item"><input type="checkbox" id="pi-design-quoted"'+(item.designQuoteApproved?' checked':'')+'>  Quote approved</label>';
+  html += '<label class="check-item"><input type="checkbox" id="pi-design-approved"'+(item.designApproved?' checked':'')+'>  Design approved</label>';
+  html += '</div></div>';
+
+  // ── Print costs ──
+  html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #ede9fe">Print / Production Costs</div>';
+  html += '<div class="field-grid">';
+  html += '<div class="field"><label>Print supplier</label><input id="pi-supplier" type="text" value="'+esc(item.supplier||'')+'" placeholder="e.g. Route 1 Print"></div>';
   html += '<div class="field"><label>Order number</label><input id="pi-orderno" type="text" value="'+esc(item.orderNo||'')+'"></div>';
   html += '<div class="field"><label>Qty</label><input id="pi-qty" type="number" value="'+esc(item.qty||'')+'"></div>';
   html += '<div class="field"><label>Unit price (ex VAT)</label><input id="pi-unit" type="number" step="0.01" value="'+esc(item.unitPrice||'')+'" oninput="calcTotals()"></div>';
-  html += '<div class="field"><label>Total ex VAT</label><input id="pi-ex" type="number" step="0.01" value="'+esc(item.exVat||'')+'" oninput="calcInc()"></div>';
-  html += '<div class="field"><label>Total inc VAT</label><input id="pi-inc" type="number" step="0.01" value="'+esc(item.incVat||'')+'"></div>';
+  html += '<div class="field"><label>Setup fee (ex VAT)</label><input id="pi-setup" type="number" step="0.01" value="'+esc(item.setupFee||'')+'" placeholder="0.00" oninput="calcTotals()"></div>';
+  html += '<div class="field"><label>Delivery cost (ex VAT)</label><input id="pi-delivery-cost" type="number" step="0.01" value="'+esc(item.deliveryCost||'')+'" placeholder="0.00" oninput="calcTotals()"></div>';
+  html += '<div class="field"><label>Total ex VAT</label><input id="pi-ex" type="number" step="0.01" value="'+esc(item.exVat||'')+'" style="background:#f8fafc" readonly></div>';
+  html += '<div class="field"><label>Total inc VAT</label><input id="pi-inc" type="number" step="0.01" value="'+esc(item.incVat||'')+'" style="background:#f8fafc" readonly></div>';
   html += '<div class="field"><label>Discount</label><input id="pi-disc" type="text" value="'+esc(item.discount||'')+'" placeholder="e.g. 12% trade"></div>';
   html += '<div class="field"><label>Delivery date</label><input id="pi-deliv" type="date" value="'+esc(item.deliveryDate||'')+'"></div>';
   html += '</div>';
+  html += '<div class="field" style="margin-bottom:6px"><label>Print quote (OneDrive link)</label><input id="pi-print-quote" type="url" value="'+esc(item.printQuoteLink||'')+'" placeholder="Paste OneDrive link to quote...">';
+  if (item.printQuoteLink) html += '<a href="'+esc(item.printQuoteLink)+'" target="_blank" style="font-size:10px;color:#7c3aed;display:block;margin-top:2px">Open quote</a>';
+  html += '</div>';
 
-  html += '<div style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Status</label>';
+    html += '<div style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Status</label>';
   html += '<div class="check-group">';
   html += '<label class="check-item"><input type="checkbox" id="pi-design"'+(item.designApproved?' checked':'')+'> Design approved</label>';
   html += '<label class="check-item"><input type="checkbox" id="pi-print"'+(item.printVersion?' checked':'')+'> Print version</label>';
@@ -717,6 +741,33 @@ function exportXLS(type) {
   notify('Downloaded ' + rows.length + ' items');
 }
 
+
+function exportXLS(type) {
+  var items=(eventItems[currentEvent]||[]).filter(function(i){return i.status==='required';});
+  var headers,rows,nl=String.fromCharCode(10);
+  if(type==='design'){
+    headers=['Item','Group','Designer','Design Fee ex VAT','Design Fee inc VAT','Quote Approved','Design Approved','Notes','Quote Link'];
+    rows=items.filter(function(i){return i.needsDesign!==false;}).map(function(i){
+      var fee=parseFloat(i.designFee)||0;
+      return[i.item,i.cat,i.designSupplier||'',fee.toFixed(2),(fee*1.2).toFixed(2),i.designQuoteApproved?'Yes':'No',i.designApproved?'Yes':'No',i.briefNotes||'',i.designQuoteLink||''];
+    });
+  }else{
+    headers=['Item','Group','Print Supplier','Qty','Unit Price ex VAT','Setup Fee ex VAT','Delivery ex VAT','Total ex VAT','Total inc VAT','Discount','Delivery Date','Order Placed','Delivered','Quote Link'];
+    rows=items.filter(function(i){return i.needsPrint!==false;}).map(function(i){
+      var qty=parseFloat(i.qty)||0,unit=parseFloat(i.unitPrice)||0,setup=parseFloat(i.setupFee)||0,deliv=parseFloat(i.deliveryCost)||0,ex=(qty*unit)+setup+deliv;
+      return[i.item,i.cat,i.supplier||'',qty,unit.toFixed(2),setup.toFixed(2),deliv.toFixed(2),ex.toFixed(2),(ex*1.2).toFixed(2),i.discount||'',i.deliveryDate||'',i.orderPlaced?'Yes':'No',i.delivered?'Yes':'No',i.printQuoteLink||''];
+    });
+  }
+  var csv=headers.join(',')+nl;
+  rows.forEach(function(row){csv+=row.map(function(v){var s=String(v===null||v===undefined?'':v);if(s.indexOf(',')>=0||s.indexOf('"')>=0)s='"'+s.replace(/"/g,'""')+'"';return s;}).join(',')+nl;});
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='FD7_'+(type==='design'?'Design':'Print')+'_Costs_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();URL.revokeObjectURL(url);
+  notify('Downloaded '+rows.length+' items');
+}
+
 function sendDesignBrief() {
   if (_editIdx === null) return;
   saveItem();
@@ -772,7 +823,16 @@ function addLog() {
 function saveItem() {
   if (_editIdx === null) return;
   var item = eventItems[currentEvent][_editIdx];
-  item.supplier      = document.getElementById('pi-supplier').value;
+  var dsEl=document.getElementById('pi-design-supplier');if(dsEl)item.designSupplier=dsEl.value;
+  var dfEl=document.getElementById('pi-design-fee');if(dfEl)item.designFee=dfEl.value;
+  var dqEl=document.getElementById('pi-design-quote');if(dqEl)item.designQuoteLink=dqEl.value;
+  var dqaEl=document.getElementById('pi-design-quoted');if(dqaEl)item.designQuoteApproved=dqaEl.checked;
+  var daEl=document.getElementById('pi-design-approved');if(daEl)item.designApproved=daEl.checked;
+  var sfEl=document.getElementById('pi-setup');if(sfEl)item.setupFee=sfEl.value;
+  var dcEl=document.getElementById('pi-delivery-cost');if(dcEl)item.deliveryCost=dcEl.value;
+  var pqEl=document.getElementById('pi-print-quote');if(pqEl)item.printQuoteLink=pqEl.value;
+  var pvEl=document.getElementById('pi-delivered');if(pvEl)item.delivered=pvEl.checked;
+  item.supplier=document.getElementById('pi-supplier').value;
   item.orderNo       = document.getElementById('pi-orderno').value;
   item.qty           = document.getElementById('pi-qty').value;
   item.unitPrice     = document.getElementById('pi-unit').value;
