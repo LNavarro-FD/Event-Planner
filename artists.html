@@ -251,6 +251,9 @@ var SEED_ARTISTS = [
   {id:'noah_herel', perfName:'Noah Herel', legalName:'Noah Herel', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'12:00', setLength:120,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
+  {id:'ronnie_herel', perfName:'Ronnie Herel', legalName:'Ronnie Herel', email:'ronnieherel@yahoo.co.uk', phone:'', emName:'', emPhone:'',
+   agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'17:00', setLength:60,
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'17:00-18:00 with Live PA from Haifa'},
   {id:'haifa', perfName:'Haifa', legalName:'', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'17:00', setLength:60,
    changeover:0, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no',
@@ -266,7 +269,15 @@ async function load() {
   try {
     var snap = await _db.collection('artists_db').doc('artists').get();
     if (snap.exists && snap.data().list && snap.data().list.length) {
-      artists = snap.data().list;
+      var loaded = snap.data().list;
+      // Check if loaded data has FD7 artists — if not, fall back to seed
+      var hasFD7 = loaded.some(function(a){ return a.events && a.events.includes('FD7'); });
+      if (hasFD7) {
+        artists = loaded;
+      } else {
+        artists = SEED_ARTISTS;
+        await _db.collection('artists_db').doc('artists').set({list: artists});
+      }
     } else {
       artists = SEED_ARTISTS;
       await _db.collection('artists_db').doc('artists').set({list: artists});
