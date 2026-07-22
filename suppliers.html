@@ -119,9 +119,7 @@ var _db = firebase.firestore();
 <div id="toolbar">
   <select id="eventFilter" onchange="render()">
     <option value="FD7">FD7 2026</option>
-    <option value="HRR26">HRR 2026</option>
-    <option value="FD Shindig">FD Shindig</option>
-    <option value="">All events</option>
+
   </select>
   <select id="typeFilter" onchange="render()">
     <option value="">All types</option>
@@ -136,7 +134,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Suppliers · v1.5.0</span></div>
+<div id="statusbar"><span>FD Suppliers · v1.6.0</span></div>
 
 <!-- Add/Edit Supplier -->
 <div class="overlay" id="supplierModal" onclick="if(event.target===this)closeModal()">
@@ -189,8 +187,7 @@ var _db = firebase.firestore();
         <div class="field"><label>Events</label>
           <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap" id="s-events">
             <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD7" checked> FD7</label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="HRR26"> HRR26</label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400"><input type="checkbox" value="FD Shindig"> FD Shindig</label>
+
           </div>
         </div>
       </div>
