@@ -91,8 +91,8 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
   <h1>FD Staff</h1>
   <div class="tb-sep"></div>
   <button class="tb-btn active" onclick="setView('people',this)">People</button>
-  <button class="tb-btn" onclick="setView('assignments',this)">FD7 Assignments</button>
-  <button class="tb-btn" onclick="setView('roles',this)">Roles & Headcount</button>
+  <button class="tb-btn" onclick="setView('roles',this)">Staff Planner</button>
+  <button class="tb-btn" onclick="setView('wristbands',this)">Wristbands & T-Shirts</button>
   <div style="margin-left:auto;display:flex;gap:8px">
     <button class="tb-btn-primary" onclick="openAddPerson()">+ Add person</button>
     <button class="tb-btn" onclick="openAssignEvent()" id="assignBtn" style="display:none">+ Assign to FD7</button>
@@ -119,7 +119,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Staff · v2.4.0</span></div>
+<div id="statusbar"><span>FD Staff · v2.5.0</span></div>
 
 <!-- Add/Edit person overlay -->
 <div class="overlay" id="personOverlay" onclick="if(event.target===this)closePersonForm()">
@@ -469,6 +469,178 @@ function handleSlotChange(el) {
 }
 
 
+
+// ── Wristbands & T-Shirts ─────────────────────────────────────────────────────
+var wristbandData = {
+  ticketActuals: 1500,
+  ticketTarget: 2500,
+  buffer: 10  // percent
+};
+
+async function loadWristbandData() {
+  try {
+    var snap = await _db.collection('staff').doc('wristband_data_fd7').get();
+    if (snap.exists) wristbandData = Object.assign({}, wristbandData, snap.data());
+  } catch(e) { console.warn(e); }
+}
+
+function saveWristbandData() {
+  _db.collection('staff').doc('wristband_data_fd7').set(wristbandData).catch(function(e){console.warn(e);});
+}
+
+function getStaffWristbandCount() {
+  // Count all filled non-AAA slots from roleSlots at selectedTier
+  var count = 0;
+  ROLE_DEFS.forEach(function(section) {
+    section.roles.forEach(function(role) {
+      var slotCount = calcRoleQty(role, selectedTier);
+      var slots = roleSlots[role.id] || [];
+      for (var i = 0; i < slotCount; i++) {
+        var slot = slots[i] || {};
+        if (slot.personId) {
+          var wb = wristbandForRole(role.id, i);
+          if (wb.label === 'Staff') count++;
+        }
+      }
+    });
+  });
+  return count;
+}
+
+function getAAAWristbandCount() {
+  // Fixed: 16 full AAA + 25 AAA-only = 41 total AAA wristbands
+  // Full AAA: 11 artists + Rosie + Ray + 3 Panache = 16
+  // AAA-only: 11x2 guest + Back Bar Manager + 2 Lead Rubbish = 25
+  return 41;
+}
+
+function getTshirtCounts() {
+  var sizes = {XS:0, S:0, M:0, L:0, XL:0, XXL:0, missing:0};
+  var assigned = new Set();
+  ROLE_DEFS.forEach(function(section) {
+    section.roles.forEach(function(role) {
+      var slotCount = calcRoleQty(role, selectedTier);
+      var slots = roleSlots[role.id] || [];
+      for (var i = 0; i < slotCount; i++) {
+        var slot = slots[i] || {};
+        if (slot.personId && !assigned.has(slot.personId)) {
+          assigned.add(slot.personId);
+          var p = people.find(function(p2){ return p2.id === slot.personId; });
+          if (p) {
+            if (p.tshirt && sizes[p.tshirt] !== undefined) sizes[p.tshirt]++;
+            else sizes.missing++;
+          }
+        }
+      }
+    });
+  });
+  return sizes;
+}
+
+function renderWristbands() {
+  var html = '';
+  var aaaTotal = getAAAWristbandCount();
+  var staffFilled = getStaffWristbandCount();
+  var staffTotal = 0;
+  ROLE_DEFS.forEach(function(section) {
+    section.roles.forEach(function(role) {
+      var slotCount = calcRoleQty(role, selectedTier);
+      for (var i = 0; i < slotCount; i++) {
+        if (wristbandForRole(role.id, i).label === 'Staff') staffTotal++;
+      }
+    });
+  });
+
+  var actuals = wristbandData.ticketActuals || 0;
+  var target = wristbandData.ticketTarget || 0;
+  var buffer = wristbandData.buffer || 10;
+  var generalOrder = Math.ceil(target * (1 + buffer/100));
+  var totalOrder = aaaTotal + staffTotal + generalOrder;
+  var pct = target > 0 ? Math.min(100, Math.round(actuals/target*100)) : 0;
+
+  // ── Ticket sales ─────────────────────────────────────────────────────────
+  html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px">';
+  html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:12px">🎟 Ticket Sales</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">';
+
+  // Actuals
+  html += '<div><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Sold (actuals)</label>';
+  html += '<input type="number" value="'+actuals+'" onchange="wristbandData.ticketActuals=parseInt(this.value)||0;saveWristbandData();renderWristbands()" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:16px;font-weight:700;color:#15803d;outline:none"></div>';
+
+  // Target
+  html += '<div><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Target</label>';
+  html += '<input type="number" value="'+target+'" onchange="wristbandData.ticketTarget=parseInt(this.value)||0;saveWristbandData();renderWristbands()" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:16px;font-weight:700;color:#1e40af;outline:none"></div>';
+
+  // Buffer
+  html += '<div><label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Buffer %</label>';
+  html += '<input type="number" value="'+buffer+'" onchange="wristbandData.buffer=parseInt(this.value)||0;saveWristbandData();renderWristbands()" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:16px;font-weight:700;color:#64748b;outline:none"></div>';
+  html += '</div>';
+
+  // Progress bar
+  html += '<div style="background:#f1f5f9;border-radius:20px;height:10px;margin-bottom:6px"><div style="background:#15803d;height:10px;border-radius:20px;width:'+pct+'%;transition:width .3s"></div></div>';
+  html += '<div style="font-size:11px;color:#64748b">'+actuals.toLocaleString()+' sold of '+target.toLocaleString()+' target ('+pct+'%) — '+(target-actuals).toLocaleString()+' to go</div>';
+  html += '</div>';
+
+  // ── Wristband order calculator ────────────────────────────────────────────
+  html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px">';
+  html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:12px">💎 Wristband Order</div>';
+
+  var rows = [
+    {label:'AAA Wristbands', sub:'11 Artists + Rosie + Ray + 3 Panache (16 full) + 25 guest/backstage', qty:aaaTotal, color:'#9d174d', bg:'#fce7f3'},
+    {label:'Staff Wristbands', sub:staffFilled+' assigned of '+staffTotal+' slots at '+selectedTier.toLocaleString()+' capacity', qty:staffTotal, color:'#1e40af', bg:'#dbeafe'},
+    {label:'General Entry Wristbands', sub:'Target '+target.toLocaleString()+' + '+buffer+'% buffer', qty:generalOrder, color:'#15803d', bg:'#dcfce7'},
+  ];
+
+  rows.forEach(function(row) {
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:'+row.bg+';border-radius:6px;margin-bottom:6px">';
+    html += '<div><div style="font-size:12px;font-weight:700;color:'+row.color+'">'+row.label+'</div>';
+    html += '<div style="font-size:10px;color:#64748b;margin-top:2px">'+row.sub+'</div></div>';
+    html += '<div style="font-size:22px;font-weight:800;color:'+row.color+'">'+row.qty.toLocaleString()+'</div>';
+    html += '</div>';
+  });
+
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#0f172a;border-radius:6px;margin-top:8px">';
+  html += '<div style="font-size:12px;font-weight:700;color:#fff">TOTAL ORDER</div>';
+  html += '<div style="font-size:26px;font-weight:800;color:#FF4B7B">'+totalOrder.toLocaleString()+'</div>';
+  html += '</div>';
+
+  if (staffFilled < staffTotal) {
+    html += '<div style="margin-top:8px;padding:8px 12px;background:#fef9c3;border-radius:6px;font-size:11px;color:#854d0e">⚠ '+( staffTotal - staffFilled)+' staff slots unfilled in Staff Planner — staff wristband count may increase</div>';
+  }
+  html += '</div>';
+
+  // ── T-shirt order ─────────────────────────────────────────────────────────
+  var tshirts = getTshirtCounts();
+  var tshirtTotal = Object.keys(tshirts).filter(function(k){return k!=='missing';}).reduce(function(s,k){return s+tshirts[k];},0);
+
+  html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px">';
+  html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:12px">👕 T-Shirt Order</div>';
+
+  if (tshirtTotal === 0) {
+    html += '<div style="color:#94a3b8;font-size:12px">No staff assigned in Staff Planner yet. Assign staff to roles to calculate T-shirt sizes.</div>';
+  } else {
+    html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px">';
+    ['XS','S','M','L','XL','XXL'].forEach(function(size) {
+      var qty = tshirts[size] || 0;
+      html += '<div style="text-align:center;padding:12px 8px;background:'+(qty>0?'#f1f5f9':'#fafafa')+';border-radius:8px;border:1px solid #e2e8f0">';
+      html += '<div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px">'+size+'</div>';
+      html += '<div style="font-size:24px;font-weight:800;color:'+(qty>0?'#1e293b':'#d1d5db')+'">'+qty+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f172a;border-radius:6px">';
+    html += '<div style="font-size:12px;font-weight:700;color:#fff">TOTAL T-SHIRTS</div>';
+    html += '<div style="font-size:20px;font-weight:800;color:#FF4B7B">'+tshirtTotal+'</div>';
+    html += '</div>';
+    if (tshirts.missing > 0) {
+      html += '<div style="margin-top:8px;padding:8px 12px;background:#fee2e2;border-radius:6px;font-size:11px;color:#dc2626;font-weight:600">⚠ '+tshirts.missing+' assigned staff have no T-shirt size recorded — update in People tab</div>';
+    }
+  }
+  html += '</div>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
 // ── Data ──────────────────────────────────────────────────────────────────────
 var CURRENT_EVENT = 'FD7';
 var CURRENT_EVENT_DATE = (window.FD_CONFIG && window.FD_CONFIG.events.fd7) ? window.FD_CONFIG.events.fd7.eventDateStr : '2026-08-15';
@@ -488,6 +660,7 @@ var _currentView = 'people';
 async function load() {
   await loadRoleOverrides();
   await loadRoleSlots();
+  await loadWristbandData();
   try {
     var snap = await _db.collection('staff').doc('people_v2').get();
     if (snap.exists && snap.data().people) people = snap.data().people;
@@ -549,15 +722,16 @@ function setView(v, el) {
   _currentView = v;
   document.querySelectorAll('.tb-btn').forEach(function(b){b.classList.remove('active');});
   if(el) el.classList.add('active');
-  document.getElementById('assignBtn').style.display = v === 'assignments' ? 'inline-block' : 'none';
+  document.getElementById('assignBtn').style.display = 'none';
   if (v === 'roles') { setTimeout(renderRoles, 50); return; }
+  if (v === 'wristbands') { setTimeout(renderWristbands, 50); return; }
   render();
 }
 
 function render() {
   if (_currentView === 'people') renderPeople();
-  else if (_currentView === 'assignments') renderAssignments();
   else if (_currentView === 'roles') renderRoles();
+  else if (_currentView === 'wristbands') renderWristbands();
 }
 
 function personName(p) { return (p.firstName + ' ' + (p.lastName||'')).trim(); }
@@ -986,7 +1160,7 @@ if(document.readyState==='loading'){
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Staff v2.4.0';
+  var VERSION_STR = 'FD Event Planner · Staff v2.5.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
