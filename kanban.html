@@ -363,7 +363,6 @@ const T_TODAY=new Date('2026-07-13');
 let tasks=[], selectedId=null;
 
 async function fbSave(){
-  if(!window._fb||!window._fbUser)return;
   try{await _db.collection('jobs').doc('fd7_kanban').set({tasks});}catch(e){console.warn('save failed',e);}
 }
 
