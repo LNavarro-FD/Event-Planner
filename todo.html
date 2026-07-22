@@ -138,7 +138,7 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 <div id="print-header">
   <h2 id="ph-title">FD7 2026 — Master To-Do List</h2>
   <div class="ph-meta">
-    <span>Ashfields Carriage &amp; Polo Club, CM6 1JU · Sat 15 Aug 2026</span>
+    <span id="ph-venue">Ashfields Carriage &amp; Polo Club, CM6 1JU · Sat 15 Aug 2026</span>
     <span id="ph-filter"></span>
     <span id="ph-printed"></span>
   </div>
@@ -149,8 +149,8 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
     <span id="pf-right"></span>
   </div>
 </div>
-<h1>Funky Dory Festival 7 — 2026</h1>
-<p class="sub">Master to-do list · Sat 15 Aug 2026 · Ashfields Carriage &amp; Polo Club, CM6 1JU <span id="saveStatus"></span></p>
+<h1 id="todo-h1">FD Festival 7 — 2026</h1>
+<p class="sub" id="todo-sub">Master to-do list · FD7 2026 <span id="saveStatus"></span></p>
 
 
 
@@ -310,6 +310,16 @@ function ensureArtistLiaison() {
 }
 
 window._fbLoad=async function(){
+  // Populate from config
+  if (window.FD_CONFIG && window.FD_CONFIG.events.fd7) {
+    var _ev = window.FD_CONFIG.events.fd7;
+    var h1 = document.getElementById('todo-h1');
+    var sub = document.getElementById('todo-sub');
+    var phv = document.getElementById('ph-venue');
+    if (h1) h1.textContent = _ev.name + ' — ' + _ev.year;
+    if (sub) sub.innerHTML = 'Master to-do list · ' + _ev.displayDate + ' · ' + _ev.venue + ', ' + _ev.postcode + ' <span id="saveStatus"></span>';
+    if (phv) phv.textContent = _ev.venue + ', ' + _ev.postcode + ' · ' + _ev.displayDate;
+  }
   window._fbUser = window._fbUser || { email: "local" };
   try{
     const snap=await _db.collection('todos').doc(FB_DOC).get();
