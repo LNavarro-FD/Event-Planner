@@ -113,13 +113,13 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
   <select id="eventFilter" onchange="render()">
     <option value="">All events</option>
     <option value="FD7">FD7 only</option>
-    <option value="HRR26">HRR26 only</option>
+    
   </select>
   <span id="countLabel" style="font-size:11px;color:#94a3b8;margin-left:auto"></span>
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Staff · v2.1.0</span></div>
+<div id="statusbar"><span>FD Staff · v2.2.0</span></div>
 
 <!-- Add/Edit person overlay -->
 <div class="overlay" id="personOverlay" onclick="if(event.target===this)closePersonForm()">
@@ -392,7 +392,7 @@ function renderRoles() {
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 var CURRENT_EVENT = 'FD7';
-var CURRENT_EVENT_DATE = '2026-08-15';
+var CURRENT_EVENT_DATE = (window.FD_CONFIG && window.FD_CONFIG.events.fd7) ? window.FD_CONFIG.events.fd7.eventDateStr : '2026-08-15';
 
 // People database — Bar and Crew only
 var people = [];
@@ -583,7 +583,7 @@ function renderPeople() {
   if (!html) html = '<div style="padding:24px;color:#94a3b8;text-align:center">No staff found</div>';
 
   // PLH warning
-  var fd7Assigns = assignments.filter(function(a){ return a.event === CURRENT_EVENT; });
+  var fd7Assigns = assignments.filter(function(a){ return a.event === CURRENT_EVENT; }); // uses CURRENT_EVENT
   var plhOnDuty = fd7Assigns.some(function(a){
     var p = people.find(function(p2){return p2.id===a.personId;});
     return p && p.plh === 'yes' && a.confirmed === 'yes';
@@ -844,7 +844,7 @@ function saveAssignment() {
   document.querySelectorAll('#shiftRows .shift-row').forEach(function(row){
     var start = row.querySelector('.shift-start').value;
     var end = row.querySelector('.shift-end').value;
-    if (start || end) shifts.push({date:'2026-08-15', start:start, end:end});
+    if (start || end) shifts.push({date: CURRENT_EVENT_DATE, start:start, end:end});
   });
 
   var assignData = {
