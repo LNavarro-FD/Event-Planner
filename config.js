@@ -50,6 +50,9 @@ window.FD_CONFIG = {
         setupDaysBeforeEvent: 6,   // Mon–Fri before Sat event = 6 days back to Mon
         derigDaysAfterEvent:  2,   // Sun + Mon after
       },
+      buildStartDate: '2026-08-12',  // Wednesday before event
+      derigDate:      '2026-08-17',  // Monday after event
+      buildStartDisplay: 'Wednesday 12 August 2026',
       capacityTiers: [1500, 2000, 2500],
     },
     hrr: {
@@ -61,9 +64,12 @@ window.FD_CONFIG = {
       displayDate: 'Saturday 4 July 2026',
       eventStartTime:'12:00',
       eventEndTime:  '23:00',
-      venue:       'Phyllis Court Club',
-      address:     'Marlow Road, Henley-on-Thames, Oxfordshire',
-      postcode:    'RG9 2HT',
+      venue:       'Remenham Farm',
+      address:     'Remenham Lane, Henley-on-Thames',
+      postcode:    'RG9 3EX',
+      buildStartDate: '2026-06-25',  // 1 week before first event day
+      derigDate:      '2026-07-05',  // day after last event
+      buildStartDisplay: 'Thursday 25 June 2026',
     },
     shindig: {
       id:          'shindig',
@@ -73,6 +79,9 @@ window.FD_CONFIG = {
       eventDate:   new Date('2026-08-15'),
       displayDate: '15 August 2026',
       venue:       'TBC',
+      buildStartDate: '2026-08-10',  // Monday before event
+      derigDate:      '2026-08-16',  // day after event
+      buildStartDisplay: 'Monday 10 August 2026',
     },
   },
 
