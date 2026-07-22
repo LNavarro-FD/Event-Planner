@@ -334,8 +334,143 @@ function jumpToPrint() {
   }
 }
 
+
+// ── Project Management dates ───────────────────────────────────────────────────
+var taskPM = {};
+var _pmSaveTimer = null;
+
+async function loadTaskPM() {
+  try {
+    var snap = await _db.collection('todos').doc('fd7_pm_2026').get();
+    if (snap.exists && snap.data().taskPM) taskPM = snap.data().taskPM;
+  } catch(e) { console.warn('PM load failed', e); }
+}
+
+function saveTaskPM() {
+  clearTimeout(_pmSaveTimer);
+  _pmSaveTimer = setTimeout(function() {
+    _db.collection('todos').doc('fd7_pm_2026').set({taskPM: taskPM}).catch(function(e){console.warn(e);});
+  }, 600);
+}
+
+function getEffectiveDueDate(key, cat) {
+  var pm = taskPM[key];
+  if (pm && pm.dueLocked && pm.dueDate) return pm.dueDate;
+  if (pm && pm.dependsOn && taskPM[pm.dependsOn]) {
+    var depDate = getEffectiveDueDate(pm.dependsOn, null);
+    if (depDate) {
+      var d = new Date(depDate);
+      d.setDate(d.getDate() + (parseInt(pm.dependsLag)||0));
+      return d.toISOString().slice(0,10);
+    }
+  }
+  if (pm && pm.dueDate) return pm.dueDate;
+  if (cat && window.FD_RULES) return window.FD_RULES.dueDateForCategory(cat);
+  return null;
+}
+
+function setPMField(key, field, value) {
+  if (!taskPM[key]) taskPM[key] = {};
+  taskPM[key][field] = value;
+  if ((field === 'offsetWeeks' || field === 'direction') && !taskPM[key].dueLocked) {
+    var dir = taskPM[key].direction || 'before';
+    var weeks = parseInt(taskPM[key].offsetWeeks) || 0;
+    if (weeks && window.FD_RULES) {
+      taskPM[key].dueDate = dir === 'after' ? window.FD_RULES.weeksAfter(weeks) : window.FD_RULES.weeksBefore(weeks);
+    }
+  }
+  saveTaskPM();
+  render();
+}
+
+function togglePMLock(key) {
+  if (!taskPM[key]) taskPM[key] = {};
+  taskPM[key].dueLocked = !taskPM[key].dueLocked;
+  saveTaskPM();
+  render();
+}
+
+function renderPMPanel(key, cat, taskTitle) {
+  var pm = taskPM[key] || {};
+  var catDefault = (cat && window.FD_RULES) ? window.FD_RULES.dueDateForCategory(cat) : null;
+  var calcDate = getEffectiveDueDate(key, cat);
+  var dir = pm.direction || 'before';
+
+  // All tasks for dependency dropdown
+  var allTasks = [];
+  sections.forEach(function(sec) {
+    sec.items.forEach(function(item, i) {
+      var k = sec.cat + '_h_' + i;
+      if (k !== key) allTasks.push({key: k, label: (sec.cat + ': ' + item.t).slice(0,55)});
+    });
+  });
+  custom.forEach(function(item) {
+    var k = '_c_' + item.id;
+    if (k !== key) allTasks.push({key: k, label: ((item.cat||'Custom') + ': ' + item.t).slice(0,55)});
+  });
+
+  var depOpts = '<option value="">— None —</option>';
+  allTasks.forEach(function(t) {
+    var sel = pm.dependsOn === t.key ? ' selected' : '';
+    depOpts += '<option value="' + t.key + '"' + sel + '>' + t.label + '</option>';
+  });
+
+  var safeKey = JSON.stringify(key);
+  var html = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-top:10px">';
+  html += '<div style="font-size:11px;font-weight:700;color:#22224C;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#128197; Schedule</div>';
+
+  if (catDefault) {
+    var sl = window.FD_RULES.statusLabel(catDefault);
+    html += '<div style="font-size:11px;color:#64748b;margin-bottom:8px">Category default: <strong>' + catDefault + '</strong> <span style="padding:1px 6px;border-radius:8px;background:' + sl.bg + ';color:' + sl.color + ';font-size:10px;font-weight:600">' + sl.label + '</span></div>';
+  }
+
+  // Direction buttons
+  html += '<div style="display:flex;gap:5px;margin-bottom:8px">';
+  [['before','&#8592; Before event'],['after','&#8594; After event'],['fixed','&#128197; Fixed date']].forEach(function(pair) {
+    var active = dir === pair[0];
+    html += '<button onclick="setPMField(' + safeKey + ',\'direction\',\'' + pair[0] + '\')" style="padding:3px 9px;border-radius:12px;border:1px solid ' + (active ? '#22224C' : '#e2e8f0') + ';background:' + (active ? '#22224C' : '#fff') + ';color:' + (active ? '#fff' : '#64748b') + ';font-size:10px;font-weight:600;cursor:pointer">' + pair[1] + '</button>';
+  });
+  html += '</div>';
+
+  // Offset weeks
+  if (dir !== 'fixed') {
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    html += '<label style="font-size:11px;color:#64748b;white-space:nowrap">' + (dir === 'after' ? 'Weeks after:' : 'Weeks before:') + '</label>';
+    html += '<input type="number" value="' + (pm.offsetWeeks||'') + '" min="0" max="52" onchange="setPMField(' + safeKey + ',\'offsetWeeks\',this.value)" style="width:55px;padding:4px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;outline:none">';
+    html += '<span style="font-size:11px;color:#94a3b8">weeks from event date</span>';
+    html += '</div>';
+  }
+
+  // Due date + lock
+  var dateId = 'pmd_' + key.replace(/[^a-z0-9]/gi,'_');
+  html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">';
+  html += '<label style="font-size:11px;color:#64748b;white-space:nowrap">Due date:</label>';
+  html += '<input type="date" id="' + dateId + '" value="' + (pm.dueDate||catDefault||'') + '" onchange="setPMField(' + safeKey + ',\'dueDate\',this.value)" style="padding:4px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;outline:none">';
+  html += '<button onclick="togglePMLock(' + safeKey + ')" style="padding:3px 7px;border:1px solid #e2e8f0;border-radius:5px;background:' + (pm.dueLocked ? '#fef9c3' : '#fff') + ';cursor:pointer;font-size:13px">' + (pm.dueLocked ? '&#128274;' : '&#128275;') + '</button>';
+  if (pm.dueLocked) html += '<span style="font-size:10px;color:#854d0e;font-weight:600">Manual override</span>';
+  html += '</div>';
+
+  // Dependency
+  html += '<div style="margin-bottom:8px"><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px">Depends on:</label>';
+  html += '<div style="display:flex;gap:6px;align-items:center">';
+  html += '<select onchange="setPMField(' + safeKey + ',\'dependsOn\',this.value)" style="flex:1;padding:4px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:11px;font-family:inherit;outline:none">' + depOpts + '</select>';
+  html += '<span style="font-size:11px;color:#64748b;white-space:nowrap">+</span>';
+  html += '<input type="number" value="' + (pm.dependsLag||0) + '" min="0" onchange="setPMField(' + safeKey + ',\'dependsLag\',parseInt(this.value)||0)" style="width:48px;padding:4px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;outline:none">';
+  html += '<span style="font-size:11px;color:#64748b">days</span>';
+  html += '</div></div>';
+
+  // Effective date summary
+  if (calcDate) {
+    var sl2 = window.FD_RULES.statusLabel(calcDate);
+    html += '<div style="padding:7px 10px;background:' + sl2.bg + ';border-radius:6px;font-size:11px;color:' + sl2.color + ';font-weight:600">Effective: ' + calcDate + ' &#8212; ' + sl2.label + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
 window._fbLoad=async function(){
-  loadPrintItems().then(function(){ render(); }); // refresh badges when print data loads
+  loadPrintItems().then(function(){ render(); });
+  loadTaskPM().then(function(){ render(); });
   // Populate from config
   if (window.FD_CONFIG && window.FD_CONFIG.events.fd7) {
     var _ev = window.FD_CONFIG.events.fd7;
@@ -544,7 +679,7 @@ function makeRow(item,key,isCustom,cat){
       </div>
       ${item.n?`<span class="note">${item.n}</span>`:''}
     </div>
-    ${printBadge}${dueBadge}${d?'<span class="badge ok">Done</span>':(bm[es]||'')}
+    ${pmBadge}${printBadge}${dueBadge}${d?'<span class="badge ok">Done</span>':(bm[es]||'')}
     <button class="notes-toggle" id="toggle_${safeKey}" onclick="togglePanel('${safeKey}')">▸ details</button>
     ${copyBtn}${delBtn}`;
   row.querySelector('input').onchange=function(){done[key]=this.checked;fbSave();stats();render();};
@@ -568,6 +703,7 @@ function makeRow(item,key,isCustom,cat){
       <select class="status-sel" onchange="changeStatus('${safeKey}',this.value)">${selOpts}</select>
       ${overrides[key]?'<span style="font-size:11px;color:#FF4B7B">● overridden</span>':''}
     </div>
+    '+renderPMPanel(key, cat, item.t)+'
     <div style="display:flex;gap:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#aaa;margin-bottom:6px">Sub-tasks</div>
@@ -1043,7 +1179,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · To-Do v3.25.1';
+  var VERSION_STR = 'FD Event Planner · To-Do v3.26.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
