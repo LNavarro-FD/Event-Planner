@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FD Kanban v3.5.2 — FD7 Kanban</title>
+<title>FD Kanban v3.6.0 — FD7 Kanban</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -43,6 +43,7 @@ body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;height:10
 .col-purchase .kb-col-header{background:#0369a1;color:#fff}
 .col-build .kb-col-header{background:#0f766e;color:#fff}
 .col-done .kb-col-header{background:#15803d;color:#fff}
+.col-post .kb-col-header{background:#0f172a;color:#fff}
 .kb-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
 .kb-card{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px;cursor:pointer;transition:box-shadow .15s}
 .kb-card:hover{box-shadow:0 2px 8px #0001;border-color:#bfdbfe}
@@ -211,7 +212,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 <div id="buildGrid"></div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · Kanban v3.5.2</span>
+    <span>FD Event Planner · Kanban v3.6.0</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -356,9 +357,9 @@ const STAGE_LABELS={D:'Design',P:'Purchase / Book',B:'Print / Build',X:'Done'};
 const STAGE_COLORS={D:'#7c3aed',P:'#0369a1',B:'#0f766e',X:'#15803d'};
 
 // Timeline: 13 Jul 2026 → 20 Aug 2026 = ~6 weeks
-const T_START=new Date('2026-07-13');
-const T_END=new Date('2026-08-20');
-const T_TODAY=new Date('2026-07-13');
+const T_START=new Date(EVENT_DATE.getTime()-13*7*24*60*60*1000);
+const T_END=new Date(EVENT_DATE.getTime()+2*7*24*60*60*1000);
+const T_TODAY=new Date();
 
 let tasks=[], selectedId=null;
 
@@ -377,6 +378,7 @@ window._loadTasks=async function(){
       });
     } else tasks=TASK_DEFS.map(d=>({...d}));
   } catch(e){tasks=TASK_DEFS.map(d=>({...d}));}
+  applyDueDateRules();
   populateFilters();
   renderAll();
 };
@@ -417,7 +419,7 @@ function renderStats(){
 // ── KANBAN ─────────────────────────────────────────────────────────────────
 function renderKanban(){
   const filtered=getFiltered();
-  const cols={D:[],P:[],B:[],X:[]};
+  const cols={D:[],P:[],B:[],X:[],PE:[]};
   filtered.forEach(t=>{
     const stage=t.status==='Done'?'X':t.stages[t.currentStage]||'X';
     if(cols[stage])cols[stage].push(t);
@@ -428,6 +430,7 @@ function renderKanban(){
     {key:'P',label:'Purchase / Book',cls:'col-purchase'},
     {key:'B',label:'Print / Build',cls:'col-build'},
     {key:'X',label:'Done',cls:'col-done'},
+    {key:'PE',label:'Post-Event ↺',cls:'col-post'},
   ];
 
   const kb=document.getElementById('kanbanView');
@@ -545,7 +548,7 @@ function printBuildWeek() {
   document.getElementById('ph-event').textContent    = 'Event: Saturday 15 August 2026 · Ashfields Carriage & Polo Club';
   document.getElementById('ph-dates').textContent    = 'Period: ' + firstDay + ' – ' + lastDay;
   document.getElementById('ph-printed').textContent  = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent    = 'FD Event Planner · Kanban v3.5.2 · ' + dateStr;
+  document.getElementById('pf-right').textContent    = 'FD Event Planner · Kanban v3.6.0 · ' + dateStr;
   window.print();
 }
 
@@ -772,6 +775,17 @@ function advanceStage() {
   fbSave();
   openDetail(_detailTaskId);
   renderAll();
+}
+
+
+var DUE_DATE_RULES = {"Commercial": "2026-02-14", "Infrastructure": "2026-06-20", "Toilets": "2026-06-20", "Fencing & Barriers": "2026-06-20", "Fencing": "2026-06-20", "Bars": "2026-06-20", "Design & Print": "2026-07-04", "Furniture": "2026-07-04", "DJ, Stage & Dancefloor": "2026-02-14", "Artist Liaison": "2026-07-18", "Security": "2026-02-14", "Food": "2026-06-20", "Entertainment": "2026-06-20", "Staffing": "2026-07-18", "Marketing": "2026-06-20", "Entrance": "2026-07-04", "Lighting": "2026-02-14", "On The Day": "2026-08-08", "Decor": "2026-07-04"};
+
+function applyDueDateRules() {
+  tasks.forEach(function(t) {
+    if (!t.dueDate && DUE_DATE_RULES[t.cat]) {
+      t.dueDate = DUE_DATE_RULES[t.cat];
+    }
+  });
 }
 
 async function loadBuildCells(){
