@@ -21,6 +21,20 @@ window.FD_RULES = (function() {
     return d.toISOString().slice(0, 10);
   }
 
+  function buildWeekStart() {
+    // Wednesday before event (build week starts Wed)
+    var d = new Date(getEventDate());
+    var day = d.getDay(); // 0=Sun, 3=Wed, 6=Sat
+    // Days back to get to Wednesday: Sat=3, Sun=4, Mon=5, Tue=6, Wed=0, Thu=6, Fri=5
+    var daysBack = (day + 4) % 7; // for Saturday event this = 3
+    d.setDate(d.getDate() - daysBack);
+    return d;
+  }
+
+  function buildWeekStartStr() {
+    return buildWeekStart().toISOString().slice(0, 10);
+  }
+
   function monthsBefore(m) {
     var d = new Date(getEventDate());
     d.setMonth(d.getMonth() - m);
@@ -28,6 +42,8 @@ window.FD_RULES = (function() {
   }
 
   // ── Standard deadline rules ───────────────────────────────────────────────
+  // Note: build week starts Wednesday before event date
+  // FD7 = Sat 15 Aug 2026 → build week starts Wed 12 Aug 2026
   var DEADLINES = {
 
     // Venue & commercial
@@ -42,7 +58,7 @@ window.FD_RULES = (function() {
     set_times_confirmed:      { label: 'Set times confirmed to all artists',      due: function(){ return weeksBefore(4);   }, note: '4 weeks out' },
     accreditation_sent:       { label: 'Accreditation packs sent',                due: function(){ return weeksBefore(4);   }, note: '4 weeks out' },
     guest_lists_received:     { label: 'Guest lists received from all artists',   due: function(){ return weeksBefore(2);   }, note: '2 weeks out' },
-    artist_day_of_email:      { label: 'On-the-day email sent to all artists',    due: function(){ return weeksBefore(1);   }, note: '1 week out' },
+    artist_day_of_email:      { label: 'On-the-day email sent to all artists',    due: function(){ return buildWeekStartStr(); }, note: 'By build week start (Wed before event)' },
 
     // Suppliers — general
     supplier_quotes:          { label: 'All supplier quotes received',            due: function(){ return weeksAfter(2);    }, note: 'Post-event within 2 weeks' },
@@ -84,7 +100,7 @@ window.FD_RULES = (function() {
     // Staff
     staff_numbers_confirmed:  { label: 'Staff numbers confirmed',                 due: function(){ return weeksBefore(8);   }, note: '8 weeks out' },
     staff_briefing_packs:     { label: 'Staff briefing packs sent',               due: function(){ return weeksBefore(4);   }, note: '4 weeks out' },
-    staff_final_confirmed:    { label: 'All staff confirmed & briefed',           due: function(){ return weeksBefore(1);   }, note: '1 week out' },
+    staff_final_confirmed:    { label: 'All staff confirmed & briefed',           due: function(){ return buildWeekStartStr(); }, note: 'By build week start (Wed before event)' },
 
     // Structures & infrastructure
     structures_contract:      { label: 'Tent / structure contracts signed',       due: function(){ return monthsBefore(6);  }, note: '6 months out' },
@@ -112,8 +128,8 @@ window.FD_RULES = (function() {
     delivery_plan:            { label: 'Supplier delivery plan complete',         due: function(){ return weeksBefore(2);   }, note: '2 weeks out' },
     on_day_schedule:          { label: 'On-the-day schedule complete',            due: function(){ return weeksBefore(2);   }, note: '2 weeks out' },
     final_headcounts:         { label: 'Final headcounts to all suppliers',       due: function(){ return weeksBefore(2);   }, note: '2 weeks out' },
-    deliveries_scheduled:     { label: 'All deliveries scheduled',                due: function(){ return weeksBefore(1);   }, note: '1 week out' },
-    scanning_tested:          { label: 'Scanning devices tested',                 due: function(){ return weeksBefore(1);   }, note: '1 week out' },
+    deliveries_scheduled:     { label: 'All deliveries scheduled',                due: function(){ return buildWeekStartStr(); }, note: 'By build week start (Wed before event)' },
+    scanning_tested:          { label: 'Scanning devices tested',                 due: function(){ return buildWeekStartStr(); }, note: 'By build week start (Wed before event)' },
 
     // Marketing
     marketing_campaign:       { label: 'Marketing campaign launched',             due: function(){ return weeksBefore(12);  }, note: '12 weeks out' },
@@ -148,12 +164,13 @@ window.FD_RULES = (function() {
     'Decor & Flowers':        function(){ return weeksBefore(6);   },
     'Decor':                  function(){ return weeksBefore(6);   },
     'Logistics':              function(){ return weeksBefore(4);   },
-    'On The Day':             function(){ return weeksBefore(1);   },
+    'On The Day':             function(){ return buildWeekStartStr(); },
     'Wellness':               function(){ return monthsBefore(6);  },
   };
 
   return {
     weeksBefore:    weeksBefore,
+    buildWeekStart: buildWeekStartStr,
     weeksAfter:     weeksAfter,
     monthsBefore:   monthsBefore,
     DEADLINES:      DEADLINES,
