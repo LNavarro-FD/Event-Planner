@@ -309,7 +309,55 @@ function ensureArtistLiaison() {
   }
 }
 
+
+// ── Print module integration ───────────────────────────────────────────────────
+var _printItems = null; // cache of print items from Firestore
+
+async function loadPrintItems() {
+  try {
+    var snap = await _db.collection('print').doc('items').get();
+    if (snap.exists && snap.data().eventItems && snap.data().eventItems.FD7) {
+      _printItems = snap.data().eventItems.FD7;
+    }
+  } catch(e) { console.warn('Print items load failed', e); }
+}
+
+function getPrintStatus(taskTitle) {
+  if (!_printItems) return null;
+  // Fuzzy match task title to print item name
+  var tLower = taskTitle.toLowerCase();
+  var match = _printItems.find(function(pi) {
+    var iLower = (pi.item||'').toLowerCase();
+    // Check if key words from task appear in print item or vice versa
+    var taskWords = tLower.split(/[\s\-&,]+/).filter(function(w){ return w.length > 3; });
+    return taskWords.some(function(w){ return iLower.indexOf(w) >= 0; }) ||
+           iLower.split(/[\s\-&,]+/).filter(function(w){ return w.length > 3; }).some(function(w){ return tLower.indexOf(w) >= 0; });
+  });
+  return match || null;
+}
+
+function printStatusBadge(taskTitle) {
+  var match = getPrintStatus(taskTitle);
+  if (!match) return '';
+  var statusMap = {
+    'required':     {label:'Required',   color:'#1e40af', bg:'#dbeafe'},
+    'maybe':        {label:'Maybe',      color:'#854d0e', bg:'#fef9c3'},
+    'not_required': {label:'Not needed', color:'#94a3b8', bg:'#f1f5f9'},
+    'ordered':      {label:'Ordered ✓',  color:'#15803d', bg:'#dcfce7'},
+    'delivered':    {label:'Delivered ✓',color:'#15803d', bg:'#dcfce7'},
+  };
+  var st = statusMap[match.status] || {label: match.status||'?', color:'#64748b', bg:'#f1f5f9'};
+  return '<span onclick="jumpToPrint()" title="View in Design & Print" style="cursor:pointer;font-size:10px;padding:2px 7px;border-radius:10px;background:'+st.bg+';color:'+st.color+';font-weight:700;margin-right:4px;border:1px solid '+st.color+'40">🖨 '+st.label+'</span>';
+}
+
+function jumpToPrint() {
+  if (window.parent && window.parent.go) {
+    window.parent.go('print');
+  }
+}
+
 window._fbLoad=async function(){
+  loadPrintItems().then(function(){ render(); }); // refresh badges when print data loads
   // Populate from config
   if (window.FD_CONFIG && window.FD_CONFIG.events.fd7) {
     var _ev = window.FD_CONFIG.events.fd7;
@@ -518,7 +566,7 @@ function makeRow(item,key,isCustom,cat){
       </div>
       ${item.n?`<span class="note">${item.n}</span>`:''}
     </div>
-    ${dueBadge}${d?'<span class="badge ok">Done</span>':(bm[es]||'')}
+    ${printBadge}${dueBadge}${d?'<span class="badge ok">Done</span>':(bm[es]||'')}
     <button class="notes-toggle" id="toggle_${safeKey}" onclick="togglePanel('${safeKey}')">▸ details</button>
     ${copyBtn}${delBtn}`;
   row.querySelector('input').onchange=function(){done[key]=this.checked;fbSave();stats();render();};
@@ -1112,7 +1160,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · To-Do v3.24.1';
+  var VERSION_STR = 'FD Event Planner · To-Do v3.25.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
