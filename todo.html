@@ -155,28 +155,6 @@ if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded"
 
 
 <div class="stats" id="stats"></div>
-<div id="swimlane">
-  <div id="swimlane-title" onclick="toggleSwimlane()">
-    <span>📊 Lifecycle by category — <span style="color:#aaa;font-weight:400;font-size:10px">tap a number to filter tasks below · tap again to clear</span></span>
-    <span style="font-size:10px;color:#bbb;margin-right:4px" id="sl-toggle-label">hide</span><span id="sl-chevron" style="color:#ccc;font-size:14px">▾</span>
-  </div>
-  <div id="swimlane-body">
-    <table class="sl-table" id="sl-table">
-      <thead>
-        <tr>
-          <th class="cat-th">Category</th>
-          <th class="sl-col-header-design">Design<br><span style="font-weight:400;font-size:9px;color:#9ca3af">Thinking/planning</span></th>
-          <th class="sl-col-header-purchase">Purchase / Book<br><span style="font-weight:400;font-size:9px;color:#9ca3af">Quote/confirm/order</span></th>
-          <th class="sl-col-header-build">Print / Build<br><span style="font-weight:400;font-size:9px;color:#9ca3af">Produce/print/build</span></th>
-          <th class="sl-col-header-done">Done<br><span style="font-weight:400;font-size:9px;color:#9ca3af">Complete ✓</span></th>
-          <th style="color:#94a3b8;font-size:10px">Progress</th>
-        </tr>
-      </thead>
-      <tbody id="sl-body"></tbody>
-    </table>
-  </div>
-</div>
-
 <div style="background:#fff;border:1px solid #ddd;border-radius:8px;margin-bottom:20px;overflow:hidden">
   <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;padding:10px 14px;background:#f9f9f9;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
     <span>General notes</span>
@@ -392,7 +370,7 @@ window._fbLoad=async function(){
   document.getElementById('notes-area').value=generalNotes;
   ensureArtistLiaison();
   ensureProductionNotes();
-  stats();render();populateCatDropdown();renderSwimlane();
+  stats();render();populateCatDropdown();
 };
 
 function fbSave(){
@@ -691,7 +669,7 @@ function render(){
     sd.appendChild(body);
     if(count>0||true)el.appendChild(sd);
   });
-  renderSwimlane();
+  
 }
 
 function populateCatDropdown(){
@@ -740,102 +718,7 @@ document.getElementById('add-toggle').addEventListener('click',function(){
 });
 
 
-// ── Swimlane ──────────────────────────────────────────────────────────────────
-// Each task gets a lifecycle stage based on its status and done state
-// Design = not started, nothing done yet
-// Purchase/Book = in-progress / waiting / blocked
-// Print/Build = has sub-tasks started or status=in-progress on build-type tasks
-// Done = ticked off
 
-let slFilter = null; // {cat, stage} or null
-
-function getTaskStage(key, item) {
-  if (done[key]) return 'done';
-  const es = effectiveStatus(item, key);
-  if (es === 'in-progress') return 'build';
-  if (es === 'waiting' || es === 'blocked') return 'purchase';
-  if (es === 'urgent' || es === 'pending') {
-    // Check if any sub-tasks exist — means work has started
-    const subList = subs[key] || [];
-    const logs = itemLogs[key] || [];
-    if (subList.length > 0 || logs.length > 0) return 'purchase';
-    return 'design';
-  }
-  return 'design';
-}
-
-function renderSwimlane() {
-  const body = document.getElementById('sl-body');
-  if (!body) return;
-  
-  const stages = ['design', 'purchase', 'build', 'done'];
-  const rows = [];
-
-  allCats().forEach(cat => {
-    const counts = {design:0, purchase:0, build:0, done:0};
-    const sec = sections.find(s => s.cat === cat);
-    if (sec) {
-      sec.items.forEach((item, i) => {
-        const key = cat + '_h_' + i;
-        counts[getTaskStage(key, item)]++;
-      });
-    }
-    custom.filter(c => c.cat === cat).forEach(item => {
-      const key = '_c_' + item.id;
-      counts[getTaskStage(key, item)]++;
-    });
-    const total = counts.design + counts.purchase + counts.build + counts.done;
-    if (total === 0) return;
-    rows.push({cat, counts, total});
-  });
-
-  body.innerHTML = rows.map(({cat, counts, total}) => {
-    const pct = Math.round((counts.done / total) * 100);
-    const allDone = counts.done === total;
-    
-    const makeChip = (stage, count) => {
-      if (count === 0) return `<span class="sl-chip empty">—</span>`;
-      const isActive = slFilter && slFilter.cat === cat && slFilter.stage === stage;
-      const cls = allDone && stage === 'done' ? 'all-done' : stage;
-      return `<span class="sl-chip ${cls}${isActive ? ' sl-filter-active' : ''}" onclick="setSLFilter('${cat.replace(/'/g,"\'")}','${stage}')">${count}</span>`;
-    };
-
-    return `<tr>
-      <td class="cat-td" title="${cat}">${cat}</td>
-      <td>${makeChip('design', counts.design)}</td>
-      <td>${makeChip('purchase', counts.purchase)}</td>
-      <td>${makeChip('build', counts.build)}</td>
-      <td>${makeChip('done', counts.done)}</td>
-      <td style="min-width:80px;padding:4px 12px">
-        <div style="font-size:10px;color:#94a3b8;text-align:right;margin-bottom:2px">${pct}%</div>
-        <div class="sl-progress"><div class="sl-progress-bar" style="width:${pct}%"></div></div>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function setSLFilter(cat, stage) {
-  // Toggle off if already active
-  if (slFilter && slFilter.cat === cat && slFilter.stage === stage) {
-    slFilter = null;
-  } else {
-    slFilter = {cat, stage};
-    // Reset status filter to all
-    cur = 'all';
-    document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
-    document.querySelector('.filters button').classList.add('active');
-  }
-  renderSwimlane();
-  render();
-}
-
-let swimlaneCollapsed = false;
-function toggleSwimlane() {
-  swimlaneCollapsed = !swimlaneCollapsed;
-  document.getElementById('swimlane-body').style.display = swimlaneCollapsed ? 'none' : 'block';
-  document.getElementById('sl-chevron').style.transform = swimlaneCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
-  document.getElementById('sl-toggle-label').textContent = swimlaneCollapsed ? 'show' : 'hide';
-}
 
 // ── Auth ─────────────────────────────────────────────────
 // Initialise app directly
@@ -1160,7 +1043,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · To-Do v3.25.0';
+  var VERSION_STR = 'FD Event Planner · To-Do v3.25.1';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
