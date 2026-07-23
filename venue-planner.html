@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.18</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.19</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -228,7 +228,7 @@ var _db=firebase.firestore();
       <div class="stab" onclick="showTab('shapes')">Shapes</div>
     </div>
     <div id="scontent">
-      <div id="tab-library"><input id="lib-search" type="text" placeholder="&#128269; Search library..." oninput="renderLibrary()" style="width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-family:inherit;outline:none;margin-bottom:4px;box-sizing:border-box"><div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px"><span onclick="collapseLibrary(true)" style="font-size:10px;color:#94a3b8;cursor:pointer;text-decoration:underline">Collapse all</span><span onclick="collapseLibrary(false)" style="font-size:10px;color:#94a3b8;cursor:pointer;text-decoration:underline">Expand all</span></div><div id="lib-list"></div></div>
+      <div id="tab-library"><input id="lib-search" type="text" placeholder="&#128269; Search library..." oninput="renderLibrary()" style="width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-family:inherit;outline:none;margin-bottom:4px;box-sizing:border-box"><div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px"><span onclick="setAllLibCollapsed(true)" style="font-size:10px;color:#94a3b8;cursor:pointer;text-decoration:underline">Collapse all</span><span onclick="setAllLibCollapsed(false)" style="font-size:10px;color:#94a3b8;cursor:pointer;text-decoration:underline">Expand all</span></div><div id="lib-list"></div></div>
       <div id="tab-equipment" style="display:none">
         <button class="tb" style="width:100%;margin-bottom:8px" onclick="openAddEquip()">+ Add item</button>
         <div id="equip-list"></div>
@@ -272,7 +272,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.18</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.19</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -403,7 +403,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.18</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.19</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -655,6 +655,23 @@ function vpAddVenue(){
 // ── Click-to-place from library ───────────────────────────────────────────────
 var _pendingPlace = null;
 var libCollapsed = {};
+var libCatOrder = LS.get('fd_libcatorder') || []; // user's preferred category ordering in the library sidebar
+function getOrderedCatNames(catsObj){
+  const names = Object.keys(catsObj);
+  const ordered = libCatOrder.filter(c=>names.includes(c));
+  names.forEach(n=>{ if(!ordered.includes(n)) ordered.push(n); });
+  return ordered;
+}
+function moveLibCat(cat,dir){ // dir: -1 = up, +1 = down
+  const cats={};equipment.forEach(function(e){ cats[e.cat]=true; });
+  const order=getOrderedCatNames(cats);
+  const i=order.indexOf(cat),j=i+dir;
+  if(i<0||j<0||j>=order.length)return;
+  const tmp=order[i];order[i]=order[j];order[j]=tmp;
+  libCatOrder=order;
+  LS.set('fd_libcatorder',libCatOrder);
+  renderLibrary();
+}
 
 function displayNotes(notes) {
   if (!notes) return '';
@@ -747,14 +764,7 @@ var SHAPE_DEFAULTS = {
   textblock:  {w:8,  d:3,  fillStyle:'transparent', strokeStyle:'transparent', label:'Label here', isText:true},
 };
 
-function collapseLibrary(collapse) {
-  document.querySelectorAll('.lib-cat-body').forEach(function(el){
-    el.style.display = collapse ? 'none' : 'block';
-  });
-  document.querySelectorAll('.lib-cat-toggle').forEach(function(el){
-    el.textContent = collapse ? '▶' : '▼';
-  });
-}
+
 
 function renderShapes() {
   var el = document.getElementById('shapes-list');
@@ -1286,13 +1296,19 @@ function renderLibrary(){
     (cats[e.cat]=cats[e.cat]||[]).push({...e,idx:i});
   });
 
-  Object.entries(cats).forEach(([cat,items])=>{
+  getOrderedCatNames(cats).forEach((cat)=>{
+    const items=cats[cat];
     const collapsed = libCollapsed[cat] || false;
 
-    // Category header — clickable to collapse
+    // Category header — click to collapse, arrows to reorder
     const h=document.createElement('div');
     h.style.cssText='font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;padding:7px 0 3px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;border-bottom:1px solid #f0f0f0;margin-bottom:2px';
-    h.innerHTML='<span>'+cat+' <span style="color:#ccc;font-size:9px">('+items.length+')</span></span><span style="font-size:11px;color:#ccc;transition:transform .2s" id="cat-chev-'+cat.replace(/\s/g,'_')+'">'+(collapsed?'▸':'▾')+'</span>';
+    h.innerHTML='<span>'+cat+' <span style="color:#ccc;font-size:9px">('+items.length+')</span></span>'
+      +'<span style="display:flex;align-items:center;gap:4px">'
+      +'<span onclick="event.stopPropagation();moveLibCat(\''+cat+'\',-1)" style="font-size:10px;color:#ccc;padding:0 2px" title="Move up">&#9650;</span>'
+      +'<span onclick="event.stopPropagation();moveLibCat(\''+cat+'\',1)" style="font-size:10px;color:#ccc;padding:0 2px" title="Move down">&#9660;</span>'
+      +'<span style="font-size:11px;color:#ccc;transition:transform .2s" id="cat-chev-'+cat.replace(/\s/g,'_')+'">'+(collapsed?'▸':'▾')+'</span>'
+      +'</span>';
     h.onclick=function(){
       libCollapsed[cat]=!libCollapsed[cat];
       const grp=document.getElementById('cat-grp-'+cat.replace(/\s/g,'_'));
@@ -1966,7 +1982,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.18';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.19';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2471,7 +2487,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.18';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.19';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
