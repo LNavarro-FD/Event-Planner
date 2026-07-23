@@ -119,7 +119,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Staff · v2.6.0</span></div>
+<div id="statusbar"><span>FD Staff · v2.6.1</span></div>
 
 <!-- Add/Edit person overlay -->
 <div class="overlay" id="personOverlay" onclick="if(event.target===this)closePersonForm()">
@@ -222,7 +222,21 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
         <div id="aPrevDetail" style="font-size:11px;color:#64748b"></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Role</label><input id="aRole" type="text" placeholder="e.g. Bar Staff, Bar Manager"></div>
+        <div class="field"><label>Role</label>
+          <select id="aRole">
+            <option value="">— Select role —</option>
+            <option value="Bar Manager">Bar Manager</option>
+            <option value="Bar Staff">Bar Staff</option>
+            <option value="Back Bar Manager">Back Bar Manager</option>
+            <option value="Back Bar Stocker">Back Bar Stocker</option>
+            <option value="Rubbish Cleaner">Rubbish Cleaner</option>
+            <option value="Toilet Attendant">Toilet Attendant</option>
+            <option value="Door Staff — Main Entrance">Door Staff — Main Entrance</option>
+            <option value="Door Staff — DJ/Artist Entrance">Door Staff — DJ/Artist Entrance</option>
+            <option value="Setup Crew">Setup Crew</option>
+            <option value="Takedown Crew">Takedown Crew</option>
+          </select>
+        </div>
         <div class="field"><label>Rate (£/hr)</label><input id="aRate" type="number" step="0.5" placeholder="0"></div>
       </div>
       <div class="field"><label>Confirmed?</label>
@@ -756,15 +770,15 @@ function saveAssignments() {
 // ── Seed data ─────────────────────────────────────────────────────────────────
 var SEED_PEOPLE = [
   {id:'alexa_morgan',firstName:'Alexa',lastName:'Morgan',email:'alexacmorgan1234@gmail.com',phone:'7801361703',emContact:'Chloe Chesterton (Mother)',emPhone:'7747618383',health:'',carReg:'RO61 XBK',section:'Bar',tshirt:'S',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
-  {id:'amy_simons',firstName:'Amy',lastName:'Simons',email:'amycsimons@hotmail.com',phone:'7753334136',emContact:'Neil Grainger (Partner)',emPhone:'7486388431',health:'',carReg:'Drop off',section:'Bar',tshirt:'XL',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
+  {id:'amy_simons',firstName:'Amy',lastName:'Simons',email:'amycsimons@hotmail.com',phone:'7753334136',emContact:'Neil Grainger (Partner)',emPhone:'7486388431',health:'',carReg:'',section:'Bar',tshirt:'XL',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'clare_milbank',firstName:'Clare',lastName:'Milbank',email:'claremilbank23@gmail.com',phone:'',emContact:'Andy Benjamin (partner)',emPhone:'7842331059',health:'',carReg:'BV21 WNW',section:'Bar',tshirt:'L',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
-  {id:'daniel_higham',firstName:'Daniel',lastName:'Higham',email:'dhigham211@gmail.com',phone:'7555 423285',emContact:'Frances Higham (Mother)',emPhone:'07857 618457',health:'',carReg:'Drop Off',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
+  {id:'daniel_higham',firstName:'Daniel',lastName:'Higham',email:'dhigham211@gmail.com',phone:'7555 423285',emContact:'Frances Higham (Mother)',emPhone:'07857 618457',health:'',carReg:'',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'finlay_west',firstName:'Finlay William',lastName:'West',email:'finlaywest8@icloud.com',phone:'7368392338',emContact:'Stephanie Rawle (Mother)',emPhone:'7873258378',health:'',carReg:'VX14NKH',section:'Bar',tshirt:'L',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
-  {id:'finley_hannigan',firstName:'Finley',lastName:'Hannigan',email:'finley.hannigan@outlook.com',phone:'7395 534743',emContact:'Alison Hannigan (mum)',emPhone:'7715 884900',health:'',carReg:'Drop Off',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
+  {id:'finley_hannigan',firstName:'Finley',lastName:'Hannigan',email:'finley.hannigan@outlook.com',phone:'7395 534743',emContact:'Alison Hannigan (mum)',emPhone:'7715 884900',health:'',carReg:'',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'harry_jordan',firstName:'Harry James',lastName:'Jordan',email:'jordanharry2120@gmail.com',phone:'7557410310',emContact:'Lisa Currie (Mum)',emPhone:'7980706620',health:'',carReg:'SB17MKF',section:'Bar',tshirt:'L',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'henry_may',firstName:'Henry',lastName:'May',email:'Henryjemay@gmail.com',phone:'',emContact:'Millie May (Mother)',emPhone:'07810 811552',health:'',carReg:'',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'james_braun',firstName:'James',lastName:'Braun',email:'jbraun1203@outlook.com',phone:'07950 254199',emContact:'(mother)',emPhone:'07817 379806',health:'Milk & Dairy Allergy',carReg:'OV69 HGD',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
-  {id:'jimbo_davies',firstName:'Jimbo',lastName:'Davies',email:'jimbodavies02@gmail.com',phone:'7376594040',emContact:'Olivia (mother)',emPhone:'7855811065',health:'',carReg:'Drop off',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
+  {id:'jimbo_davies',firstName:'Jimbo',lastName:'Davies',email:'jimbodavies02@gmail.com',phone:'7376594040',emContact:'Olivia (mother)',emPhone:'7855811065',health:'',carReg:'',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'kelly_bamsey',firstName:'Kelly',lastName:'Bamsey',email:'kellybambi4u@yahoo.com',phone:'',emContact:'',emPhone:'',health:'',carReg:'',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'libby_swan',firstName:'Libby',lastName:'Swan',email:'lib_swan@hotmail.com',phone:'7986477664',emContact:'Nicola Swan (Mother)',emPhone:'7947402300',health:'',carReg:'ET22 LCL',section:'Bar',tshirt:'XS',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'louise_simons',firstName:'Louise',lastName:'Simons',email:'louisesimons@yahoo.co.uk',phone:'7967995495',emContact:'Adam Smith (Husband)',emPhone:'7815784440',health:'Asthma',carReg:'EO64 YKC',section:'Bar',tshirt:'M',neck:'V',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
@@ -772,7 +786,7 @@ var SEED_PEOPLE = [
   {id:'minola_slavenschi',firstName:'Minola',lastName:'Slavenschi',email:'minola0805@gmail.com',phone:'7727992292',emContact:'Margareta Slavenschi (Mother)',emPhone:'07454164280',health:'',carReg:'SB17MKF',section:'Bar',tshirt:'XS',neck:'V',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'nicola_sladden',firstName:'Nicola',lastName:'Sladden',email:'nicolasladden@yahoo.co.uk',phone:'7729210382',emContact:'Darren Sladden (spouse)',emPhone:'7738937230',health:'none',carReg:'',section:'Bar',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'paul_lachman',firstName:'Paul',lastName:'Lachman',email:'paullachman@hotmail.com',phone:'7956875397',emContact:'Stevie Ansell (partner)',emPhone:'7950314091',health:'',carReg:'',section:'Bar',tshirt:'L',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
-  {id:'sonny_vandepeer',firstName:'Sonny',lastName:'Vandepeer',email:'sonnyvandepeer@gmail.com',phone:'7976031587',emContact:'Jason Vandepeer (Father)',emPhone:'7973627992',health:'',carReg:'Drop off',section:'Bar',tshirt:'L',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
+  {id:'sonny_vandepeer',firstName:'Sonny',lastName:'Vandepeer',email:'sonnyvandepeer@gmail.com',phone:'7976031587',emContact:'Jason Vandepeer (Father)',emPhone:'7973627992',health:'',carReg:'',section:'Bar',tshirt:'L',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'steve_west',firstName:'Steve',lastName:'West',email:'stephen.west@outlook.com',phone:'7393 823117',emContact:'Zdenka Brooker (Girlfriend)',emPhone:'7428 717000',health:'',carReg:'KM22 XWV',section:'Bar',tshirt:'L',neck:'Round',plh:'yes',plhNum:'',history:['HRR26'],status:'active'},
   {id:'anna_rawling',firstName:'Anna',lastName:'Rawling',email:'',phone:'',emContact:'',emPhone:'',health:'',carReg:'',section:'Crew',tshirt:'M',neck:'Round',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
   {id:'caroline_daniels',firstName:'Caroline',lastName:'Daniels',email:'caroline.daniels22@gmail.com',phone:'',emContact:'',emPhone:'',health:'',carReg:'',section:'Crew',tshirt:'',neck:'',plh:'no',plhNum:'',history:['HRR26'],status:'active'},
@@ -1229,7 +1243,7 @@ if(document.readyState==='loading'){
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Staff v2.6.0';
+  var VERSION_STR = 'FD Event Planner · Staff v2.6.1';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
