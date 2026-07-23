@@ -105,7 +105,7 @@ var _db = firebase.firestore();
   <h1>🎧 Artists & DJs</h1>
   <button class="view-btn active" onclick="setView('artists')">Artists</button>
   <button class="view-btn" onclick="setView('runsheet')">Runsheet</button>
-  <button class="view-btn" onclick="setView('guestlist')">Guest List</button>
+
 </div>
 
 <div id="toolbar">
@@ -121,7 +121,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Artists & DJs · v1.9.2</span></div>
+<div id="statusbar"><span>FD Artists & DJs · v1.9.3</span></div>
 
 <!-- Add/Edit Artist Modal -->
 <div class="overlay" id="artistModal" onclick="if(event.target===this)closeModal()">
@@ -419,7 +419,7 @@ function save() {
 function setView(v) {
   currentView = v;
   document.querySelectorAll('.view-btn').forEach(function(b, i) {
-    b.classList.toggle('active', ['artists','runsheet','guestlist'][i] === v);
+    b.classList.toggle('active', ['artists','runsheet'][i] === v);
   });
   render();
 }
@@ -804,7 +804,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Artists v1.9.2';
+  var VERSION_STR = 'FD Event Planner · Artists v1.9.3';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
