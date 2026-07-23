@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.15</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.16</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.15</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.16</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -399,7 +399,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.15</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.16</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -940,6 +940,13 @@ function openResizePanel(obj) {
   document.getElementById('resize-d').value = obj.d || '';
   document.getElementById('resize-label').value = obj.name || '';
   document.getElementById('resize-rot').value = obj.rot || 0;
+  const histWrap=document.getElementById('resize-history-wrap');
+  const histEl=document.getElementById('resize-history');
+  const histParts=[];
+  if(obj.supplier)histParts.push(obj.supplier);
+  if(obj.notes)histParts.push(obj.notes);
+  if(histParts.length){histEl.textContent=histParts.join(' — ');histWrap.style.display='block';}
+  else{histWrap.style.display='none';}
   document.getElementById('resizeOverlay').style.display = 'flex';
 }
 
@@ -1568,7 +1575,7 @@ canvas.addEventListener('drop',e=>{
   const r=canvas.getBoundingClientRect();
   const mx=snp(toMX(e.clientX-r.left)-pendingDragEquip.w/2),my=snp(toMY(e.clientY-r.top)-pendingDragEquip.d/2);
   pushUndo();
-  const obj={type:'item',x:mx,y:my,w:pendingDragEquip.w,d:pendingDragEquip.d,name:pendingDragEquip.name,cat:pendingDragEquip.cat,colour:pendingDragEquip.colour||CAT_COL[pendingDragEquip.cat]||'#888'};
+  const obj={type:'item',x:mx,y:my,w:pendingDragEquip.w,d:pendingDragEquip.d,name:pendingDragEquip.name,cat:pendingDragEquip.cat,colour:pendingDragEquip.colour||CAT_COL[pendingDragEquip.cat]||'#888',supplier:pendingDragEquip.supplier||'',notes:pendingDragEquip.notes||''};
   objects.push(obj);pendingDragEquip=null;
   const warn=checkProximity(obj);if(warn)showWarning(warn);
   draw();updateStatus();
@@ -1585,7 +1592,7 @@ canvas.addEventListener('mousedown',e=>{
     pushUndo();
     var np=_pendingPlace;
     objects.push({type:'item',name:np.name,cat:np.cat,w:np.w,d:np.d,x:mx,y:my,rot:0,
-      colour:np.colour||CAT_COL[np.cat]||'#888',snap:np.snap||'grid',supplier:'',confirmed:false});
+      colour:np.colour||CAT_COL[np.cat]||'#888',snap:np.snap||'grid',supplier:np.supplier||'',notes:np.notes||'',confirmed:false});
     draw();updateStatus();saveLayout();
     cancelPendingPlace();
     return;
@@ -1904,7 +1911,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.15';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.16';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2366,6 +2373,10 @@ window._fbLoadAndInit();
         <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Label</label>
         <input id="resize-label" type="text" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none">
       </div>
+      <div id="resize-history-wrap" style="margin-bottom:12px;display:none">
+        <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Where this was used before</label>
+        <div id="resize-history" style="font-size:12px;color:#475569;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;line-height:1.4"></div>
+      </div>
       <div style="margin-bottom:14px">
         <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Rotation (°)</label>
         <input id="resize-rot" type="number" step="15" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none">
@@ -2402,7 +2413,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.15';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.16';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
