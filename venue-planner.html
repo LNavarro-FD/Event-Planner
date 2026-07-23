@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.16</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.17</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.16</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.17</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -399,7 +399,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.16</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.17</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -1162,6 +1162,18 @@ function loadDefaultsIfEmpty(){
     equipment=[...DEFAULT_PITCHES];
     LS.set('fd_equipment',equipment);
     fbSaveEquipment(equipment);
+  } else {
+    // Merge in any new default library items not already present (matched by name).
+    // Without this, additions to DEFAULT_PITCHES in code never reach accounts that
+    // already have a saved equipment library — this was the actual cause of new
+    // library items (Heras run 7m, Crowd barrier run 4.6m) never appearing.
+    const existingNames=new Set(equipment.map(e=>e.name));
+    const missing=DEFAULT_PITCHES.filter(d=>!existingNames.has(d.name));
+    if(missing.length){
+      equipment=[...equipment,...missing];
+      LS.set('fd_equipment',equipment);
+      fbSaveEquipment(equipment);
+    }
   }
 }
 
@@ -1911,7 +1923,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.16';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.17';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2413,7 +2425,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.16';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.17';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
