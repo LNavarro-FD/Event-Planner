@@ -32,6 +32,10 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
 .type-install_stay{background:#dbeafe;color:#1e40af}
 .type-install_go{background:#ede9fe;color:#5b21b6}
+.type-entertainer{background:#fce7f3;color:#9d174d}
+.type-caterer_food{background:#fef3c7;color:#92400e}
+.type-retailer{background:#dbeafe;color:#1e40af}
+.type-visuals{background:#dcfce7;color:#15803d}
 .type-caterer{background:#ffedd5;color:#9a3412}
 .type-goods_services{background:#f0fdf4;color:#166534}
 .rag-green{background:#dcfce7;color:#15803d}
@@ -127,6 +131,10 @@ var _db = firebase.firestore();
     <option value="install_go">Install &amp; Go</option>
     <option value="caterer">Caterer / Retailer</option>
             <option value="goods_services">Goods &amp; Services</option>
+    <option value="entertainer">Entertainers</option>
+    <option value="caterer_food">Caterers / Food</option>
+    <option value="retailer">Retailers</option>
+    <option value="visuals">Visuals (Photo/Video)</option>
   </select>
   <button class="btn" onclick="openAddSupplier()">+ Add supplier</button>
   <label style="padding:6px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:#475569">📥 Import from Xero<input type="file" accept=".csv" onchange="importXero(event)" style="display:none"></label>
@@ -134,7 +142,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Suppliers · v1.7.0</span></div>
+<div id="statusbar"><span>FD Suppliers · v1.8.0</span></div>
 
 <!-- Add/Edit Supplier -->
 <div class="overlay" id="supplierModal" onclick="if(event.target===this)closeModal()">
@@ -246,8 +254,8 @@ var COMPLIANCE_DEFS = {"all": [{"id": "pli", "doc": "Public Liability Insurance"
         {'id': 'delivery_date','doc': 'Confirmed delivery / completion date', 'note': 'Written confirmation of when goods or services will be delivered'},
     ],
     "caterer": [{"id": "food_hygiene_reg", "doc": "Food Hygiene Registration", "note": "Registered with relevant local authority"}, {"id": "food_hygiene_cert", "doc": "Food Hygiene Training Evidence", "note": "Level 2 minimum for all food handlers"}, {"id": "gas_safety", "doc": "Gas Safety Certificate", "note": "Required if using LPG or any gas \u2014 must be current"}, {"id": "allergen", "doc": "Allergen Information", "note": "Written allergen information for all menu items"}, {"id": "waste", "doc": "Waste / Grey Water Arrangements", "note": "How they will manage waste and grey water on site"}, {"id": "food_risk", "doc": "Food Safety Risk Assessment", "note": "Specific to their unit and menu"}]};
-var TYPE_LABELS = {install_stay:'Install & Stay', install_go:'Install & Go', caterer:'Caterer / Retailer', goods_services:'Goods & Services'};
-var TYPE_DESC   = {install_stay:'On site for build, event & derig', install_go:'Installs and leaves before event', caterer:'Trading on site during event', goods_services:'Supplies goods or services remotely — not on site'};
+var TYPE_LABELS = {install_stay:'Install & Stay', install_go:'Install & Go', caterer:'Caterer / Retailer', goods_services:'Goods & Services', entertainer:'Entertainer', caterer_food:'Caterer / Food', retailer:'Retailer', visuals:'Visuals'};
+var TYPE_DESC   = {entertainer:'Dancers, performers, acts', caterer_food:'Food & drink traders', retailer:'Retail vendors & pop-ups', visuals:'Photographers, videographers, drone', install_stay:'On site for build, event & derig', install_go:'Installs and leaves before event', caterer:'Trading on site during event', goods_services:'Supplies goods or services remotely — not on site'};
 
 var suppliers    = [];
 var complianceData = {}; // {supplierId: {docId: status}}
@@ -617,7 +625,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Suppliers v1.7.0';
+  var VERSION_STR = 'FD Event Planner · Suppliers v1.8.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
