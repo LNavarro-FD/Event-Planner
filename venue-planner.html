@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.0</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.1</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.0</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.1</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -1495,10 +1495,17 @@ function drawItem(o){
   ctx.fillStyle=hexRgba(col,0.8);ctx.fillRect(-w/2,-h/2,w,h);
   if(warn){ctx.strokeStyle='#e74c3c';ctx.lineWidth=2.5;ctx.setLineDash([4,3]);ctx.strokeRect(-w/2-1,-h/2-1,w+2,h+2);ctx.setLineDash([]);}
   else{ctx.strokeStyle=sel?'#e74c3c':col;ctx.lineWidth=sel?2.5:1.5;ctx.strokeRect(-w/2,-h/2,w,h);}
-  const fs=Math.min(11,Math.max(7,Math.min(w,h)/3.5));
+  const fs=Math.min(11,Math.max(6,Math.min(w,h)/4));
   ctx.fillStyle='#fff';ctx.font=`bold ${fs}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(o.name,0,0);
-  if(w>40&&h>22){ctx.font=`${Math.max(7,fs-1)}px sans-serif`;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.fillText(o.w+'×'+o.d+'m',0,fs);}
+  // Clip text to box width
+  ctx.save();ctx.rect(-w/2,-h/2,w,h);ctx.clip();
+  var label=o.name;
+  // If text too wide, shorten it
+  while(ctx.measureText(label).width > w-4 && label.length > 3) label=label.slice(0,-1);
+  if(label!==o.name) label=label.slice(0,-1)+'…';
+  ctx.fillText(label,0,h>20?-fs*0.3:0);
+  if(w>30&&h>fs*2.5){ctx.font=`${Math.max(6,fs-2)}px sans-serif`;ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fillText(o.w+'×'+o.d+'m',0,fs*0.9);}
+  ctx.restore();
   if(warn){ctx.fillStyle='#e74c3c';ctx.font='bold 10px sans-serif';ctx.textAlign='right';ctx.textBaseline='top';ctx.fillText('⚠',w/2,-h/2+2);}
   if(sel){
     // corner handles
@@ -1683,12 +1690,14 @@ function toggleGrid(){showGrid=!showGrid;document.getElementById('tbGrid').class
 function toggleSnap(){snapOn=!snapOn;document.getElementById('tbSnap').classList.toggle('on',snapOn);}
 function zoomIn(){const cx=canvas.width/2,cy=canvas.height/2,mx=toMX(cx),my=toMY(cy);scale=Math.min(100,scale*1.2);ox=cx-mx*scale;oy=cy-my*scale;draw();}
 function zoomOut(){const cx=canvas.width/2,cy=canvas.height/2,mx=toMX(cx),my=toMY(cy);scale=Math.max(3,scale/1.2);ox=cx-mx*scale;oy=cy-my*scale;draw();}
+var _fitViewAttempts = 0;
 function fitView(){
   // Force canvas to correct dimensions first
   var r = wrap.getBoundingClientRect();
   if (r.width > 0) { canvas.width = r.width; canvas.height = r.height; }
   var W = canvas.width, H = canvas.height;
-  if (!W || !H) { setTimeout(fitView, 100); return; }
+  if ((!W || !H) && _fitViewAttempts++ < 10) { setTimeout(fitView, 150); return; }
+  _fitViewAttempts = 0;
   if (!boundary) { ox=80; oy=60; scale=8; draw(); return; }
 
   // Find bounding box of all content (boundary + placed items)
@@ -1817,7 +1826,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.0';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.1';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2315,7 +2324,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.0';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.1';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
