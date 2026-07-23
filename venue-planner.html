@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.13</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.14</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.13</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.14</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -399,7 +399,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.13</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.14</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -505,20 +505,24 @@ function doUndo(){
 }
 
 // ── firebase helpers ──────────────────────────────────────────────────────────
-async function saveLayout(){
-  if(!boundary)return;
-  var key=lkey();
-  var data={boundary:{...boundary},objects:JSON.parse(JSON.stringify(objects)),savedAt:new Date().toISOString()};
-  layouts[key]=data;
-  LS.set('fd_layouts',layouts);
-  await fbSaveLayout(key,data);
-  notify('Saved ✓');
-}
+// NOTE: there used to be a second, duplicate saveLayout() further down that silently
+// shadowed this one (JS keeps only the last function declaration with a given name).
+// Removed here — the surviving saveLayout() is the one near '── save/load ──' below.
 
+const _fbWriteQueue={}; // per-key promise chain so writes for the same layout always land in call order
 async function fbSaveLayout(key,data){
-  try{
-    await _db.collection('venues').doc(key).set(data);
-  }catch(e){console.warn('FB save failed',e);}
+  const prev=_fbWriteQueue[key]||Promise.resolve();
+  const run=prev.then(async()=>{
+    try{
+      await _db.collection('venues').doc(key).set(data);
+      return true;
+    }catch(e){
+      console.warn('FB save failed',e);
+      return false;
+    }
+  });
+  _fbWriteQueue[key]=run;
+  return run;
 }
 async function fbLoadAll(){
   
@@ -1180,10 +1184,12 @@ function confirmVenue(){const n=document.getElementById('vnName').value.trim();i
 function saveLayout(){
   pushUndo();
   const key=lkey();
-  const data={objects:JSON.parse(JSON.stringify(objects)),boundary:boundary?{...boundary}:null};
+  const data={objects:JSON.parse(JSON.stringify(objects)),boundary:boundary?{...boundary}:null,savedAt:new Date().toISOString()};
   layouts[key]=data;
   LS.set('fd_layouts',layouts);
-  fbSaveLayout(key,data);
+  fbSaveLayout(key,data).then(ok=>{
+    if(!ok)notify('⚠ Saved locally, but cloud sync failed — check your connection and save again');
+  });
   notify('Saved ✓');
 }
 function loadLayout(){
@@ -1897,7 +1903,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.13';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.14';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2395,7 +2401,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.13';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.14';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
