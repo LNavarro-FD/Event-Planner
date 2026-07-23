@@ -632,12 +632,8 @@ function renderInline(key){
 function makeRow(item,key,isCustom,cat){
   const d=!!done[key];
   const es=effectiveStatus(item,key);
-  // Swimlane filter
-  if (slFilter) {
-    const taskCat = isCustom ? item.cat : key.split('_h_')[0];
-    const taskStage = getTaskStage(key, item);
-    if (taskCat !== slFilter.cat || taskStage !== slFilter.stage) return null;
-  } else {
+  // Status filter
+  {
     const show=cur==='all'
       ||(cur==='done'&&d)
       ||(!d&&es===cur)
@@ -1182,7 +1178,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · To-Do v3.26.2';
+  var VERSION_STR = 'FD Event Planner · To-Do v3.26.3';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
