@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.12</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.13</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.12</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.13</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -399,7 +399,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.12</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.13</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -1599,10 +1599,10 @@ canvas.addEventListener('mousedown',e=>{
       const handleY=icy-Math.cos(angle)*(hh+18);
       const hdx=e.clientX-canvas.getBoundingClientRect().left-handleX;
       const hdy=e.clientY-canvas.getBoundingClientRect().top-handleY;
-      if(Math.hypot(hdx,hdy)<12){rotating=true;rotStartAngle=Math.atan2(e.clientY-canvas.getBoundingClientRect().top-icy,e.clientX-canvas.getBoundingClientRect().left-icx);rotStartObj=selected.rotation||0;return;}
+      if(Math.hypot(hdx,hdy)<12){pushUndo();rotating=true;rotStartAngle=Math.atan2(e.clientY-canvas.getBoundingClientRect().top-icy,e.clientX-canvas.getBoundingClientRect().left-icx);rotStartObj=selected.rotation||0;return;}
     }
     const hit=hitTest(rmx,rmy);selected=hit||null;
-    if(hit){dragging=true;const g=org(hit);dragOX=rmx-g.x;dragOY=rmy-g.y;}
+    if(hit){pushUndo();dragging=true;const g=org(hit);dragOX=rmx-g.x;dragOY=rmy-g.y;}
     draw();updateStatus();return;
   }
   if(mode==='wall'){if(!drawing){drawing=true;drawPts=[{x:mx,y:my}];}else drawPts.push({x:mx,y:my});draw();return;}
@@ -1897,7 +1897,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.12';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.13';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2395,7 +2395,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.12';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.13';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
