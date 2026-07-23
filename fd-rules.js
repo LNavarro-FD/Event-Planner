@@ -189,8 +189,22 @@ window.FD_RULES = (function() {
     DEADLINES:      DEADLINES,
     CATEGORY_RULES: CATEGORY_RULES,
     dueDateForCategory: function(cat) {
+      if (!cat) return null;
+      // Exact match first
       var fn = CATEGORY_RULES[cat];
-      return fn ? fn() : null;
+      if (fn) return fn();
+      // Fuzzy match — category may have artist name suffix e.g. "Artist Liaison — Gordon Mac"
+      var catLower = cat.toLowerCase();
+      if (catLower.indexOf('artist liaison') === 0) return CATEGORY_RULES['Artist Liaison']();
+      if (catLower.indexOf('stage') >= 0 || catLower.indexOf('sound') >= 0 || catLower.indexOf('power') >= 0) return weeksBefore(8);
+      if (catLower.indexOf('structure') >= 0 || catLower.indexOf('infrastructure') >= 0) return weeksBefore(8);
+      if (catLower.indexOf('lighting') >= 0 || catLower.indexOf('sign') >= 0) return weeksBefore(6);
+      if (catLower.indexOf('commercial') >= 0 || catLower.indexOf('legal') >= 0) return weeksBefore(16);
+      if (catLower.indexOf('security') >= 0) return weeksBefore(8);
+      if (catLower.indexOf('entertainment') >= 0) return weeksBefore(8);
+      if (catLower.indexOf('on the day') >= 0) return weeksBefore(2);
+      if (catLower.indexOf('fd festival 8') >= 0 || catLower.indexOf('fd8') >= 0) return weeksBefore(4);
+      return weeksBefore(6); // default fallback
     },
     isOverdue: function(dateStr) {
       if (!dateStr) return false;
