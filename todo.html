@@ -915,21 +915,9 @@ function copyTask(key, cat) {
 }
 
 function collapseAll(collapse) {
-  var cats = allCats();
-  cats.forEach(function(cat) {
-    collapsedSections[cat] = collapse;
-  });
+  allCats().forEach(function(cat) { collapsedSections[cat] = collapse; });
   saveCollapsed();
-  // Update DOM directly without full re-render for speed
-  cats.forEach(function(cat) {
-    var safeId = cat.replace(/[^a-z0-9]/gi,'_');
-    var body = document.getElementById('secbody_' + safeId);
-    var hdr  = document.getElementById('sechdr_' + safeId);
-    var chev = document.getElementById('secchev_' + safeId);
-    if (body) body.classList.toggle('collapsed', collapse);
-    if (hdr)  hdr.classList.toggle('collapsed', collapse);
-    if (chev) chev.style.transform = collapse ? 'rotate(-90deg)' : 'rotate(0deg)';
-  });
+  render();
 }
 
 
@@ -1183,7 +1171,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · To-Do v3.26.4';
+  var VERSION_STR = 'FD Event Planner · To-Do v3.26.5';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
