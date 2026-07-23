@@ -119,7 +119,7 @@ body{font-family:system-ui,sans-serif;font-size:13px;background:#f1f5f9;color:#1
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Staff · v2.5.1</span></div>
+<div id="statusbar"><span>FD Staff · v2.6.0</span></div>
 
 <!-- Add/Edit person overlay -->
 <div class="overlay" id="personOverlay" onclick="if(event.target===this)closePersonForm()">
@@ -507,11 +507,43 @@ function getStaffWristbandCount() {
   return count;
 }
 
+function updateContractor(el) {
+  var key = el.getAttribute('data-ctkey');
+  if (!wristbandData.contractors) wristbandData.contractors = {};
+  wristbandData.contractors[key] = parseInt(el.value)||0;
+  saveWristbandData();
+  // Update total without full re-render
+  var total = 0;
+  Object.keys(wristbandData.contractors).forEach(function(k){ total += wristbandData.contractors[k]||0; });
+}
+
 function getAAAWristbandCount() {
-  // Fixed: 16 full AAA + 25 AAA-only = 41 total AAA wristbands
-  // Full AAA: 11 artists + Rosie + Ray + 3 Panache = 16
-  // AAA-only: 11x2 guest + Back Bar Manager + 2 Lead Rubbish = 25
-  return 41;
+  var artistCount = 0;
+  if (window._artistData && window._artistData.length) {
+    artistCount = window._artistData.filter(function(a){ return a.events && a.events.includes('FD7'); }).length;
+  }
+  if (wristbandData.artistCount) artistCount = wristbandData.artistCount;
+  var namedCrew = wristbandData.namedCrewCount || 5;
+  var guestsPerArtist = wristbandData.guestsPerArtist || 2;
+  var fullAAA = artistCount + namedCrew;
+  var artistGuests = artistCount * guestsPerArtist;
+  var roleAAA = 0;
+  ROLE_DEFS.forEach(function(section) {
+    section.roles.forEach(function(role) {
+      var slotCount = calcRoleQty(role, selectedTier);
+      for (var i = 0; i < slotCount; i++) {
+        if (wristbandForRole(role.id, i).label === 'AAA') roleAAA++;
+      }
+    });
+  });
+  return {fullAAA:fullAAA, artistGuests:artistGuests, roleAAA:roleAAA, total:fullAAA+artistGuests+roleAAA, artistCount:artistCount, namedCrew:namedCrew, guestsPerArtist:guestsPerArtist};
+}
+
+async function loadArtistData() {
+  try {
+    var snap = await _db.collection('artists_db').doc('artists').get();
+    if (snap.exists && snap.data().artists) window._artistData = snap.data().artists;
+  } catch(e) { console.warn('Artist data load failed', e); }
 }
 
 function getTshirtCounts() {
@@ -539,7 +571,8 @@ function getTshirtCounts() {
 
 function renderWristbands() {
   var html = '';
-  var aaaTotal = getAAAWristbandCount();
+  var aaaCalc = getAAAWristbandCount();
+  var aaaTotal = aaaCalc.total;
   var staffFilled = getStaffWristbandCount();
   var staffTotal = 0;
   ROLE_DEFS.forEach(function(section) {
@@ -561,6 +594,11 @@ function renderWristbands() {
   // ── Ticket sales ─────────────────────────────────────────────────────────
   html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px">';
   html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:12px">🎟 Ticket Sales</div>';
+  html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">';
+  html += '<div><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:4px">Named crew AAA</div><div style="font-size:10px;color:#64748b;margin-bottom:4px">Rosie, Ray, Panache(3) + others</div><input type="number" value="'+(wristbandData.namedCrewCount||5)+'" min="0" onchange="wristbandData.namedCrewCount=parseInt(this.value)||0;saveWristbandData();renderWristbands()" style="width:65px;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:14px;font-weight:700;outline:none"></div>';
+  html += '<div><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:4px">Artist count override</div><div style="font-size:10px;color:#64748b;margin-bottom:4px">0 = auto from Artists module</div><input type="number" value="'+(wristbandData.artistCount||0)+'" min="0" onchange="wristbandData.artistCount=parseInt(this.value)||0;saveWristbandData();renderWristbands()" style="width:65px;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:14px;font-weight:700;outline:none"></div>';
+  html += '<div><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:4px">Guest wristbands per artist</div><div style="font-size:10px;color:#64748b;margin-bottom:4px">&nbsp;</div><input type="number" value="'+(wristbandData.guestsPerArtist||2)+'" min="0" max="5" onchange="wristbandData.guestsPerArtist=parseInt(this.value)||2;saveWristbandData();renderWristbands()" style="width:65px;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:14px;font-weight:700;outline:none"></div>';
+  html += '</div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">';
 
   // Actuals
@@ -586,7 +624,8 @@ function renderWristbands() {
   html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:12px">💎 Wristband Order</div>';
 
   var rows = [
-    {label:'AAA Wristbands', sub:'11 Artists + Rosie + Ray + 3 Panache (16 full) + 25 guest/backstage', qty:aaaTotal, color:'#9d174d', bg:'#fce7f3'},
+    {label:'AAA Lanyard + Wristband', sub:aaaCalc.artistCount+' Artists/DJs + '+aaaCalc.namedCrew+' named crew', qty:aaaCalc.fullAAA, color:'#9d174d', bg:'#fce7f3'},
+    {label:'AAA Wristband only', sub:aaaCalc.artistCount+' artists x '+aaaCalc.guestsPerArtist+' guests + role-based (Back Bar Mgr etc)', qty:aaaCalc.artistGuests+aaaCalc.roleAAA, color:'#be185d', bg:'#fdf2f8'},
     {label:'Staff Wristbands', sub:staffFilled+' assigned of '+staffTotal+' slots at '+selectedTier.toLocaleString()+' capacity', qty:staffTotal, color:'#1e40af', bg:'#dbeafe'},
     {label:'General Entry Wristbands', sub:'Target '+target.toLocaleString()+' + '+buffer+'% buffer', qty:generalOrder, color:'#15803d', bg:'#dcfce7'},
   ];
@@ -608,6 +647,35 @@ function renderWristbands() {
     html += '<div style="margin-top:8px;padding:8px 12px;background:#fef9c3;border-radius:6px;font-size:11px;color:#854d0e">⚠ '+( staffTotal - staffFilled)+' staff slots unfilled in Staff Planner — staff wristband count may increase</div>';
   }
   html += '</div>';
+
+
+  if (!wristbandData.contractors) wristbandData.contractors = {};
+  var ctTypes = [
+    {key:'caterers',     label:'Caterers / Food traders',    color:'#92400e', bg:'#fef3c7'},
+    {key:'retailers',    label:'Retailers / Vendors',         color:'#1e40af', bg:'#dbeafe'},
+    {key:'entertainers', label:'Entertainers / Performers',   color:'#9d174d', bg:'#fce7f3'},
+    {key:'visuals',      label:'Visuals (Photo/Video/Drone)', color:'#15803d', bg:'#dcfce7'},
+    {key:'interviewers', label:'Roaming interviewers / MCs',  color:'#5b21b6', bg:'#ede9fe'},
+  ];
+  var contractorTotal = 0;
+  ctTypes.forEach(function(ct){ contractorTotal += (wristbandData.contractors[ct.key]||0); });
+  html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px">';
+  html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px">&#127914; Contractor Wristbands</div>';
+  html += '<div style="font-size:11px;color:#64748b;margin-bottom:12px">Enter headcount per contractor category</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px" id="ct-grid">';
+  ctTypes.forEach(function(ct) {
+    var qty = wristbandData.contractors[ct.key] || 0;
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:'+ct.bg+';border-radius:6px">';
+    html += '<span style="font-size:11px;font-weight:600;color:'+ct.color+'">'+ct.label+'</span>';
+    html += '<input type="number" value="'+qty+'" min="0" data-ctkey="'+ct.key+'" onchange="updateContractor(this)" style="width:55px;padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:13px;font-weight:700;text-align:center;outline:none">';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f172a;border-radius:6px">';
+  html += '<div style="font-size:12px;font-weight:700;color:#fff">TOTAL CONTRACTOR WRISTBANDS</div>';
+  html += '<div style="font-size:20px;font-weight:800;color:#FF4B7B">'+contractorTotal+'</div>';
+  html += '</div></div>';
+  totalOrder += contractorTotal;
 
   // ── T-shirt order ─────────────────────────────────────────────────────────
   var tshirts = getTshirtCounts();
@@ -661,6 +729,7 @@ async function load() {
   await loadRoleOverrides();
   await loadRoleSlots();
   await loadWristbandData();
+  await loadArtistData();
   try {
     var snap = await _db.collection('staff').doc('people_v2').get();
     if (snap.exists && snap.data().people) people = snap.data().people;
@@ -1160,7 +1229,7 @@ if(document.readyState==='loading'){
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Staff v2.5.1';
+  var VERSION_STR = 'FD Event Planner · Staff v2.6.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
