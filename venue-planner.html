@@ -1279,8 +1279,12 @@ function renderLibrary(){
     grp.style.display=collapsed?'none':'block';
 
     items.forEach(e=>{
-      const d=document.createElement('div');d.className='lib-item';d.draggable=true;
-      d.innerHTML=`<div class="swatch" style="background:${e.colour||CAT_COL[e.cat]||'#888'}"></div><div style="flex:1;min-width:0"><div style="font-weight:500;color:#222">${e.name}</div><div style="color:#aaa;font-size:10px">${e.w}×${e.d}m${e.supplier?' · '+e.supplier:''}</div>${e.notes&&displayNotes(e.notes)?'<div style="color:#94a3b8;font-size:9px;margin-top:1px;font-style:italic;white-space:normal">'+displayNotes(e.notes)+'</div>':''}</div>`;
+      const d=document.createElement('div');d.className='lib-item';
+      var tipText = e.name + ' · ' + e.w + '×' + e.d + 'm';
+      if (e.supplier) tipText += '\nSupplier: ' + e.supplier;
+      if (e.notes) tipText += '\n' + e.notes;
+      d.title = tipText;d.draggable=true;
+      d.innerHTML=`<div class="swatch" style="background:${e.colour||CAT_COL[e.cat]||'#888'}"></div><div style="flex:1;min-width:0"><div style="font-weight:500;color:#222">${e.name}</div><div style="color:#aaa;font-size:10px">${e.w}×${e.d}m</div></div>`;
       d.ondragstart=ev=>{pendingDragEquip=e;ev.dataTransfer.effectAllowed='copy';ev.dataTransfer.setData('text','equip');};
       (function(item,el){el.onclick=function(ev){ev.stopPropagation();selectLibItem(item,el);};})(e,d);
       grp.appendChild(d);
