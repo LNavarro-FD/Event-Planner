@@ -142,7 +142,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Suppliers · v1.10.0</span></div>
+<div id="statusbar"><span>FD Suppliers · v1.10.1</span></div>
 
 <!-- Add/Edit Supplier -->
 <div class="overlay" id="supplierModal" onclick="if(event.target===this)closeModal()">
@@ -482,6 +482,13 @@ function render() {
   else renderKit(event);
 }
 
+var ACCRED_MAP = {
+  aaa_lanyard: {l:'AAA Lanyard + WB', c:'#9d174d', b:'#fce7f3'},
+  crew_lanyard: {l:'CREW Lanyard + WB', c:'#5b21b6', b:'#ede9fe'},
+  staff:        {l:'Staff WB', c:'#1e40af', b:'#dbeafe'},
+  general:      {l:'General Entry WB', c:'#15803d', b:'#dcfce7'}
+};
+
 function renderSuppliers(event, type) {
   var filtered = suppliers.filter(function(s) {
     if (event && !s.events.includes(event)) return false;
@@ -643,7 +650,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Suppliers v1.10.0';
+  var VERSION_STR = 'FD Event Planner · Suppliers v1.10.1';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
