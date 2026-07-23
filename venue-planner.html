@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.7</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.8</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.7</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.8</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -399,7 +399,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.7</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.8</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -579,6 +579,8 @@ let objects=[],boundary=null,selected=null,mode='select';
 let showGrid=true,snapOn=true,scale=8,ox=80,oy=60;
 let drawing=false,drawPts=[],mousePos={x:0,y:0};
 let panning=false,panSX=0,panSY=0,panOX=0,panOY=0;
+let alignGuides=[]; // active alignment guide lines while dragging: {axis:'v'|'h', pos}
+const ALIGN_SNAP_PX=8; // pixel threshold for snapping to another object's edge/centre
 let spaceDown=false,dragging=false,dragOX=0,dragOY=0;
 let pending=null,pendingDragEquip=null,editingEquipIdx=-1;
 let rotating=false,rotStartAngle=0,rotStartObj=0;
@@ -1380,6 +1382,7 @@ function draw(){
   if(showGrid)drawGrid(W,H);
   if(boundary)drawBoundary();
   objects.forEach(o=>{if(o.type==='zone')drawZone(o);else if(o.type==='wall')drawWall(o);else if(o.type==='measure')drawMeasure(o);else if(o.type==='label')drawLabel(o);else if(o.type==='item')drawItem(o);});
+  drawAlignGuides();
   if(drawing)drawPreview();
   drawCompass(W-46,48);
 }
@@ -1628,13 +1631,23 @@ window.addEventListener('mousemove',e=>{
     draw();return;
   }
   if(dragging&&selected){
-    const g=org(selected);moveObj(selected,mx-dragOX-g.x,my-dragOY-g.y);
-    if(selected.type==='item'){const warn=checkProximity(selected);if(warn)showWarning(warn);}
+    if(selected.type==='item'){
+      let nx=mx-dragOX,ny=my-dragOY;
+      const guide=computeAlignGuides(selected,nx,ny,selected.w||0,selected.d||0);
+      if(guide.x!==null)nx=guide.x;
+      if(guide.y!==null)ny=guide.y;
+      selected.x=nx;selected.y=ny;
+      alignGuides=guide.lines;
+      const warn=checkProximity(selected);if(warn)showWarning(warn);
+    } else {
+      const g=org(selected);moveObj(selected,mx-dragOX-g.x,my-dragOY-g.y);
+      alignGuides=[];
+    }
     draw();return;
   }
   if(drawing)draw();
 });
-window.addEventListener('mouseup',e=>{if(e.button===1||spaceDown)panning=false;dragging=false;rotating=false;updateStatus();});
+window.addEventListener('mouseup',e=>{if(e.button===1||spaceDown)panning=false;dragging=false;rotating=false;alignGuides=[];updateStatus();});
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
   if(e.ctrlKey||e.metaKey){
@@ -1690,6 +1703,44 @@ function nearSeg(px,py,a,b,t){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)re
 function inPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)inside=!inside;}return inside;}
 function org(o){if(o.type==='label'||o.type==='item')return{x:o.x,y:o.y};if(o.type==='measure')return{x:o.x0,y:o.y0};if(o.points)return{x:o.points[0].x,y:o.points[0].y};return{x:0,y:0};}
 function moveObj(o,dx,dy){if(o.type==='label'||o.type==='item'){o.x+=dx;o.y+=dy;}else if(o.type==='measure'){o.x0+=dx;o.y0+=dy;o.x1+=dx;o.y1+=dy;}else if(o.points)o.points.forEach(p=>{p.x+=dx;p.y+=dy;});}
+function computeAlignGuides(obj,x,y,w,d){
+  // Checks the dragged item's edges+centres against every other item's edges+centres (and the boundary),
+  // snapping each axis independently when within ALIGN_SNAP_PX on screen. Returns {x,y,lines}.
+  const thresh=ALIGN_SNAP_PX/scale;
+  const targetsX=[x,x+w/2,x+w]; // left, centre, right of dragged item
+  const targetsY=[y,y+d/2,y+d]; // bottom, centre, top of dragged item
+  let bestX=null,bestXDelta=thresh,bestXLine=null;
+  let bestY=null,bestYDelta=thresh,bestYLine=null;
+  const others=objects.filter(o=>o!==obj&&o.type==='item');
+  if(boundary)others.push({x:0,y:0,w:boundary.w,d:boundary.d});
+  others.forEach(o=>{
+    const oxs=[o.x,o.x+o.w/2,o.x+o.w];
+    const oys=[o.y,o.y+o.d/2,o.y+o.d];
+    targetsX.forEach(tx=>oxs.forEach(ox2=>{
+      const delta=Math.abs(tx-ox2);
+      if(delta<bestXDelta){bestXDelta=delta;bestX=x+(ox2-tx);bestXLine=ox2;}
+    }));
+    targetsY.forEach(ty=>oys.forEach(oy2=>{
+      const delta=Math.abs(ty-oy2);
+      if(delta<bestYDelta){bestYDelta=delta;bestY=y+(oy2-ty);bestYLine=oy2;}
+    }));
+  });
+  const lines=[];
+  if(bestX!==null)lines.push({axis:'v',pos:bestXLine});
+  if(bestY!==null)lines.push({axis:'h',pos:bestYLine});
+  return{x:bestX,y:bestY,lines};
+}
+function drawAlignGuides(){
+  if(!alignGuides.length)return;
+  ctx.save();ctx.strokeStyle='#e91e8c';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+  alignGuides.forEach(g=>{
+    ctx.beginPath();
+    if(g.axis==='v'){const cx=toCX(g.pos);ctx.moveTo(cx,0);ctx.lineTo(cx,canvas.height);}
+    else{const cy=toCY(g.pos);ctx.moveTo(0,cy);ctx.lineTo(canvas.width,cy);}
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);ctx.restore();
+}
 
 // ── mode/tools ────────────────────────────────────────────────────────────────
 function setMode(m){
@@ -1839,7 +1890,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.7';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.8';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2337,7 +2388,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.7';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.8';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
