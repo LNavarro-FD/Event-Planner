@@ -142,7 +142,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Suppliers · v1.8.0</span></div>
+<div id="statusbar"><span>FD Suppliers · v1.9.0</span></div>
 
 <!-- Add/Edit Supplier -->
 <div class="overlay" id="supplierModal" onclick="if(event.target===this)closeModal()">
@@ -216,7 +216,7 @@ var _db = firebase.firestore();
         </div>
       </div>
       <div class="field"><label>OneDrive upload link</label><input id="s-onedrive" type="url" placeholder="Paste OneDrive share link here..."><div style="font-size:10px;color:#94a3b8;margin-top:3px">Share a folder with &quot;Anyone with link can upload&quot; — this link goes into compliance request emails</div></div>
-      <div class="field"><label>Notes</label><textarea id="s-notes" style="min-height:50px"></textarea></div>
+      <div class="field-row"><div class="field"><label>Brings electrical equipment on site?</label><div style="display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" id="s-electrical" style="width:16px;height:16px;cursor:pointer"><span style="font-size:12px;color:#64748b">PAT certificate required if yes</span></div></div></div><div class="field"><label>Power requirements</label><input id="s-power" type="text" placeholder="e.g. 32A single phase, 2x 13A sockets"></div><div class="field"><label>Notes</label><textarea id="s-notes" style="min-height:50px"></textarea></div>
     </div>
     <div class="modal-footer">
       <button onclick="closeModal()" style="padding:7px 14px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Cancel</button>
@@ -249,11 +249,22 @@ var _db = firebase.firestore();
 var SEED_SUPPLIERS = [{"id": "panache_audio", "name": "Panache Audio Systems", "contact": "Dave Ong", "phone": "01634 720700", "email": "sales@panacheaudio.co.uk", "type": "install_stay", "role": "Stage, PA, sound, lighting & generator", "events": ["FD7"]}, {"id": "under_the_canvas", "name": "Under The Canvas", "contact": "Ben", "phone": "07711 072 438", "email": "ben@underthecanvas.co.uk", "type": "install_go", "role": "Stretch tents", "events": ["FD7"]}, {"id": "house_group", "name": "House Group", "contact": "Andy Coleman", "phone": "", "email": "andy@house-group.uk", "type": "install_go", "role": "Bar structure & fridge trucks", "events": ["FD7"]}, {"id": "local_toilet_hire", "name": "Local Toilet Hire", "contact": "James Parkin", "phone": "0800 907 0086", "email": "james@localtoilethire.co.uk", "type": "install_go", "role": "Heras fencing & crowd barriers", "events": ["FD7"]}, {"id": "luxury_toilet", "name": "Luxury Toilet Hire UK Ltd", "contact": "Sharon", "phone": "01371 873003", "email": "", "type": "install_go", "role": "Luxury toilet trailers", "events": ["FD7"]}, {"id": "marvellous_glow", "name": "Marvellous Glow", "contact": "Paul", "phone": "", "email": "paul@marvellousglow.com", "type": "install_stay", "role": "Site lighting & powered signs", "events": ["FD7"]}, {"id": "swifty_security", "name": "Swifty Security", "contact": "", "phone": "", "email": "", "type": "install_stay", "role": "Security", "events": ["FD7"]}, {"id": "kacy_sounds", "name": "Kacy Sounds & Lighting", "contact": "", "phone": "", "email": "", "type": "install_go", "role": "DJ equipment hire", "events": ["FD7"]}, {"id": "fleur_de_lys", "name": "Fleur De Lys", "contact": "Louise Stirland", "phone": "", "email": "", "type": "install_go", "role": "Flowers & floral decoration", "events": ["FD7"]}, {"id": "be_entertained", "name": "Be Entertained", "contact": "Holly McDougall", "phone": "", "email": "holly@beentertained.co.uk", "type": "install_stay", "role": "Dancers & entertainment", "events": ["FD7"]}, {"id": "wts", "name": "Wireless Terminal Solutions", "contact": "Matt Griffiths", "phone": "", "email": "", "type": "install_go", "role": "Tills, POS & card machines", "events": ["FD7"]}, {"id": "rdl", "name": "RDL (Roadway Distribution)", "contact": "Sean", "phone": "07845 999247", "email": "transport@rdl.delivery", "type": "install_go", "role": "Transport & furniture delivery", "events": ["FD7"]}, {"id": "dunmow", "name": "Dunmow Group", "contact": "", "phone": "01245 466646", "email": "", "type": "install_go", "role": "Skip & RoRo hire", "events": ["FD7"]}, {"id": "tipis_4_hire", "name": "Tipis 4 Hire", "contact": "", "phone": "", "email": "", "type": "install_go", "role": "VIP & sponsor tipis", "events": ["FD7"]}, {"id": "mammoth", "name": "Mammoth Site Storage and Toilet Hire Ltd", "contact": "Max Smith", "phone": "01184 023 451", "mobile": "07979 147 868", "email": "", "type": "install_go", "role": "Welfare unit / mobile canteen", "events": ["FD7"], "notes": "Min 2 weeks hire. Transport both ways. Prev inv 29705 HRR26. Unit: 3650x2300mm."},
   {"id": "furnihire", "name": "FurniHire", "contact": "John Moore", "phone": "01455 634125", "email": "info@furnihire.co.uk", "type": "install_go", "role": "Tables, chairs & benches", "events": ["FD7"]}];
 // Goods & services added to compliance defs below
-var COMPLIANCE_DEFS = {"all": [{"id": "pli", "doc": "Public Liability Insurance", "note": "Valid for full event period, min \u00a35m, business name and activity must match"}, {"id": "rams", "doc": "Risk Assessment & Method Statement (RAMS)", "note": "Must cover build, operation, breakdown and public interaction"}, {"id": "kit_list", "doc": "Equipment / Kit List", "note": "Full list of all items on site \u2014 complete Kit & Power spreadsheet"}, {"id": "staff_list", "doc": "Named Staff List", "note": "All personnel attending site by name \u2014 complete Staff & Vehicles form"}, {"id": "vehicles", "doc": "Vehicle Details", "note": "All vehicle registrations and types for access control"}, {"id": "pat", "doc": "PAT Testing Records", "note": "Valid for all portable electrical equipment"}], "install_stay": [{"id": "power_req", "doc": "Power Requirements / Load Schedule", "note": "Wattage, amps, phase, connection type per item"}, {"id": "safety_brief", "doc": "Safety Briefing Confirmation", "note": "Signed confirmation all staff have been briefed"}, {"id": "onsite_contact", "doc": "On-site Contact Details", "note": "Named contact reachable during entire event period"}, {"id": "emergency", "doc": "Emergency Call-out Contact", "note": "For adverse weather or equipment concerns outside hours"}], "install_go": [{"id": "power_req", "doc": "Power Requirements / Load Schedule", "note": "If electrical equipment on site"}, {"id": "handover", "doc": "Handover / Completion Sign-off", "note": "Confirmation installation complete and safe before leaving"}, {"id": "onsite_contact", "doc": "On-site Contact Details", "note": "Reachable during installation window"}], "goods_services": [
-        {'id': 'pli_gs',      'doc': 'Public Liability Insurance',  'note': 'Valid for the period of supply including delivery if applicable'},
-        {'id': 'delivery_date','doc': 'Confirmed delivery / completion date', 'note': 'Written confirmation of when goods or services will be delivered'},
-    ],
-    "caterer": [{"id": "food_hygiene_reg", "doc": "Food Hygiene Registration", "note": "Registered with relevant local authority"}, {"id": "food_hygiene_cert", "doc": "Food Hygiene Training Evidence", "note": "Level 2 minimum for all food handlers"}, {"id": "gas_safety", "doc": "Gas Safety Certificate", "note": "Required if using LPG or any gas \u2014 must be current"}, {"id": "allergen", "doc": "Allergen Information", "note": "Written allergen information for all menu items"}, {"id": "waste", "doc": "Waste / Grey Water Arrangements", "note": "How they will manage waste and grey water on site"}, {"id": "food_risk", "doc": "Food Safety Risk Assessment", "note": "Specific to their unit and menu"}]};
+var COMPLIANCE_DEFS = {
+  all: [
+    {id:'pli',      doc:'Public Liability Insurance',           note:'Minimum £5m cover, valid for event date', required:true},
+    {id:'rams',     doc:'Risk Assessment / RAMS',               note:'Site-specific risk assessment', required:true},
+    {id:'contract', doc:'Signed contractor declaration',        note:'Funky Dory contractor agreement', required:true},
+  ],
+  electrical: [
+    {id:'pat',      doc:'PAT test certificate',                 note:'All portable electrical appliances brought on site', required:true},
+  ],
+  caterer_food: [
+    {id:'food_hygiene',  doc:'Food hygiene certificate',        note:'Level 2 minimum for all food handlers', required:true},
+    {id:'food_reg',      doc:'Food hygiene registration',       note:'Registered with local authority', required:true},
+    {id:'gas_cert',      doc:'Gas safety certificate',          note:'Required if using gas appliances — N/A if not', required:false},
+    {id:'food_handlers', doc:'Named staff list with food hygiene certs', note:'All staff handling food must hold Level 2 minimum', required:true},
+  ],
+};
 var TYPE_LABELS = {install_stay:'Install & Stay', install_go:'Install & Go', caterer:'Caterer / Retailer', goods_services:'Goods & Services', entertainer:'Entertainer', caterer_food:'Caterer / Food', retailer:'Retailer', visuals:'Visuals'};
 var TYPE_DESC   = {entertainer:'Dancers, performers, acts', caterer_food:'Food & drink traders', retailer:'Retail vendors & pop-ups', visuals:'Photographers, videographers, drone', install_stay:'On site for build, event & derig', install_go:'Installs and leaves before event', caterer:'Trading on site during event', goods_services:'Supplies goods or services remotely — not on site'};
 
@@ -415,19 +426,10 @@ function saveKit() {
 // ── Compliance helpers ────────────────────────────────────────────────────────
 function getDocsForType(type, supplierSubtype) {
   var docs = COMPLIANCE_DEFS.all.slice();
-  // Base type
-  if (type === 'install_stay')   docs = docs.concat(COMPLIANCE_DEFS.install_stay);
-  if (type === 'install_go')     docs = docs.concat(COMPLIANCE_DEFS.install_go);
-  if (type === 'caterer')        docs = docs.concat(COMPLIANCE_DEFS.caterer);
-  if (type === 'retailer')       docs = docs.concat(COMPLIANCE_DEFS.retailer);
-  // Subtype (what the supplier actually does)
-  var sub = supplierSubtype || '';
-  if (sub === 'structure')       docs = docs.concat(COMPLIANCE_DEFS.structure);
-  if (sub === 'bar_equipment')   docs = docs.concat(COMPLIANCE_DEFS.bar_equipment);
-  if (sub === 'security')        docs = docs.concat(COMPLIANCE_DEFS.security);
-  if (sub === 'electrical')      docs = docs.concat(COMPLIANCE_DEFS.electrical);
-  if (sub === 'sound')           docs = docs.concat(COMPLIANCE_DEFS.sound);
-  if (sub === 'lighting')        docs = docs.concat(COMPLIANCE_DEFS.lighting);
+  // PAT if supplier brings electrical equipment
+  if (sup.hasElectrical) docs = docs.concat(COMPLIANCE_DEFS.electrical);
+  // Caterer/food trader extra docs
+  if (type === 'caterer' || type === 'caterer_food') docs = docs.concat(COMPLIANCE_DEFS.caterer_food);
   // Deduplicate by id
   var seen = {};
   return docs.filter(function(d){ if(seen[d.id]) return false; seen[d.id]=true; return true; });
@@ -625,7 +627,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Suppliers v1.8.0';
+  var VERSION_STR = 'FD Event Planner · Suppliers v1.9.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
