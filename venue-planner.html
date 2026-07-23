@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.8</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.9</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.8</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.9</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -399,7 +399,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.8</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.9</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -1632,7 +1632,7 @@ window.addEventListener('mousemove',e=>{
   }
   if(dragging&&selected){
     if(selected.type==='item'){
-      let nx=mx-dragOX,ny=my-dragOY;
+      let nx=snp(mx-dragOX),ny=snp(my-dragOY); // re-snap after removing the raw click offset
       const guide=computeAlignGuides(selected,nx,ny,selected.w||0,selected.d||0);
       if(guide.x!==null)nx=guide.x;
       if(guide.y!==null)ny=guide.y;
@@ -1640,7 +1640,7 @@ window.addEventListener('mousemove',e=>{
       alignGuides=guide.lines;
       const warn=checkProximity(selected);if(warn)showWarning(warn);
     } else {
-      const g=org(selected);moveObj(selected,mx-dragOX-g.x,my-dragOY-g.y);
+      const g=org(selected);moveObj(selected,snp(mx-dragOX)-g.x,snp(my-dragOY)-g.y);
       alignGuides=[];
     }
     draw();return;
@@ -1890,7 +1890,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.8';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.9';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2388,7 +2388,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.8';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.9';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
