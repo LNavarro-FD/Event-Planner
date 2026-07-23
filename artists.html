@@ -121,7 +121,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Artists & DJs · v1.9.1</span></div>
+<div id="statusbar"><span>FD Artists & DJs · v1.9.2</span></div>
 
 <!-- Add/Edit Artist Modal -->
 <div class="overlay" id="artistModal" onclick="if(event.target===this)closeModal()">
@@ -187,23 +187,7 @@ var _db = firebase.firestore();
       <div class="section-head">Riders</div>
       <div class="field"><label>Technical rider</label><textarea id="a-techrider" placeholder="Stage plot, input list, backline requirements..."></textarea></div>
       <div class="field"><label>Hospitality rider</label><textarea id="a-hosprider" placeholder="Food, drink, dressing room requirements..."></textarea></div>
-
-      <div class="section-head">Guest list <span style="font-size:10px;font-weight:400;color:#64748b;text-transform:none">— Artist guests get green room access only (not stage)</span></div>
-      <div id="guest-rows"></div>
-      <button onclick="addGuestRow()" style="font-size:11px;color:#FF4B7B;background:none;border:1px dashed #fca5a5;border-radius:5px;padding:5px 12px;cursor:pointer;width:100%;margin-top:4px">+ Add guest</button>
-
-      <div class="section-head">Status</div>
-      <div class="field-row">
-        <div class="field"><label>Info received</label>
-          <select id="a-infostatus"><option value="pending">Pending</option><option value="received">Received</option><option value="confirmed">Confirmed</option></select>
-        </div>
-        <div class="field"><label>Pack sent</label>
-          <select id="a-packsent"><option value="no">Not sent</option><option value="yes">Sent</option></select>
-        </div>
-      </div>
-      <div class="field"><label>Notes</label><textarea id="a-notes"></textarea></div>
-    </div>
-    <div class="modal-footer">
+      <div class="modal-footer">
       <button onclick="closeModal()" style="padding:7px 14px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Cancel</button>
       <button onclick="saveArtist()" class="btn">Save artist</button>
     </div>
@@ -484,7 +468,6 @@ function renderArtists(filtered) {
   filtered.forEach(function(a) {
     var rag = ragStatus(a);
     var endTime = fmtEndTime(a.setTime, a.setLength);
-    var guestCount = (a.guests||[]).length;
     html += '<div class="a-card">';
     html += '<div class="a-top"><div>';
     html += '<div class="a-name">'+a.perfName+'</div>';
@@ -501,8 +484,7 @@ function renderArtists(filtered) {
     html += '</div>';
     html += '<div class="a-badges">';
     html += '<span class="badge badge-aaa">AAA Lanyard + Wristband</span>';
-    html += '<span class="badge badge-info">2 AAA guest wristbands</span>';
-    if (guestCount > 0) html += '<span class="badge badge-info">'+guestCount+' guest'+(guestCount>1?'s':'')+'</span>';
+    html += '<span class="badge badge-info">2 AAA guest wristbands — manage in Google Sheet</span>';
     if (a.hotel === 'yes') html += '<span class="badge badge-info">Hotel needed</span>';
     if (a.packSent === 'yes') html += '<span class="badge badge-green">Pack sent</span>';
     if (a.notes) html += '<span class="badge badge-amber" title="'+a.notes+'">Note</span>';
@@ -822,7 +804,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Artists v1.9.1';
+  var VERSION_STR = 'FD Event Planner · Artists v1.9.2';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
