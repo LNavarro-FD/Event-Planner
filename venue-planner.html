@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.21</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.22</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -231,6 +231,7 @@ var _db=firebase.firestore();
       <div id="tab-library"><input id="lib-search" type="text" placeholder="&#128269; Search library..." oninput="renderLibrary()" style="width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-family:inherit;outline:none;margin-bottom:4px;box-sizing:border-box"><div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px"><span onclick="setAllLibCollapsed(true)" style="font-size:10px;color:#94a3b8;cursor:pointer;text-decoration:underline">Collapse all</span><span onclick="setAllLibCollapsed(false)" style="font-size:10px;color:#94a3b8;cursor:pointer;text-decoration:underline">Expand all</span></div><div id="lib-list"></div></div>
       <div id="tab-equipment" style="display:none">
         <button class="tb" style="width:100%;margin-bottom:8px" onclick="openAddEquip()">+ Add item</button>
+        <button class="tb" style="width:100%;margin-bottom:8px" onclick="openRenameCat()">Rename category...</button>
         <div id="equip-list"></div>
       </div>
       <div id="tab-shapes" style="display:none">
@@ -272,7 +273,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.21</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.22</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -374,6 +375,14 @@ var _db=firebase.firestore();
         <div class="mrow"><button onclick="closeModal('venueModal')">Cancel</button><button class="ok" onclick="confirmVenue()">Add</button></div>
       </div>
     </div>
+    <div class="modal" id="renameCatModal">
+      <div class="mbox"><h3>Rename category</h3>
+        <p class="hint">Renames every item currently in this category. Its position in the library list is kept.</p>
+        <label>Category</label><select id="rcOldCat"></select>
+        <label>New name</label><input id="rcNewName" type="text" placeholder="Retail">
+        <div class="mrow"><button onclick="closeModal('renameCatModal')">Cancel</button><button class="ok" onclick="confirmRenameCat()">Rename</button></div>
+      </div>
+    </div>
     <div class="modal" id="copyModal">
       <div class="mbox"><h3>Copy layout from year</h3>
         <label>Venue</label><select id="cpVenue" onchange="updateCopyYears()"></select>
@@ -403,7 +412,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.21</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.22</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -1287,7 +1296,7 @@ function renderEquipList(){
   });
 }
 function renderLibrary(){
-  const el=document.getElementById('tab-library');el.innerHTML='';
+  const el=document.getElementById('lib-list');el.innerHTML='';
   if(!equipment.length){el.innerHTML='<p style="color:#ccc;font-size:11px;padding:2px 0">Add items in the Equipment tab first.</p>';return;}
   var searchEl=document.getElementById('lib-search');
   var q=(searchEl?searchEl.value:''). toLowerCase().trim();
@@ -1346,13 +1355,21 @@ function renderLibrary(){
 function openAddEquip(){editingEquipIdx=-1;clearEqForm();document.getElementById('eqTitle').textContent='Add equipment item';openModal('equipModal');}
 function editEquip(i){
   editingEquipIdx=i;const e=equipment[i];
-  document.getElementById('eqName').value=e.name||'';document.getElementById('eqCat').value=e.cat||'other';
+  document.getElementById('eqName').value=e.name||'';populateEqCatOptions(e.cat||'other');
   document.getElementById('eqW').value=e.w||'';document.getElementById('eqD').value=e.d||'';
   document.getElementById('eqSnap').value=e.snap||'none';document.getElementById('eqOwner').value=e.owner||'hire';
   document.getElementById('eqSupplier').value=e.supplier||'';document.getElementById('eqColour').value=e.colour||'#888';
   document.getElementById('eqNotes').value=e.notes||'';document.getElementById('eqTitle').textContent='Edit item';openModal('equipModal');
 }
-function clearEqForm(){['eqName','eqW','eqD','eqSupplier','eqNotes'].forEach(id=>document.getElementById(id).value='');document.getElementById('eqCat').value='other';document.getElementById('eqSnap').value='none';document.getElementById('eqOwner').value='hire';document.getElementById('eqColour').value='#888';}
+function populateEqCatOptions(selected){
+  const sel=document.getElementById('eqCat');
+  const cats={};equipment.forEach(e=>{if(e.cat)cats[e.cat]=true;});
+  if(!Object.keys(cats).length)cats['other']=true;
+  const names=Object.keys(cats).sort();
+  sel.innerHTML=names.map(function(c){return '<option value="'+c+'">'+c.charAt(0).toUpperCase()+c.slice(1)+'</option>';}).join('');
+  sel.value=names.includes(selected)?selected:names[0];
+}
+function clearEqForm(){['eqName','eqW','eqD','eqSupplier','eqNotes'].forEach(id=>document.getElementById(id).value='');populateEqCatOptions('other');document.getElementById('eqSnap').value='none';document.getElementById('eqOwner').value='hire';document.getElementById('eqColour').value='#888';}
 function confirmEquip(){
   const name=document.getElementById('eqName').value.trim();if(!name)return;
   let w=parseFloat(document.getElementById('eqW').value)||1,d=parseFloat(document.getElementById('eqD').value)||1;
@@ -1360,6 +1377,31 @@ function confirmEquip(){
   const item={name,cat:document.getElementById('eqCat').value,w,d,snap,owner:document.getElementById('eqOwner').value,supplier:document.getElementById('eqSupplier').value,colour:document.getElementById('eqColour').value,notes:document.getElementById('eqNotes').value};
   if(editingEquipIdx>=0)equipment[editingEquipIdx]=item;else equipment.push(item);
   LS.set('fd_equipment',equipment);fbSaveEquipment(equipment);closeModal('equipModal');renderEquipList();renderLibrary();
+}
+function openRenameCat(){
+  const sel=document.getElementById('rcOldCat');
+  const cats={};equipment.forEach(function(e){ if(e.cat)cats[e.cat]=true; });
+  const names=Object.keys(cats).sort();
+  if(!names.length){notify('No categories yet — add an item first');return;}
+  sel.innerHTML=names.map(function(c){return '<option value="'+c+'">'+c+' ('+equipment.filter(function(e){return e.cat===c;}).length+' items)</option>';}).join('');
+  document.getElementById('rcNewName').value='';
+  openModal('renameCatModal');
+}
+function confirmRenameCat(){
+  const oldCat=document.getElementById('rcOldCat').value;
+  const newCat=document.getElementById('rcNewName').value.trim();
+  if(!newCat){notify('Enter a new name');return;}
+  if(newCat===oldCat){closeModal('renameCatModal');return;}
+  pushUndo();
+  let count=0;
+  equipment.forEach(function(e){ if(e.cat===oldCat){e.cat=newCat;count++;} });
+  // keep the category's position in the library order — swap the old name for the new one
+  libCatOrder=libCatOrder.map(function(c){return c===oldCat?newCat:c;});
+  LS.set('fd_equipment',equipment);fbSaveEquipment(equipment);
+  LS.set('fd_libcatorder',libCatOrder);
+  closeModal('renameCatModal');
+  renderEquipList();renderLibrary();
+  notify('Renamed '+count+' item'+(count!==1?'s':'')+' from "'+oldCat+'" to "'+newCat+'"');
 }
 
 // ── safety reference panel ────────────────────────────────────────────────────
@@ -1990,7 +2032,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.21';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.22';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2495,7 +2537,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.21';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.22';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
