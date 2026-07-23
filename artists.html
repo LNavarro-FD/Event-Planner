@@ -109,6 +109,8 @@ var _db = firebase.firestore();
 </div>
 
 <div id="toolbar">
+  <a href="https://docs.google.com/spreadsheets/d/1Sx1KxRcRu8uhzbLD5cmA75ugxrYLlOi6kG5hrRt7SRM/edit#gid=1907315003" target="_blank" style="padding:5px 12px;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;font-size:11px;font-weight:600;color:#15803d;text-decoration:none;white-space:nowrap">&#128203; Guest List Sheet</a>
+  <a href="https://docs.google.com/spreadsheets/d/1Sx1KxRcRu8uhzbLD5cmA75ugxrYLlOi6kG5hrRt7SRM/edit#gid=1508769014" target="_blank" style="padding:5px 12px;background:#eff6ff;border:1px solid #93c5fd;border-radius:6px;font-size:11px;font-weight:600;color:#1e40af;text-decoration:none;white-space:nowrap">&#127926; DJ Sheet</a>
   <select id="eventFilter" onchange="render()">
     <option value="FD7">FD7 2026</option>
 
@@ -121,7 +123,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Artists & DJs · v1.9.4</span></div>
+<div id="statusbar"><span>FD Artists & DJs · v1.9.5</span></div>
 
 <!-- Add/Edit Artist Modal -->
 <div class="overlay" id="artistModal" onclick="if(event.target===this)closeModal()">
@@ -803,7 +805,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Artists v1.9.4';
+  var VERSION_STR = 'FD Event Planner · Artists v1.9.5';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
