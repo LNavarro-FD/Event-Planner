@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FD Kanban v3.7.5 — FD7 Kanban</title>
+<title>FD Kanban v3.7.6 — FD7 Kanban</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#1e293b;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -213,7 +213,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 <div id="buildGrid"></div>
 <div id="print-footer">
   <div class="pf-meta">
-    <span>FD Event Planner · Kanban v3.7.5</span>
+    <span>FD Event Planner · Kanban v3.7.6</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -255,14 +255,17 @@ function buildWeekDays(){
   const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  // Find Monday of the week containing (EVENT_DATE - 7 days)
-  // i.e. the Monday of the week BEFORE the event week
-  const start = new Date(EVENT_DATE);
-  start.setDate(start.getDate() - 7); // go back 7 days
-  // Then find the Monday of THAT week (go forward if needed)
-  while(start.getDay() !== 1) start.setDate(start.getDate() + 1);
+  // Use custom start date if set, otherwise auto Monday before event week
+  var start;
+  if (buildStartDate) {
+    start = new Date(buildStartDate);
+  } else {
+    start = new Date(EVENT_DATE);
+    start.setDate(start.getDate() - 7);
+    while(start.getDay() !== 1) start.setDate(start.getDate() + 1);
+  }
 
-  // Setup days: Mon to day before event
+  // Setup days: start to day before event
   const d = new Date(start);
   while(d < EVENT_DATE) {
     days.push({
@@ -587,7 +590,7 @@ function printBuildWeek() {
   document.getElementById('ph-event').textContent    = 'Event: ' + (_ev.displayDate||'Saturday 15 August 2026') + ' · ' + (_ev.venue||'Ashfields Carriage & Polo Club');
   document.getElementById('ph-dates').textContent    = 'Period: ' + firstDay + ' – ' + lastDay;
   document.getElementById('ph-printed').textContent  = 'Printed: ' + dateStr;
-  document.getElementById('pf-right').textContent    = 'FD Event Planner · Kanban v3.7.5 · ' + dateStr;
+  document.getElementById('pf-right').textContent    = 'FD Event Planner · Kanban v3.7.6 · ' + dateStr;
   window.print();
 }
 
@@ -695,7 +698,21 @@ function renderBuildGrid(){
   }
 
   // ── Render grid ──────────────────────────────────────────────────────────────
-  var html = '<div class="bg-title">'+bw.title+'</div>';
+  // Build start date for picker
+  var autoStart = new Date(EVENT_DATE);
+  autoStart.setDate(autoStart.getDate() - 7);
+  while(autoStart.getDay() !== 1) autoStart.setDate(autoStart.getDate() + 1);
+  var currentStart = buildStartDate || autoStart;
+  var currentStartStr = currentStart.toISOString().slice(0,10);
+  var autoStartStr = autoStart.toISOString().slice(0,10);
+
+  var html = '<div class="bg-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  html += '<span>'+bw.title+'</span>';
+  html += '<div style="display:flex;align-items:center;gap:8px">';
+  html += '<label style="font-size:10px;color:#94a3b8;font-weight:600">Build starts:</label>';
+  html += '<input type="date" value="'+currentStartStr+'" onchange="setBuildStartDate(this.value)" style="padding:3px 8px;border:1px solid #475569;border-radius:5px;background:#1e293b;color:#fff;font-size:11px;outline:none">';
+  html += '<button onclick="setBuildStartDate(null)" title="Reset to auto (Mon before event week)" style="padding:3px 8px;border:1px solid #475569;border-radius:5px;background:transparent;color:#94a3b8;font-size:10px;cursor:pointer">↺ Auto</button>';
+  html += '</div></div>';
   html += '<div style="display:flex;gap:10px;padding:8px 14px;background:#1e293b;border-top:1px solid #334155;font-size:10px;font-weight:700">';
   html += '<span style="color:#fff">Hire type:</span>';
   html += '<span style="background:#1e40af;color:#fff;padding:1px 8px;border-radius:3px">WEEK = weekly hire</span>';
@@ -848,6 +865,30 @@ function applyDueDateRules() {
 
 var cells = {};  // global build week cells
 
+
+// ── Build week start date ─────────────────────────────────────────────────────
+var buildStartDate = null; // null = auto (Monday before event week)
+
+async function loadBuildSettings() {
+  try {
+    var snap = await _db.collection('kanban').doc('fd7_build_settings').get();
+    if (snap.exists && snap.data().buildStartDate) {
+      buildStartDate = new Date(snap.data().buildStartDate);
+    }
+  } catch(e) { console.warn(e); }
+}
+
+function saveBuildSettings() {
+  var dateStr = buildStartDate ? buildStartDate.toISOString().slice(0,10) : null;
+  _db.collection('kanban').doc('fd7_build_settings').set({buildStartDate: dateStr}).catch(function(e){console.warn(e);});
+}
+
+function setBuildStartDate(val) {
+  buildStartDate = val ? new Date(val) : null;
+  saveBuildSettings();
+  renderBuildGrid();
+}
+
 // ── Build Week rows — Firestore-backed ────────────────────────────────────────
 var buildRows = null; // null = not loaded yet, use seed
 
@@ -915,6 +956,7 @@ async function loadBuildCells(){
   }catch(e){console.warn('Load cells failed',e);}
   window._buildCells = cells;
   await loadBuildRows();
+  await loadBuildSettings();
   renderBuildGrid();
 }
 
@@ -975,7 +1017,7 @@ if(document.readyState==='loading'){
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Kanban v3.7.5';
+  var VERSION_STR = 'FD Event Planner · Kanban v3.7.6';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
