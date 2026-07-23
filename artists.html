@@ -121,7 +121,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Artists & DJs · v1.7.0</span></div>
+<div id="statusbar"><span>FD Artists & DJs · v1.8.0</span></div>
 
 <!-- Add/Edit Artist Modal -->
 <div class="overlay" id="artistModal" onclick="if(event.target===this)closeModal()">
@@ -230,10 +230,10 @@ var SEED_ARTISTS = [
    changeover:15, hotel:'yes', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'PAID 50%'},
   {id:'bobby_steve', perfName:'Bobby & Steve', legalName:'', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'20:00', setLength:120,
-   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also plays as part of Good 4 Tha Soul 20:00-22:00'},
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Good 4 Tha Soul collective — plays simultaneously with Brandon Block, Ricky Morrison, Ronnie Herel'},
   {id:'brandon_block', perfName:'Brandon Block', legalName:'Brandon Block', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'20:00', setLength:120,
-   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also plays as part of Good 4 Tha Soul 20:00-22:00'},
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Good 4 Tha Soul collective — plays simultaneously with Bobby & Steve, Ricky Morrison, Ronnie Herel'},
   {id:'john_morales', perfName:'John Morales', legalName:'John Morales', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'16:00', setLength:60,
    changeover:15, hotel:'yes', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Hotel + transport required'},
@@ -242,7 +242,7 @@ var SEED_ARTISTS = [
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'ricky_morrison', perfName:'Ricky Morrison', legalName:'Ricky Morrison', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'20:00', setLength:120,
-   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also plays as part of Good 4 Tha Soul 20:00-22:00'},
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Good 4 Tha Soul collective — plays simultaneously with Brandon Block, Bobby & Steve, Ronnie Herel'},
   {id:'colin_francis', perfName:'Colin Francis', legalName:'Colin Francis', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'18:00', setLength:60,
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
@@ -251,11 +251,11 @@ var SEED_ARTISTS = [
    changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:''},
   {id:'ronnie_herel', perfName:'Ronnie Herel', legalName:'Ronnie Herel', email:'ronnieherel@yahoo.co.uk', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'17:00', setLength:60,
-   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'17:00-18:00 with Live PA from Haifa'},
+   changeover:15, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no', notes:'Also part of Good 4 Tha Soul 20:00–22:00. 17:00 set featuring Haifa.'},
   {id:'haifa', perfName:'Haifa', legalName:'', email:'', phone:'', emName:'', emPhone:'',
    agentName:'', agentEmail:'', agentPhone:'', events:['FD7'], fee:0, setTime:'17:00', setLength:60,
    changeover:0, hotel:'no', hotelDetails:'', techRider:'', hospRider:'', guests:[], infoStatus:'pending', packSent:'no',
-   notes:'Live PA within Ronnie Herel set 17:00-18:00'}
+   notes:'Featured artist on Ronnie Herel 17:00–18:00 set. Not a standalone slot.'}
 ];
 
 var artists = [];
@@ -514,22 +514,50 @@ function renderArtists(filtered) {
 }
 
 function renderRunsheet(filtered) {
-  var html = '<table class="run-table"><thead><tr><th>Time</th><th>Artist</th><th>Set length</th><th>Changeover</th><th>Hotel</th><th>Status</th></tr></thead><tbody>';
-  filtered.forEach(function(a) {
-    var endTime = fmtEndTime(a.setTime, a.setLength);
+  // Group artists with same setTime into collective slots
+  var slots = [];
+  var timeMap = {};
+  filtered.slice().sort(function(a,b){ return (a.setTime||'').localeCompare(b.setTime||''); }).forEach(function(a) {
+    var t = a.setTime || '00:00';
+    if (timeMap[t]) {
+      timeMap[t].artists.push(a);
+      if (a.setLength > timeMap[t].setLength) timeMap[t].setLength = a.setLength;
+    } else {
+      timeMap[t] = {setTime: t, setLength: a.setLength||60, artists: [a]};
+      slots.push(timeMap[t]);
+    }
+  });
+
+  var html = '<table class="run-table"><thead><tr><th>Time</th><th>Artist / Act</th><th>Set length</th><th>Hotel</th><th>Status</th></tr></thead><tbody>';
+  slots.forEach(function(slot) {
+    var a = slot.artists[0]; // primary for status/hotel
+    var endTime = fmtEndTime(slot.setTime, slot.setLength);
     var rag = ragStatus(a);
+    var artistNames = slot.artists.map(function(x){ return x.perfName; }).join(' · ');
+    // Check if collective (Good 4 Tha Soul)
+    var isCollective = slot.artists.length > 1;
+    var displayName = isCollective ? '<strong>Good 4 Tha Soul</strong><br><span style="font-size:11px;color:#64748b">' + artistNames + '</span>' : a.perfName;
+    // Check for featured artists in notes
+    if (!isCollective && a.notes && a.notes.toLowerCase().includes('featuring')) {
+      displayName = a.perfName + ' <span style="font-size:11px;color:#64748b">feat. Haifa</span>';
+    }
     html += '<tr>';
-    html += '<td class="set-time">'+fmtTime(a.setTime)+(endTime?' – '+endTime:'')+'</td>';
-    html += '<td style="font-weight:600">'+a.perfName+'</td>';
-    html += '<td>'+(a.setLength||'—')+'min</td>';
-    html += '<td>'+(a.changeover||'—')+'min</td>';
-    html += '<td>'+(a.hotel==='yes'?'✓':'—')+'</td>';
-    html += '<td><span class="badge badge-'+rag+'">'+ragLabel(a)+'</span></td>';
+    html += '<td class="set-time">' + fmtTime(slot.setTime) + (endTime ? '–' + endTime : '') + '</td>';
+    html += '<td>' + displayName + '</td>';
+    html += '<td>' + slot.setLength + ' min</td>';
+    html += '<td>' + (a.hotel === 'yes' ? '🏨' : '—') + '</td>';
+    html += '<td><span class="rag rag-' + rag + '">' + ragLabel(a) + '</span></td>';
     html += '</tr>';
   });
   html += '</tbody></table>';
-  document.getElementById('content').innerHTML = html;
+  return html;
 }
+function _old_renderRunsheet_stub(filtered) { var a = filtered[0];
+    var endTime = fmtEndTime(a.setTime, a.setLength);
+    var rag = ragStatus(a);
+    html += '<tr>';
+}
+
 
 function renderGuestList(filtered, evt) {
   var html = '<div style="margin-bottom:8px;font-size:11px;color:#64748b">🔵 AAA — stage + green room + everywhere &nbsp;·&nbsp; 🟢 Green room — green room only, not stage &nbsp;·&nbsp; ⚪ FOH — front of house only</div>';
@@ -779,7 +807,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Artists v1.7.0';
+  var VERSION_STR = 'FD Event Planner · Artists v1.8.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
