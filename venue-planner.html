@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.6</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.7</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.6</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.7</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -399,7 +399,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.6</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.7</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -1614,7 +1614,7 @@ canvas.addEventListener('dblclick',e=>{
   if(mode==='wall'){if(drawPts.length>=2)objects.push({type:'wall',points:[...drawPts]});drawing=false;drawPts=[];draw();return;}
   if(mode==='zone'){const pts=drawPts.length===1?[drawPts[0],{x:mx,y:drawPts[0].y},{x:mx,y:my},{x:drawPts[0].x,y:my}]:[...drawPts,{x:mx,y:my}];pending={type:'zone',points:pts};drawing=false;drawPts=[];openModal('zoneModal');return;}
 });
-canvas.addEventListener('mousemove',e=>{
+window.addEventListener('mousemove',e=>{
   const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,mx=snp(toMX(sx)),my=snp(toMY(sy));
   mousePos={x:mx,y:my};document.getElementById('sCursor').textContent=`${mx.toFixed(1)}m, ${my.toFixed(1)}m`;
   if(panning){ox=panOX+(e.clientX-panSX);oy=panOY+(e.clientY-panSY);draw();return;}
@@ -1634,7 +1634,7 @@ canvas.addEventListener('mousemove',e=>{
   }
   if(drawing)draw();
 });
-canvas.addEventListener('mouseup',e=>{if(e.button===1||spaceDown)panning=false;dragging=false;rotating=false;updateStatus();});
+window.addEventListener('mouseup',e=>{if(e.button===1||spaceDown)panning=false;dragging=false;rotating=false;updateStatus();});
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
   if(e.ctrlKey||e.metaKey){
@@ -1647,11 +1647,24 @@ canvas.addEventListener('wheel',e=>{
   }
   draw();
 },{passive:false});
+const ARROW_STEP_M=0.1;       // metres moved per arrow key press
+const ARROW_STEP_M_SHIFT=1.0; // metres moved per arrow key press when holding Shift
 window.addEventListener('keydown',e=>{
   if(e.code==='Space'&&document.activeElement===document.body){spaceDown=true;canvas.style.cursor='grab';}
   if(e.key==='Escape'){drawing=false;drawPts=[];pending=null;draw();}
   if((e.key==='Delete'||e.key==='Backspace')&&selected&&document.activeElement===document.body)deleteSelected();
   if((e.ctrlKey||e.metaKey)&&e.key==='z'&&document.activeElement===document.body){e.preventDefault();doUndo();}
+  if(selected&&document.activeElement===document.body&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+    e.preventDefault();
+    const step=e.shiftKey?ARROW_STEP_M_SHIFT:ARROW_STEP_M;
+    let dx=0,dy=0;
+    if(e.key==='ArrowLeft')dx=-step;
+    if(e.key==='ArrowRight')dx=step;
+    if(e.key==='ArrowUp')dy=step;     // model Y is flipped (0 at bottom) — Up increases model Y
+    if(e.key==='ArrowDown')dy=-step;
+    moveObj(selected,dx,dy);
+    draw();updateStatus();
+  }
 });
 window.addEventListener('keyup',e=>{if(e.code==='Space'){spaceDown=false;canvas.style.cursor=mode==='select'?'default':'crosshair';}});
 
@@ -1826,7 +1839,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.6';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.7';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2324,7 +2337,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.6';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.7';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
