@@ -198,7 +198,7 @@ var _db=firebase.firestore();
   <button class="tb on" id="tbSnap" onclick="toggleSnap()">Snap</button>
   <button class="tb" onclick="zoomOut()">−</button>
   <button class="tb" onclick="zoomIn()">+</button>
-  <button class="tb" onclick="fitView()">Fit</button>
+  <button class="tb" onclick="setTimeout(fitView,50)">Fit</button>
   <div class="sep"></div>
   <button class="tb red" onclick="deleteSelected()">Delete</button>
   <button class="tb red" onclick="deleteByCount()" title="Delete multiple of same item">Delete N</button>
@@ -1367,6 +1367,7 @@ function snp(v){return snapOn?Math.round(v*2)/2:v;}
 
 function resize(){const r=wrap.getBoundingClientRect();canvas.width=r.width;canvas.height=r.height;draw();}
 new ResizeObserver(resize).observe(wrap);
+setTimeout(fitView, 200); // initial fit after layout
 
 // ── draw ──────────────────────────────────────────────────────────────────────
 function draw(){
@@ -1678,7 +1679,34 @@ function toggleGrid(){showGrid=!showGrid;document.getElementById('tbGrid').class
 function toggleSnap(){snapOn=!snapOn;document.getElementById('tbSnap').classList.toggle('on',snapOn);}
 function zoomIn(){const cx=canvas.width/2,cy=canvas.height/2,mx=toMX(cx),my=toMY(cy);scale=Math.min(100,scale*1.2);ox=cx-mx*scale;oy=cy-my*scale;draw();}
 function zoomOut(){const cx=canvas.width/2,cy=canvas.height/2,mx=toMX(cx),my=toMY(cy);scale=Math.max(3,scale/1.2);ox=cx-mx*scale;oy=cy-my*scale;draw();}
-function fitView(){if(!boundary){ox=80;oy=60;scale=8;draw();return;}const pad=60,W=canvas.width,H=canvas.height;scale=Math.max(3,Math.min(100,Math.min((W-pad*2)/boundary.w,(H-pad*2)/boundary.d)));ox=Math.round((W-boundary.w*scale)/2);oy=Math.round((H-boundary.d*scale)/2);draw();}
+function fitView(){
+  // Force canvas to correct dimensions first
+  var r = wrap.getBoundingClientRect();
+  if (r.width > 0) { canvas.width = r.width; canvas.height = r.height; }
+  var W = canvas.width, H = canvas.height;
+  if (!W || !H) { setTimeout(fitView, 100); return; }
+  if (!boundary) { ox=80; oy=60; scale=8; draw(); return; }
+
+  // Find bounding box of all content (boundary + placed items)
+  var minX = 0, minY = 0, maxX = boundary.w, maxY = boundary.d;
+  objects.forEach(function(o) {
+    if (o.x !== undefined) {
+      minX = Math.min(minX, o.x);
+      minY = Math.min(minY, o.y);
+      maxX = Math.max(maxX, o.x + (o.w||0));
+      maxY = Math.max(maxY, o.y + (o.d||0));
+    }
+  });
+  var contentW = maxX - minX;
+  var contentH = maxY - minY;
+
+  var pad = 60;
+  scale = Math.max(3, Math.min(100, Math.min((W - pad*2) / contentW, (H - pad*2) / contentH)));
+  // Centre the content
+  ox = Math.round((W - contentW * scale) / 2 - minX * scale);
+  oy = Math.round((H - contentH * scale) / 2 - minY * scale);
+  draw();
+}
 function rotateSelected(deg){
   if(!selected||selected.type!=='item')return;
   selected.rotation=(((selected.rotation||0)+deg)%360+360)%360;
