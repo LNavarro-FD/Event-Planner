@@ -122,8 +122,12 @@ var _db = firebase.firestore();
 
 <div id="toolbar">
   <select id="eventFilter" onchange="render()">
-    <option value="FD7">FD7 2026</option>
-
+    <option value="">All events</option>
+    <option value="FD7">FD Festival 7 (2026)</option>
+    <option value="HRR26">HRR 2026</option>
+    <option value="FD Shindig">FD Shindig</option>
+    <option value="HRR25">HRR 2025</option>
+    <option value="FD6">FD Festival 6</option>
   </select>
   <select id="typeFilter" onchange="render()">
     <option value="">All types</option>
@@ -142,7 +146,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Suppliers · v1.10.1</span></div>
+<div id="statusbar"><span>FD Suppliers · v1.11.0</span></div>
 
 <!-- Add/Edit Supplier -->
 <div class="overlay" id="supplierModal" onclick="if(event.target===this)closeModal()">
@@ -650,7 +654,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Suppliers v1.10.1';
+  var VERSION_STR = 'FD Event Planner · Suppliers v1.11.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
