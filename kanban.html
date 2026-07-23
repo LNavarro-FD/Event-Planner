@@ -382,8 +382,8 @@ const BUILD_WEEK = {
     ]},
   ]
 };
-const STAGE_LABELS={D:'Design',P:'Purchase / Book',B:'Print / Build',X:'Done'};
-const STAGE_COLORS={D:'#7c3aed',P:'#0369a1',B:'#0f766e',X:'#15803d'};
+const STAGE_LABELS={D:'Design',P:'Purchase / Book',B:'Print / Make',W:'Build Week',X:'Done'};
+const STAGE_COLORS={D:'#7c3aed',P:'#0369a1',B:'#0f766e',W:'#b45309',X:'#15803d'};
 
 // Timeline: 13 Jul 2026 → 20 Aug 2026 = ~6 weeks
 const T_START=new Date(EVENT_DATE.getTime()-13*7*24*60*60*1000);
@@ -447,18 +447,28 @@ function renderStats(){
 // ── KANBAN ─────────────────────────────────────────────────────────────────
 function renderKanban(){
   const filtered=getFiltered();
-  const cols={D:[],P:[],B:[],X:[],PE:[]};
+  const cols={D:[],P:[],B:[],W:[],X:[],PE:[]};
+  var BUILD_START = new Date('2026-08-12');
+  var BUILD_END   = new Date('2026-08-15');
   filtered.forEach(t=>{
-    const stage=t.status==='Done'?'X':t.stages[t.currentStage]||'X';
+    if(t.status==='Done'){cols['X'].push(t);return;}
+    var stage = t.stages[t.currentStage]||'X';
+    // Auto-route to Build Week if due date falls in build window
+    if(stage==='B' && t.dueDate){
+      var dd=new Date(t.dueDate);
+      if(dd>=BUILD_START && dd<=BUILD_END){stage='W';}
+    }
     if(cols[stage])cols[stage].push(t);
+    else cols['X'].push(t);
   });
 
   const colDefs=[
-    {key:'D',label:'Design',cls:'col-design'},
-    {key:'P',label:'Purchase / Book',cls:'col-purchase'},
-    {key:'B',label:'Print / Build',cls:'col-build'},
-    {key:'X',label:'Done',cls:'col-done'},
-    {key:'PE',label:'Post-Event ↺',cls:'col-post'},
+    {key:'D', label:'Design',         cls:'col-design'},
+    {key:'P', label:'Purchase / Book',cls:'col-purchase'},
+    {key:'B', label:'Print / Make',   cls:'col-build'},
+    {key:'W', label:'Build Week',     cls:'col-buildweek'},
+    {key:'X', label:'Done',           cls:'col-done'},
+    {key:'PE',label:'Post-Event ↺',   cls:'col-post'},
   ];
 
   const kb=document.getElementById('kanbanView');
