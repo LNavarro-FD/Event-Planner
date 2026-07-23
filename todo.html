@@ -700,7 +700,7 @@ function makeRow(item,key,isCustom,cat){
       <select class="status-sel" onchange="changeStatus('${safeKey}',this.value)">${selOpts}</select>
       ${overrides[key]?'<span style="font-size:11px;color:#FF4B7B">● overridden</span>':''}
     </div>
-    '+renderPMPanel(key, cat, item.t)+'
+    ${renderPMPanel(key, cat, item.t)}
     <div style="display:flex;gap:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#aaa;margin-bottom:6px">Sub-tasks</div>
@@ -1171,7 +1171,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · To-Do v3.26.5';
+  var VERSION_STR = 'FD Event Planner · To-Do v3.26.6';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
