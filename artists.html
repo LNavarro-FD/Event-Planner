@@ -121,7 +121,7 @@ var _db = firebase.firestore();
 </div>
 
 <div id="content"></div>
-<div id="statusbar"><span>FD Artists & DJs · v1.8.0</span></div>
+<div id="statusbar"><span>FD Artists & DJs · v1.9.0</span></div>
 
 <!-- Add/Edit Artist Modal -->
 <div class="overlay" id="artistModal" onclick="if(event.target===this)closeModal()">
@@ -153,6 +153,9 @@ var _db = firebase.firestore();
       <div class="field"><label>Agent phone</label><input id="a-agentphone" type="tel"></div>
 
       <div class="section-head">Event assignment</div>
+      <div class="field-row">
+        <div class="field"><label>Changeover time (mins)</label><input id="a-changeover" type="number" min="0" max="60" placeholder="e.g. 15"></div>
+      </div>
       <div class="field-row">
         <div class="field"><label>Events</label>
           <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap" id="a-events">
@@ -482,11 +485,12 @@ function renderArtists(filtered) {
     html += '</div>';
     html += '<span class="badge badge-'+rag+'">'+ragLabel(a)+'</span>';
     html += '</div>';
-    if (a.setTime) html += '<div class="a-set">'+fmtTime(a.setTime)+(endTime?' – '+endTime:'')+(a.setLength?' ('+a.setLength+'min)':'')+'</div>';
+    if (a.setTime) html += '<div class="a-set">'+fmtTime(a.setTime)+(endTime?' – '+endTime:'')+(a.setLength?' ('+a.setLength+'min)':'')+(a.changeover?' · '+a.changeover+'min changeover':'')+'</div>';
     html += '<div class="a-contact">';
     if (a.email) html += '<a href="mailto:'+a.email+'" style="color:#FF4B7B;text-decoration:none">'+a.email+'</a><br>';
     if (a.phone) html += '📞 '+a.phone;
-    if (a.agentName) html += '<br>Agent: '+a.agentName+(a.agentPhone?' · '+a.agentPhone:'');
+    if (a.emName) html += '<br>🆘 '+a.emName+(a.emPhone?' · '+a.emPhone:'');
+    if (a.agentName) html += '<br>Agent: '+a.agentName+(a.agentPhone?' · '+a.agentPhone:'')+(a.agentEmail?' · '+a.agentEmail:'');
     html += '</div>';
     html += '<div class="a-badges">';
     html += '<span class="badge badge-aaa">AAA Lanyard + Wristband</span>';
@@ -626,6 +630,7 @@ function openEditArtist(id) {
   document.getElementById('a-fee').value         = a.fee||'';
   document.getElementById('a-settime').value     = a.setTime||'';
   document.getElementById('a-setlength').value   = a.setLength||'';
+  document.getElementById('a-changeover').value  = a.changeover||'';
   document.getElementById('a-changeover').value  = a.changeover||'';
   document.getElementById('a-hotel').value       = a.hotel||'no';
   document.getElementById('a-hoteldetails').value= a.hotelDetails||'';
@@ -807,7 +812,7 @@ if (document.readyState === 'loading') {
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Artists v1.8.0';
+  var VERSION_STR = 'FD Event Planner · Artists v1.9.0';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
