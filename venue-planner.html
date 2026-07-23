@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.1</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.2</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -268,7 +268,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.1</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.2</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -1406,7 +1406,7 @@ function drawGrid(W,H){
   for(let y=oy%s5;y<H;y+=s5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   ctx.fillStyle='#aaa';ctx.font='9px sans-serif';
   ctx.textAlign='center';for(let x=ox%s5;x<W;x+=s5)ctx.fillText(Math.round(toMX(x))+'m',x,11);
-  ctx.textAlign='right';for(let y=oy%s5;y<H;y+=s5)ctx.fillText(Math.round(toMY(y))+'m',36,y+3);
+  ctx.textAlign='right';for(let y=oy%s5;y<H;y+=s5){var mY=Math.round(toMY(y));var label=boundary?Math.round(boundary.d-mY)+'m':mY+'m';ctx.fillText(label,36,y+3);}
 }
 function drawBoundary(){
   const x=toCX(0),y=toCY(0),w=boundary.w*scale,h=boundary.d*scale;
@@ -1826,7 +1826,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.1';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.2';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2324,7 +2324,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.1';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.2';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
