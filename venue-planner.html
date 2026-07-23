@@ -168,7 +168,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="topbar">
-  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.17</span>
+  <span style="font-size:11px;color:#888;padding:0 8px;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Site Planner v4.27.18</span>
   <div id="venueBar"></div>
   <span style="font-size:11px;color:#888;padding:0 8px;border-left:2px solid #444;border-right:1px solid #444;height:100%;display:flex;align-items:center;flex-shrink:0">Year</span>
   <div id="yearBar"></div>
@@ -256,6 +256,10 @@ var _db=firebase.firestore();
 
 <div id="canvas-wrap">
     <canvas id="canvas"></canvas>
+    <div id="tentBanner" style="display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#22224C;color:#fff;padding:7px 14px;border-radius:20px;font-size:12px;align-items:center;gap:12px;z-index:50;box-shadow:0 2px 8px #0003">
+      <span id="tentBannerLabel"></span>
+      <button onclick="exitTent()" style="background:#fff;color:#22224C;border:none;border-radius:14px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer">&larr; Exit</button>
+    </div>
     <div id="setup">
       <div class="setup-box">
         <h2 id="setupTitle">Set up venue</h2>
@@ -268,7 +272,7 @@ var _db=firebase.firestore();
 
 <div id="print-footer">
   <div class="pf-meta">
-    <span id="pf-left">FD Event Planner · Site Planner v4.27.17</span>
+    <span id="pf-left">FD Event Planner · Site Planner v4.27.18</span>
     <span id="pf-right"></span>
   </div>
 </div>
@@ -399,7 +403,7 @@ var _db=firebase.firestore();
   </div>
 </div>
 <div id="statusbar">
-  <span style="color:#666;margin-right:8px">Site Planner · v4.27.17</span>
+  <span style="color:#666;margin-right:8px">Site Planner · v4.27.18</span>
   <span id="sCursor">—</span>
   <span id="sMode">Mode: select</span>
   <span id="sSel">Nothing selected</span>
@@ -580,6 +584,7 @@ let currentYear=String(new Date().getFullYear());
 let layouts={};
 let equipment=[];
 let objects=[],boundary=null,selected=null,mode='select';
+let viewStack=[],currentTentRef=null; // "step inside a tent" navigation — viewStack holds the levels above the current one
 let showGrid=true,snapOn=true,scale=8,ox=80,oy=60;
 let drawing=false,drawPts=[],mousePos={x:0,y:0};
 let panning=false,panSX=0,panSY=0,panOX=0,panOY=0;
@@ -624,6 +629,7 @@ function showVenuePicker(){
 
 function vpSelectVenue(v){
   currentVenue=v;
+  viewStack=[];currentTentRef=null;updateTentBanner();
   document.getElementById('venuePicker').style.display='none';
   buildVenueTabs();
   buildYearTabs();
@@ -947,7 +953,14 @@ function openResizePanel(obj) {
   if(obj.notes)histParts.push(obj.notes);
   if(histParts.length){histEl.textContent=histParts.join(' — ');histWrap.style.display='block';}
   else{histWrap.style.display='none';}
+  document.getElementById('resize-stepinside-wrap').style.display=(obj.cat==='structure')?'block':'none';
   document.getElementById('resizeOverlay').style.display = 'flex';
+}
+function stepInsideFromResize(){
+  if(!_resizeTarget)return;
+  const t=_resizeTarget;
+  closeResizePanel();
+  enterTent(t);
 }
 
 function closeResizePanel() {
@@ -972,18 +985,6 @@ function applyResize() {
   notify('Updated ' + (_resizeTarget ? _resizeTarget.name : 'object'));
 }
 
-
-function centreSelected(axis) {
-  if (!selected || !boundary) return;
-  var bCx = boundary.w / 2;  // centre of boundary in metres
-  var bCy = boundary.d / 2;
-  if (axis === 'both' || axis === 'h') selected.x = bCx - (selected.w||0) / 2;
-  if (axis === 'both' || axis === 'v') selected.y = bCy - (selected.d||0) / 2;
-  pushUndo();
-  draw();
-  saveLayout();
-  notify('Centred ' + (axis==='both'?'on canvas':axis==='h'?'horizontally':'vertically'));
-}
 
 
 // ── AI Site Planner Assistant ─────────────────────────────────────────────────
@@ -1195,15 +1196,16 @@ function buildYearTabs(){
   document.getElementById('sVenue').textContent='Active: '+currentVenue+' '+currentYear;
 }
 function getYears(v){return Object.keys(layouts).filter(k=>k.startsWith(v+'_')).map(k=>k.split('_')[1]);}
-function switchVenue(v){saveLayout();currentVenue=v;const yrs=getYears(v);currentYear=yrs.length?yrs[yrs.length-1]:String(new Date().getFullYear());buildVenueTabs();buildYearTabs();loadLayout();}
-function switchYear(y){saveLayout();currentYear=y;buildYearTabs();loadLayout();}
+function switchVenue(v){if(currentTentRef)exitTent();saveLayout();currentVenue=v;const yrs=getYears(v);currentYear=yrs.length?yrs[yrs.length-1]:String(new Date().getFullYear());buildVenueTabs();buildYearTabs();loadLayout();}
+function switchYear(y){if(currentTentRef)exitTent();saveLayout();currentYear=y;buildYearTabs();loadLayout();}
 function confirmVenue(){const n=document.getElementById('vnName').value.trim();if(!n)return;if(!venues.includes(n)){venues.push(n);LS.set('fd_venues',venues);fbSaveLayout('__venues__',{list:venues});}closeModal('venueModal');switchVenue(n);}
 
 // ── save/load ─────────────────────────────────────────────────────────────────
 function saveLayout(){
   pushUndo();
   const key=lkey();
-  const data={objects:JSON.parse(JSON.stringify(objects)),boundary:boundary?{...boundary}:null,savedAt:new Date().toISOString()};
+  const root=getRootData(); // always saves the true top-level venue, even mid-tent-interior-edit
+  const data={objects:JSON.parse(JSON.stringify(root.objects)),boundary:root.boundary?{...root.boundary}:null,savedAt:new Date().toISOString()};
   layouts[key]=data;
   LS.set('fd_layouts',layouts);
   fbSaveLayout(key,data).then(ok=>{
@@ -1736,6 +1738,47 @@ function nearSeg(px,py,a,b,t){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)re
 function inPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)inside=!inside;}return inside;}
 function org(o){if(o.type==='label'||o.type==='item')return{x:o.x,y:o.y};if(o.type==='measure')return{x:o.x0,y:o.y0};if(o.points)return{x:o.points[0].x,y:o.points[0].y};return{x:0,y:0};}
 function moveObj(o,dx,dy){if(o.type==='label'||o.type==='item'){o.x+=dx;o.y+=dy;}else if(o.type==='measure'){o.x0+=dx;o.y0+=dy;o.x1+=dx;o.y1+=dy;}else if(o.points)o.points.forEach(p=>{p.x+=dx;p.y+=dy;});}
+
+// ── Step inside a tent/structure ───────────────────────────────────────────────
+function enterTent(tentObj){
+  if(!tentObj.interior)tentObj.interior=[];
+  viewStack.push({objects,boundary,tentRef:currentTentRef});
+  currentTentRef=tentObj;
+  objects=tentObj.interior;
+  boundary={w:tentObj.w,d:tentObj.d};
+  selected=null;undoStack=[];
+  updateTentBanner();
+  setTimeout(()=>{resize();fitView();},50);
+  draw();updateStatus();
+}
+function exitTent(){
+  if(!currentTentRef||!viewStack.length)return;
+  currentTentRef.interior=objects; // write back explicitly — safe even if undo severed the array reference
+  const prev=viewStack.pop();
+  objects=prev.objects;boundary=prev.boundary;currentTentRef=prev.tentRef;
+  selected=null;undoStack=[];
+  updateTentBanner();
+  setTimeout(()=>{resize();fitView();},50);
+  draw();updateStatus();
+  saveLayout();
+}
+function updateTentBanner(){
+  const b=document.getElementById('tentBanner');
+  if(!b)return;
+  if(currentTentRef){
+    b.style.display='flex';
+    document.getElementById('tentBannerLabel').textContent='Inside: '+(currentTentRef.name||'Structure')+' ('+currentTentRef.w+'×'+currentTentRef.d+'m)';
+  } else {
+    b.style.display='none';
+  }
+}
+function getRootData(){
+  // Reconciles the currently-open interior view back into its parent tent object
+  // (without changing what's on screen), then returns the true top-level objects/boundary for saving.
+  if(!viewStack.length)return{objects,boundary};
+  if(currentTentRef)currentTentRef.interior=objects;
+  return{objects:viewStack[0].objects,boundary:viewStack[0].boundary};
+}
 function computeAlignGuides(obj,x,y,w,d){
   // Checks the dragged item's edges+centres against every other item's edges+centres (and the boundary),
   // snapping each axis independently when within ALIGN_SNAP_PX on screen. Returns {x,y,lines}.
@@ -1897,13 +1940,13 @@ function notify(msg){const n=document.getElementById('notify');n.textContent=msg
 
 function centreSelected(axis) {
   if (!selected || !boundary) return;
-  var bCx = boundary.x + boundary.w / 2;
-  var bCy = boundary.y + boundary.d / 2;
+  var bCx = boundary.w / 2; // boundary is always anchored at model origin (0,0) — no .x/.y offset exists
+  var bCy = boundary.d / 2;
   if (axis === 'both' || axis === 'h') {
-    selected.x = bCx - selected.w / 2;
+    selected.x = bCx - (selected.w||0) / 2;
   }
   if (axis === 'both' || axis === 'v') {
-    selected.y = bCy - selected.d / 2;
+    selected.y = bCy - (selected.d||0) / 2;
   }
   pushUndo();
   draw();
@@ -1923,7 +1966,7 @@ function printPlan() {
   document.getElementById('ph-venue').textContent  = 'Venue: Ashfields Carriage & Polo Club, CM6 1JU';
   document.getElementById('ph-date').textContent   = dateStr;
   document.getElementById('ph-scale').textContent  = scaleStr;
-  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.17';
+  document.getElementById('pf-left').textContent   = 'FD Event Planner · Site Planner v4.27.18';
   document.getElementById('pf-right').textContent  = 'Printed: ' + dateStr + ' · ' + venue;
 
   window.print();
@@ -2393,6 +2436,9 @@ window._fbLoadAndInit();
         <label style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px">Rotation (°)</label>
         <input id="resize-rot" type="number" step="15" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none">
       </div>
+      <div id="resize-stepinside-wrap" style="display:none;margin-bottom:10px">
+        <button onclick="stepInsideFromResize()" style="width:100%;padding:8px;background:#22224C;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">&#8618; Step inside</button>
+      </div>
       <div style="display:flex;gap:8px">
         <button onclick="closeResizePanel()" style="flex:1;padding:8px;background:#f1f5f9;border:none;border-radius:6px;font-size:12px;cursor:pointer">Cancel</button>
         <button onclick="applyResize()" style="flex:2;padding:8px;background:#1e293b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Apply</button>
@@ -2425,7 +2471,7 @@ window._fbLoadAndInit();
 <script>
 // Post version to hub statusbar
 (function() {
-  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.17';
+  var VERSION_STR = 'FD Event Planner · Site Planner v4.27.18';
   function postVersion() { try { window.parent.postMessage({type:'fd_version', version: VERSION_STR}, '*'); } catch(e){} }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', postVersion); }
   else { postVersion(); }
