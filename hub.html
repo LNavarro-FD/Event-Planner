@@ -49,8 +49,58 @@ window.getAnthropicKey = function() {
 };
 </script>
 
+
+<style>
+#pinOverlay{position:fixed;inset:0;background:#0f172a;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#pinBox{background:#1e293b;border-radius:16px;padding:32px 40px;text-align:center;box-shadow:0 8px 32px #0008;min-width:320px}
+#pinTitle{font-size:20px;font-weight:800;color:#fff;margin-bottom:4px}
+#pinSub{font-size:12px;color:#94a3b8;margin-bottom:24px}
+#pinDots{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:#334155;transition:background .15s}
+.pin-dot.filled{background:#FF4B7B}
+#pinPad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.pin-btn{padding:14px;background:#334155;border:none;border-radius:10px;color:#fff;font-size:18px;font-weight:700;cursor:pointer;transition:background .15s}
+.pin-btn:hover{background:#475569}
+#pinError{color:#f87171;font-size:12px;min-height:18px;margin-bottom:8px}
+#pinSkip{color:#475569;font-size:11px;cursor:pointer;text-decoration:underline}
+#pinSkip:hover{color:#94a3b8}
+#accessBadge{position:fixed;bottom:22px;right:80px;font-size:10px;padding:2px 8px;border-radius:8px;font-weight:700;z-index:100}
+.badge-admin{background:#fce7f3;color:#9d174d}
+.badge-team{background:#dbeafe;color:#1e40af}
+.badge-readonly{background:#f1f5f9;color:#64748b}
+</style>
 </head>
 <body>
+<div id="pinOverlay">
+  <div id="pinBox">
+    <div id="pinTitle">FD.PLAN</div>
+    <div id="pinSub">Enter your PIN to continue</div>
+    <div id="pinDots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div id="pinPad">
+      <button class="pin-btn" onclick="pinKey('1')">1</button>
+      <button class="pin-btn" onclick="pinKey('2')">2</button>
+      <button class="pin-btn" onclick="pinKey('3')">3</button>
+      <button class="pin-btn" onclick="pinKey('4')">4</button>
+      <button class="pin-btn" onclick="pinKey('5')">5</button>
+      <button class="pin-btn" onclick="pinKey('6')">6</button>
+      <button class="pin-btn" onclick="pinKey('7')">7</button>
+      <button class="pin-btn" onclick="pinKey('8')">8</button>
+      <button class="pin-btn" onclick="pinKey('9')">9</button>
+      <button class="pin-btn" onclick="pinKey('back')" style="font-size:14px">⌫</button>
+      <button class="pin-btn" onclick="pinKey('0')">0</button>
+      <button class="pin-btn" onclick="pinKey('clear')" style="font-size:12px">CLR</button>
+    </div>
+    <div id="pinError"></div>
+    <div id="pinSkip" onclick="pinSkip()">View only (no PIN)</div>
+  </div>
+</div>
+<div id="accessBadge" style="display:none"></div>
+
 <div id="shell">
   <div id="nav">
     <div id="nav-logo">FD<span>.</span>PLAN</div>
@@ -75,7 +125,7 @@ window.getAnthropicKey = function() {
     <div id="loading"><div class="spinner"></div><p>Loading...</p></div>
     <iframe id="f" src="home.html" onload="loaded()"></iframe>
   </div>
-  <div id="statusbar"><span id="sb">FD Event Planner · hub v1.6.0</span></div>
+  <div id="statusbar"><span id="sb">FD Event Planner · hub v1.7.0</span></div>
 </div>
 <script>
 var SRCS = {home:'home.html', artists:'artists.html', todo:'todo.html', planner:'venue-planner.html', kanban:'kanban.html', staff:'staff.html', suppliers:'suppliers.html', print:'print.html'};
@@ -106,6 +156,85 @@ function go(tab) {
   document.getElementById('loading').classList.remove('hidden');
   document.getElementById('f').src = SRCS[tab];
 }
+</script>
+
+<script>
+// ── PIN Access Control ────────────────────────────────────────────────────────
+// Change these PINs before sharing with the team
+var PIN_ADMIN = '1234';  // ← CHANGE THIS — full access (you)
+var PIN_TEAM  = '0000';  // ← CHANGE THIS — data edit (Rosie + team)
+
+var pinEntry = '';
+var accessLevel = null; // 'admin', 'team', 'readonly'
+
+function pinKey(k) {
+  if (k === 'back') { pinEntry = pinEntry.slice(0,-1); }
+  else if (k === 'clear') { pinEntry = ''; }
+  else if (pinEntry.length < 4) { pinEntry += k; }
+  updatePinDots();
+  if (pinEntry.length === 4) setTimeout(checkPin, 150);
+}
+
+function updatePinDots() {
+  for (var i = 0; i < 4; i++) {
+    document.getElementById('d'+i).classList.toggle('filled', i < pinEntry.length);
+  }
+}
+
+function checkPin() {
+  if (pinEntry === PIN_ADMIN) {
+    grantAccess('admin');
+  } else if (pinEntry === PIN_TEAM) {
+    grantAccess('team');
+  } else {
+    document.getElementById('pinError').textContent = 'Incorrect PIN — try again';
+    pinEntry = '';
+    updatePinDots();
+  }
+}
+
+function pinSkip() {
+  grantAccess('readonly');
+}
+
+function grantAccess(level) {
+  accessLevel = level;
+  window.FD_ACCESS = level;
+  sessionStorage.setItem('fd_access', level);
+  document.getElementById('pinOverlay').style.display = 'none';
+  var badge = document.getElementById('accessBadge');
+  badge.style.display = 'block';
+  if (level === 'admin')    { badge.textContent = '🔑 Admin'; badge.className = 'badge-admin'; }
+  if (level === 'team')     { badge.textContent = '👥 Team';  badge.className = 'badge-team'; }
+  if (level === 'readonly') { badge.textContent = '👁 View only'; badge.className = 'badge-readonly'; }
+  applyAccessLevel(level);
+}
+
+function applyAccessLevel(level) {
+  // Broadcast to all iframes
+  document.querySelectorAll('iframe').forEach(function(f) {
+    try { f.contentWindow.postMessage({type:'fd_access', level:level}, '*'); } catch(e){}
+  });
+}
+
+// Check session — don't ask again if already authenticated this session
+(function() {
+  var saved = sessionStorage.getItem('fd_access');
+  if (saved) { grantAccess(saved); }
+})();
+
+// Re-broadcast access level when iframe loads
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'fd_version') {
+    // Module loaded — send access level
+    if (accessLevel) {
+      try { e.source.postMessage({type:'fd_access', level:accessLevel}, '*'); } catch(ex){}
+    }
+  }
+  if (e.data && e.data.type === 'fd_version') {
+    document.getElementById('sb').textContent = e.data.version;
+  }
+});
 </script>
 </body>
 </html>
